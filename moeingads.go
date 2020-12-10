@@ -610,26 +610,26 @@ func (bm *BucketMap) Store(key string, value *HotEntry) {
 }
 
 
-type OnvaIterator struct {
+type Iterator struct {
 	mads  *MoeingADS
 	iter types.IteratorUI64
 }
 
-var _ types.Iterator = (*OnvaIterator)(nil)
+var _ types.Iterator = (*Iterator)(nil)
 
-func (iter *OnvaIterator) Domain() (start []byte, end []byte) {
+func (iter *Iterator) Domain() (start []byte, end []byte) {
 	return iter.iter.Domain()
 }
-func (iter *OnvaIterator) Valid() bool {
+func (iter *Iterator) Valid() bool {
 	return iter.iter.Valid()
 }
-func (iter *OnvaIterator) Next() {
+func (iter *Iterator) Next() {
 	iter.iter.Next()
 }
-func (iter *OnvaIterator) Key() []byte {
+func (iter *Iterator) Key() []byte {
 	return iter.iter.Key()
 }
-func (iter *OnvaIterator) Value() []byte {
+func (iter *Iterator) Value() []byte {
 	if !iter.Valid() {
 		return nil
 	}
@@ -637,15 +637,15 @@ func (iter *OnvaIterator) Value() []byte {
 	//fmt.Printf("pos = %d %#v\n", pos, iter.mads.datTree.ReadEntry(int64(pos)))
 	return iter.mads.datTree.ReadEntry(int64(pos)).Value
 }
-func (iter *OnvaIterator) Close() {
+func (iter *Iterator) Close() {
 	iter.iter.Close()
 }
 
 func (mads *MoeingADS) Iterator(start, end []byte) types.Iterator {
-	return &OnvaIterator{mads: mads, iter: mads.idxTree.Iterator(start, end)}
+	return &Iterator{mads: mads, iter: mads.idxTree.Iterator(start, end)}
 }
 
 func (mads *MoeingADS) ReverseIterator(start, end []byte) types.Iterator {
-	return &OnvaIterator{mads: mads, iter: mads.idxTree.ReverseIterator(start, end)}
+	return &Iterator{mads: mads, iter: mads.idxTree.ReverseIterator(start, end)}
 }
 
