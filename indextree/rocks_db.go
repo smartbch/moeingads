@@ -65,19 +65,17 @@ func (db *RocksDB) OpenNewBatch() {
 }
 
 func NewRocksDB(name string, dir string) (*RocksDB, error) {
-	// default rocksdb option, good enough for most cases, including heavy workloads.
-	// 1GB table cache, 512MB write buffer(may use 50% more on heavy workloads).
+	// 64MB table cache, 32MB write buffer
 	// compression: snappy as default, need to -lsnappy to enable.
 	bbto := gorocksdb.NewDefaultBlockBasedTableOptions()
-	bbto.SetBlockCache(gorocksdb.NewLRUCache(1 << 30))
+	bbto.SetBlockCache(gorocksdb.NewLRUCache(64 * 1024 * 1024))
 	bbto.SetFilterPolicy(gorocksdb.NewBloomFilter(10))
 
 	opts := gorocksdb.NewDefaultOptions()
 	opts.SetBlockBasedTableFactory(bbto)
 	opts.SetCreateIfMissing(true)
 	opts.IncreaseParallelism(runtime.NumCPU())
-	// 1.5GB maximum memory use for writebuffer.
-	opts.OptimizeLevelStyleCompaction(512 * 1024 * 1024)
+	opts.OptimizeLevelStyleCompaction(32 * 1024 * 1024)
 	return NewRocksDBWithOptions(name, dir, opts)
 }
 
