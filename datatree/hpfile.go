@@ -143,7 +143,11 @@ func (hpf *HPFile) Flush() {
 
 func (hpf *HPFile) flush() {
 	if len(hpf.buffer) != 0 {
-		_, err := hpf.fileMap[hpf.largestID].Write(hpf.buffer)
+		_, err := hpf.fileMap[hpf.largestID].Seek(0, os.SEEK_END)
+		if err != nil {
+			panic(err)
+		}
+		_, err = hpf.fileMap[hpf.largestID].Write(hpf.buffer)
 		if err != nil {
 			panic(err)
 		}
