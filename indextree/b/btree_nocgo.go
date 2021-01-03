@@ -12,6 +12,9 @@ import (
 	"sync"
 )
 
+type KEY = uint64
+type VALUE = int64
+
 const (
 	kx = 32 //TODO benchmark tune this number if using custom key/value type(s).
 	kd = 32 //TODO benchmark tune this number if using custom key/value type(s).
@@ -44,7 +47,7 @@ func (p *btTpool) get(cmp Cmp) *Tree {
 
 type btEpool struct{ sync.Pool }
 
-func (p *btEpool) get(err error, hit bool, i int, k []byte, q *d, t *Tree, ver int64) *Enumerator {
+func (p *btEpool) get(err error, hit bool, i int, k KEY, q *d, t *Tree, ver int64) *Enumerator {
 	x := p.Get().(*Enumerator)
 	x.err, x.hit, x.i, x.k, x.q, x.t, x.ver = err, hit, i, k, q, t, ver
 	return x
@@ -57,18 +60,19 @@ type (
 	//	  0 if a == b
 	//	> 0 if a >  b
 	//
-	Cmp func(a, b []byte) int
+	Cmp func(a, b KEY) int
 
 	d struct { // data page
 		c int
 		d [2*kd + 1]de
 		n *d
 		p *d
+		dTree
 	}
 
 	de struct { // d element
-		k []byte
-		v uint64
+		k KEY
+		v VALUE
 	}
 
 	// Enumerator captures the state of enumerating a tree. It is returned
@@ -83,7 +87,7 @@ type (
 		err error
 		hit bool
 		i   int
-		k   []byte
+		k   KEY
 		q   *d
 		t   *Tree
 		ver int64
@@ -97,12 +101,12 @@ type (
 		last  *d
 		r     interface{}
 		ver   int64
-		//buf   []byte
+		treeInst
 	}
 
 	xe struct { // x element
 		ch interface{}
-		k  []byte
+		k  KEY
 	}
 
 	x struct { // index page
@@ -115,7 +119,7 @@ var ( // R/O zero values
 	zd  d
 	zde de
 	ze  Enumerator
-	zk  []byte
+	zk  KEY
 	zt  Tree
 	zx  x
 	zxe xe
@@ -153,7 +157,7 @@ func (q *x) extract(i int) {
 	}
 }
 
-func (q *x) insert(i int, k []byte, ch interface{}) *x {
+func (q *x) insert(i int, k KEY, ch interface{}) *x {
 	c := q.c
 	if i < c {
 		q.x[c+1].ch = q.x[c].ch
@@ -182,6 +186,7 @@ func (q *x) siblings(i int) (l, r *d) {
 // -------------------------------------------------------------------------- d
 
 func (l *d) mvL(r *d, c int) {
+	r.didCopy(r.c)
 	copy(l.d[l.c:], r.d[:c])
 	copy(r.d[:], r.d[c:r.c])
 	l.c += c
@@ -189,6 +194,7 @@ func (l *d) mvL(r *d, c int) {
 }
 
 func (l *d) mvR(r *d, c int) {
+	l.didCopy(r.c + c)
 	copy(r.d[c:], r.d[:r.c])
 	copy(r.d[:c], l.d[l.c-c:])
 	r.c += c
@@ -199,8 +205,15 @@ func (l *d) mvR(r *d, c int) {
 
 // TreeNew returns a newly created, empty Tree. The compare function is used
 // for key collation.
-func TreeNew(cmp Cmp) *Tree {
-	return btTPool.get(cmp)
+func TreeNew() *Tree {
+	return btTPool.get(func(a, b KEY) int {
+		if a == b {
+			return 0
+		} else if a > b {
+			return 1
+		}
+		return -1
+	})
 }
 
 // Clear removes all K/V pairs from the tree.
@@ -284,7 +297,7 @@ func (t *Tree) catX(p, q, r *x, pi int) {
 
 // Delete removes the k's KV pair, if it exists, in which case Delete returns
 // true.
-func (t *Tree) Delete(k []byte) (ok bool) {
+func (t *Tree) Delete(k KEY) (ok bool) {
 	pi := -1
 	var p *x
 	q := t.r
@@ -334,19 +347,20 @@ func (t *Tree) Delete(k []byte) (ok bool) {
 	}
 }
 
-func (t *Tree) extract(q *d, i int) { // (r uint64) {
+func (t *Tree) extract(q *d, i int) { // (r VALUE) {
 	t.ver++
 	//r = q.d[i].v // prepared for Extract
 	q.c--
 	if i < q.c {
+		t.didCopy(q.c - i)
 		copy(q.d[i:], q.d[i+1:q.c+1])
 	}
 	q.d[q.c] = zde // GC
 	t.c--
 }
 
-func (t *Tree) find(q interface{}, k []byte) (i int, ok bool) {
-	var mk []byte
+func (t *Tree) find(q interface{}, k KEY) (i int, ok bool) {
+	var mk KEY
 	l := 0
 	switch x := q.(type) {
 	case *x:
@@ -383,7 +397,7 @@ func (t *Tree) find(q interface{}, k []byte) (i int, ok bool) {
 
 // First returns the first item of the tree in the key collating order, or
 // (zero-value, zero-value) if the tree is empty.
-func (t *Tree) First() (k []byte, v uint64) {
+func (t *Tree) First() (k KEY, v VALUE) {
 	if q := t.first; q != nil {
 		q := &q.d[0]
 		k, v = q.k, q.v
@@ -393,7 +407,7 @@ func (t *Tree) First() (k []byte, v uint64) {
 
 // Get returns the value associated with k and true if it exists. Otherwise Get
 // returns (zero-value, false).
-func (t *Tree) Get(k []byte) (v uint64, ok bool) {
+func (t *Tree) Get(k KEY) (v VALUE, ok bool) {
 	q := t.r
 	if q == nil {
 		return
@@ -419,10 +433,12 @@ func (t *Tree) Get(k []byte) (v uint64, ok bool) {
 	}
 }
 
-func (t *Tree) insert(q *d, i int, k []byte, v uint64) *d {
+func (t *Tree) insert(q *d, i int, k KEY, v VALUE) *d {
 	t.ver++
+	q.setTree(t)
 	c := q.c
 	if i < c {
+		t.didCopy(c - i)
 		copy(q.d[i+1:], q.d[i:c])
 	}
 	c++
@@ -434,7 +450,7 @@ func (t *Tree) insert(q *d, i int, k []byte, v uint64) *d {
 
 // Last returns the last item of the tree in the key collating order, or
 // (zero-value, zero-value) if the tree is empty.
-func (t *Tree) Last() (k []byte, v uint64) {
+func (t *Tree) Last() (k KEY, v VALUE) {
 	if q := t.last; q != nil {
 		q := &q.d[q.c-1]
 		k, v = q.k, q.v
@@ -447,20 +463,74 @@ func (t *Tree) Len() int {
 	return t.c
 }
 
-func (t *Tree) overflow(p *x, q *d, pi, i int, k []byte, v uint64) {
+func (t *Tree) overflow(p *x, q *d, pi, i int, k KEY, v VALUE) {
 	t.ver++
 	l, r := p.siblings(pi)
 
+	// s is the number of items to shift out of the full data container to
+	// allow for the new data item. This logic shifts by half the available
+	// space plus one. In the case where the new item is to be inserted within
+	// the calculated shift space, s is reduced to include only the
+	// data items up to the index of the new data item.
+	//
+	// This is more useful as kd gets larger, but only benefits inserts. It
+	// has no effect on gets, but may marginally affect Next performance
+	// (but not Prev). Omitted the 1e3/1.4 cases because they had >10%
+	// variance. The performance differences may be more noticeable if you
+	// have a non-interface key type, because that will generally be much
+	// faster overall, making the copies are a bigger part of the workload.
+
+	// kd=32
+	// name               old time/op  new time/op  delta
+	// DeCopies/Linear-8   281ns ± 4%   264ns ± 7%   -5.99%  (p=0.032 n=5+5)
+	// DeCopies/Random-8  1.08µs ± 7%  1.07µs ± 5%     ~     (p=0.841 n=5+5)
+	// SetSeq1e5-8        19.9ms ± 2%  17.9ms ± 5%   -9.81%  (p=0.008 n=5+5)
+	// SetSeq1e6-8         230ms ± 2%   211ms ± 7%   -8.52%  (p=0.016 n=5+5)
+	// SetRnd1e5-8        44.7ms ± 1%  41.4ms ± 4%   -7.51%  (p=0.008 n=5+5)
+	// SetRnd1e6-8         827ms ± 2%   762ms ± 2%   -7.92%  (p=0.008 n=5+5)
+	// Next1e5-8           774µs ± 2%   763µs ± 1%     ~     (p=0.222 n=5+5)
+	// Next1e6-8          7.89ms ± 2%  7.77ms ± 2%   -1.54%  (p=0.008 n=5+5)
+
+	// kd=128
+	// name               old time/op  new time/op  delta
+	// DeCopies/Linear-8   304ns ± 2%   266ns ± 7%  -12.31%  (p=0.008 n=5+5)
+	// DeCopies/Random-8  1.28µs ± 2%  1.13µs ± 5%  -11.11%  (p=0.008 n=5+5)
+	// SetSeq1e5-8        22.9ms ± 3%  18.1ms ± 9%  -20.98%  (p=0.008 n=5+5)
+	// SetSeq1e6-8         257ms ± 2%   201ms ± 3%  -21.81%  (p=0.008 n=5+5)
+	// SetRnd1e5-8        56.0ms ± 0%  49.6ms ± 3%  -11.41%  (p=0.008 n=5+5)
+	// SetRnd1e6-8         1.13s ± 3%   1.04s ± 8%   -7.62%  (p=0.032 n=5+5)
+	// Next1e5-8           714µs ± 2%   755µs ± 2%   +5.77%  (p=0.008 n=5+5)
+	// Next1e6-8          7.48ms ± 1%  7.85ms ± 2%   +4.95%  (p=0.008 n=5+5)
+
+	// kd=256
+	// name               old time/op  new time/op  delta
+	// DeCopies/Linear-8   350ns ± 1%   255ns ± 7%  -27.16%  (p=0.008 n=5+5)
+	// DeCopies/Random-8  1.61µs ± 1%  1.32µs ± 7%  -18.28%  (p=0.008 n=5+5)
+	// SetSeq1e5-8        27.7ms ± 2%  17.6ms ± 5%  -36.60%  (p=0.008 n=5+5)
+	// SetSeq1e6-8         302ms ± 2%   196ms ± 1%  -35.21%  (p=0.008 n=5+5)
+	// SetRnd1e5-8        74.9ms ± 2%  58.9ms ± 2%  -21.43%  (p=0.008 n=5+5)
+	// SetRnd1e6-8         1.43s ± 0%   1.19s ± 2%  -16.45%  (p=0.008 n=5+5)
+	// Next1e5-8           717µs ± 2%   754µs ± 2%   +5.21%  (p=0.008 n=5+5)
+	// Next1e6-8          7.40ms ± 2%  7.77ms ± 1%   +4.99%  (p=0.008 n=5+5)
+
 	if l != nil && l.c < 2*kd && i != 0 {
-		l.mvL(q, 1)
-		t.insert(q, i-1, k, v)
+		s := (2*kd-l.c)/2 + 1 // half plus one
+		if i < s {
+			s = i
+		}
+		l.mvL(q, s)
+		t.insert(q, i-s, k, v)
 		p.x[pi-1].k = q.d[0].k
 		return
 	}
 
 	if r != nil && r.c < 2*kd {
 		if i < 2*kd {
-			q.mvR(r, 1)
+			s := (2*kd-r.c)/2 + 1 // half plus one
+			if 2*kd-i < s {
+				s = 2*kd - i
+			}
+			q.mvR(r, s)
 			t.insert(q, i, k, v)
 			p.x[pi].k = r.d[0].k
 			return
@@ -477,7 +547,7 @@ func (t *Tree) overflow(p *x, q *d, pi, i int, k []byte, v uint64) {
 // Seek returns an Enumerator positioned on an item such that k >= item's key.
 // ok reports if k == item.key The Enumerator's position is possibly after the
 // last item in the tree.
-func (t *Tree) Seek(k []byte) (e *Enumerator, ok bool) {
+func (t *Tree) Seek(k KEY) (e *Enumerator, ok bool) {
 	q := t.r
 	if q == nil {
 		e = btEPool.get(nil, false, 0, k, nil, t, t.ver)
@@ -527,23 +597,8 @@ func (t *Tree) SeekLast() (e *Enumerator, err error) {
 	return btEPool.get(nil, true, q.c-1, q.d[q.c-1].k, q, t, t.ver), nil
 }
 
-// // Set sets the value associated with k safely, i.e., k can be changed by caller later
-// func (t *Tree) SafeSet(k []byte, v uint64) {
-// 	t.buf = append(t.buf, k...) //make a copy
-// 	t.Put(t.buf, func(oldV uint64, exists bool) (newV uint64, write bool) {
-// 		write = true
-// 		newV = v
-// 		if exists { // t.buf is not used, make it ready for reuse
-// 			t.buf = t.buf[:0]
-// 		} else { // t.buf is used in some place of the tree, re-allocate a new buf
-// 			t.buf = []byte{}
-// 		}
-// 		return
-// 	})
-// }
-
 // Set sets the value associated with k.
-func (t *Tree) Set(k []byte, v uint64) {
+func (t *Tree) Set(k KEY, v VALUE) {
 	//dbg("--- PRE Set(%v, %v)\n%s", k, v, t.dump())
 	//defer func() {
 	//	dbg("--- POST\n%s\n====\n", t.dump())
@@ -597,8 +652,8 @@ func (t *Tree) Set(k []byte, v uint64) {
 	}
 }
 
-func (t *Tree) PutNewAndGetOld(k []byte, newV uint64) (oldV uint64, oldVExists bool) {
-	oldV, _ = t.Put(k, func(old uint64, exists bool) (uint64, bool) {
+func (t *Tree) PutNewAndGetOld(k KEY, newV VALUE) (oldV VALUE, oldVExists bool) {
+	oldV, _ = t.Put(k, func(old VALUE, exists bool) (VALUE, bool) {
 		oldVExists = exists
 		return newV, true
 	})
@@ -614,14 +669,14 @@ func (t *Tree) PutNewAndGetOld(k []byte, newV uint64) (oldV uint64, oldVExists b
 //
 // 	tree.Set(k, v) call conceptually equals calling
 //
-// 	tree.Put(k, func([]byte, bool){ return v, true })
+// 	tree.Put(k, func(KEY, bool){ return v, true })
 //
 // modulo the differing return values.
-func (t *Tree) Put(k []byte, upd func(oldV uint64, exists bool) (newV uint64, write bool)) (oldV uint64, written bool) {
+func (t *Tree) Put(k KEY, upd func(oldV VALUE, exists bool) (newV VALUE, write bool)) (oldV VALUE, written bool) {
 	pi := -1
 	var p *x
 	q := t.r
-	var newV uint64
+	var newV VALUE
 	if q == nil {
 		// new KV pair in empty tree
 		newV, written = upd(newV, false)
@@ -684,9 +739,10 @@ func (t *Tree) Put(k []byte, upd func(oldV uint64, exists bool) (newV uint64, wr
 	}
 }
 
-func (t *Tree) split(p *x, q *d, pi, i int, k []byte, v uint64) {
+func (t *Tree) split(p *x, q *d, pi, i int, k KEY, v VALUE) {
 	t.ver++
 	r := btDPool.Get().(*d)
+	r.setTree(t)
 	if q.n != nil {
 		r.n = q.n
 		r.n.p = r
@@ -696,6 +752,7 @@ func (t *Tree) split(p *x, q *d, pi, i int, k []byte, v uint64) {
 	q.n = r
 	r.p = q
 
+	t.didCopy(kd)
 	copy(r.d[:], q.d[kd:2*kd])
 	for i := range q.d[kd:] {
 		q.d[kd+i] = zde
@@ -830,7 +887,7 @@ func (e *Enumerator) Close() {
 // Next returns the currently enumerated item, if it exists and moves to the
 // next item in the key collation order. If there is no item to return, err ==
 // io.EOF is returned.
-func (e *Enumerator) Next() (k []byte, v uint64, err error) {
+func (e *Enumerator) Next() (k KEY, v VALUE, err error) {
 	if err = e.err; err != nil {
 		return
 	}
@@ -878,7 +935,7 @@ func (e *Enumerator) next() error {
 // Prev returns the currently enumerated item, if it exists and moves to the
 // previous item in the key collation order. If there is no item to return, err
 // == io.EOF is returned.
-func (e *Enumerator) Prev() (k []byte, v uint64, err error) {
+func (e *Enumerator) Prev() (k KEY, v VALUE, err error) {
 	if err = e.err; err != nil {
 		return
 	}
@@ -932,3 +989,23 @@ func (e *Enumerator) prev() error {
 	}
 	return e.err
 }
+
+type dTree struct {
+}
+
+type treeInst struct {
+}
+
+func (t *Tree) didCopy(n int) {
+}
+
+func (d *d) didCopy(n int) {
+}
+
+func (t *Tree) countCopies() int64 {
+	return 0
+}
+
+func (d *d) setTree(t *Tree) {
+}
+

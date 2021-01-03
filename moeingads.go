@@ -129,7 +129,7 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 		keyAndPosChan := make(chan types.KeyAndPos, 100)
 		go mads.datTree.ScanEntriesLite(oldestActiveTwigID, keyAndPosChan)
 		for e := range keyAndPosChan {
-			mads.idxTree.Set(e.Key, uint64(e.Pos))
+			mads.idxTree.Set(e.Key, e.Pos)
 		}
 		mads.idxTree.EndWrite()
 	}
@@ -435,7 +435,7 @@ func (mads *MoeingADS) update() {
 			//@ start := gotsc.BenchStart()
 			pos := mads.datTree.AppendEntry(ptr)
 			//@ Phase2Time += gotsc.BenchEnd() - start - tscOverhead
-			mads.idxTree.Set(ptr.Key, uint64(pos))
+			mads.idxTree.Set(ptr.Key, pos)
 		}
 	}
 	Phase1n2Time += gotsc.BenchEnd() - start - tscOverhead
@@ -493,7 +493,7 @@ func (mads *MoeingADS) EndWrite() {
 			mads.meta.IncrMaxSerialNum()
 			pos := mads.datTree.AppendEntryRawBytes(entryBz, sn)
 			key := datatree.ExtractKeyFromRawBytes(entryBz)
-			mads.idxTree.Set(key, uint64(pos))
+			mads.idxTree.Set(key, pos)
 		}
 		mads.datTree.EvictTwig(twigID)
 		mads.meta.IncrOldestActiveTwigID()
@@ -534,7 +534,7 @@ func (mads *MoeingADS) InitGuards(startKey, endKey []byte) {
 	}
 	pos := mads.datTree.AppendEntry(entry)
 	mads.meta.IncrMaxSerialNum()
-	mads.idxTree.Set(startKey, uint64(pos))
+	mads.idxTree.Set(startKey, pos)
 
 	entry = &Entry{
 		Key:        endKey,
@@ -546,7 +546,7 @@ func (mads *MoeingADS) InitGuards(startKey, endKey []byte) {
 	}
 	pos = mads.datTree.AppendEntry(entry)
 	mads.meta.IncrMaxSerialNum()
-	mads.idxTree.Set(endKey, uint64(pos))
+	mads.idxTree.Set(endKey, pos)
 
 	mads.idxTree.EndWrite()
 	mads.rootHash = mads.datTree.EndBlock()
