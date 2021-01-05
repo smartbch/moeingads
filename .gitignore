@@ -45,3 +45,4 @@ store/rabbit/accbench/accbench
 *.new
 *.note
 *.sh
+*.h~

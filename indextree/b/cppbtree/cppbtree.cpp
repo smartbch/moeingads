@@ -26,20 +26,13 @@ int64_t cppbtree_put_new_and_get_old(size_t tree, uint64_t key, int64_t value, b
 	BTree* bt = (BTree*)tree;
 	auto k = bits48::from_uint64(key);
 	auto v = bits48::from_int64(value);
-	auto it = bt->seek(key>>48, k, old_exist);
-	if(*old_exist) {
-		int64_t old_value = it->second.to_int64();
-		it->second = v;
-		return old_value;
-	} else {
-		bt->set(key>>48, k, v);
-		return -1;
-	}
+	return bt->put_new_and_get_old(key>>48, k, v, old_exist).to_int64();
 }
-
 void  cppbtree_set(size_t tree, uint64_t key, int64_t value) {
-	bool old_exist;
-	cppbtree_put_new_and_get_old(tree, key, value, &old_exist);
+	BTree* bt = (BTree*)tree;
+	auto k = bits48::from_uint64(key);
+	auto v = bits48::from_int64(value);
+	bt->set(key>>48, k, v);
 }
 void  cppbtree_erase(size_t tree, uint64_t key) {
 	BTree* bt = (BTree*)tree;
@@ -49,21 +42,29 @@ void  cppbtree_erase(size_t tree, uint64_t key) {
 int64_t cppbtree_get(size_t tree, uint64_t key, bool* ok) {
 	BTree* bt = (BTree*)tree;
 	auto k = bits48::from_uint64(key);
-	auto it = bt->seek(key>>48, k, ok);
+	auto v = bt->get(key>>48, k, ok);
 	if(*ok) {
-		int64_t old_value = it->second.to_int64();
+		int64_t old_value = v.to_int64();
 		return old_value;
 	} else {
-		return -1;
+		return 0;
 	}
 }
 
-size_t cppbtree_seek(size_t tree, uint64_t key, bool* is_equal) {
+size_t cppbtree_seek(size_t tree, uint64_t key, bool* is_equal, bool* larger_than_target, bool* is_valid, bool* ending) {
 	BTree* bt = (BTree*)tree;
 	auto k = bits48::from_uint64(key);
 	Iter* iter = new Iter();
 	*iter = bt->get_iterator(key>>48, k);
 	*is_equal = iter->valid() && (iter->key().to_uint64()<<16) == (key<<16);
+	*larger_than_target = !(*is_equal);
+	*ending = false;
+	if(!iter->valid()) { // try to get a valid iterator
+		*iter = bt->get_ending_iterator();
+		*larger_than_target = false;
+		*ending = true;
+	}
+	*is_valid = iter->valid();
 	return (size_t)iter;
 }
 
@@ -93,4 +94,8 @@ KVPair iter_prev(size_t iter_ptr) {
 }
 void  iter_delete(size_t iter_ptr) {
 	delete (Iter*)iter_ptr;
+}
+void cppbtree_set_debug_mode(size_t tree, bool debug) {
+	BTree* bt = (BTree*)tree;
+	bt->set_debug_mode(debug);
 }

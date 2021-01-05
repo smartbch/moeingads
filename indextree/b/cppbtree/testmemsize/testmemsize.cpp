@@ -4,6 +4,11 @@
 
 using namespace std;
 
+union u64_or_b8 {
+	char buffer[8];
+	uint64_t u64;
+};
+
 int main(int argc, char** argv) {
 	if(argc!=2) {
 		cout<<"Usage: "<<argv[0]<<" <filename>"<<endl;
@@ -17,25 +22,15 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 	BTree bt;
+	auto zero = bits48::from_uint64(0);
 	while(1) {
 		if(total%500000==0) cout<<"Now "<<total<<endl;
-		char buffer[8];
-		if(!myFile.read(buffer, 8)) {
+		u64_or_b8 data;
+		if(!myFile.read(data.buffer, 8)) {
 			break;
 		}
-		if((buffer[0]&3)==0) {
-			buffer[0]++;
-		}
-		mystr key(buffer, 8);
-		if(bt.find(key) != bt.end()) {
-			continue;
-		}
-		bt[key] = 0;
+		bt.set(data.u64>>48, bits48::from_uint64(data.u64), zero);
 		total++;
-		if(total != bt.size()) {
-			cout<<"Err "<<total<<" "<<bt.size()<<endl;
-			break;
-		}
 		if(total >= max) {
 			break;
 		}

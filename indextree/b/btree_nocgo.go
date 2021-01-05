@@ -653,8 +653,9 @@ func (t *Tree) Set(k KEY, v VALUE) {
 }
 
 func (t *Tree) PutNewAndGetOld(k KEY, newV VALUE) (oldV VALUE, oldVExists bool) {
-	oldV, _ = t.Put(k, func(old VALUE, exists bool) (VALUE, bool) {
+	t.Put(k, func(old VALUE, exists bool) (VALUE, bool) {
 		oldVExists = exists
+		oldV = old
 		return newV, true
 	})
 	return

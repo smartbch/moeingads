@@ -16,6 +16,7 @@ import (
 type Enumerator struct {
 	iter             C.size_t
 	largerThanTarget bool
+	ending           bool
 }
 
 type Tree struct {
@@ -57,19 +58,28 @@ func (tree *Tree) Get(key uint64) (int64, bool) {
 }
 
 func (tree *Tree) Seek(key uint64) (*Enumerator, bool) {
+	e, equal, _ := tree._seek(key)
+	return e, equal
+}
+func (tree *Tree) _seek(key uint64) (e *Enumerator, isEqual, isValid bool) {
 	var is_equal C.bool
-	e := &Enumerator{
-		iter:             C.cppbtree_seek(tree.ptr, C.uint64_t(key), &is_equal),
-		largerThanTarget: bool(is_equal),
-	}
-	if !is_equal {
-		return e, false
-	}
-	return e, true
+	var larger_than_target C.bool
+	var is_valid C.bool
+	var ending C.bool
+	e = &Enumerator{}
+	e.iter = C.cppbtree_seek(tree.ptr, C.uint64_t(key), &is_equal, &larger_than_target, &is_valid, &ending)
+	e.largerThanTarget = bool(larger_than_target)
+	e.ending = bool(ending)
+	return e, bool(is_equal), bool(is_valid)
 }
 
-func (tree *Tree) SeekFirst() (*Enumerator, bool) {
-	return tree.Seek(0)
+func (tree *Tree) SeekFirst() (*Enumerator, error) {
+	e, _, valid := tree._seek(0)
+	if valid {
+		e.largerThanTarget = false
+		return e, nil
+	}
+	return e, io.EOF
 }
 
 func (e *Enumerator) Close() {
@@ -77,6 +87,9 @@ func (e *Enumerator) Close() {
 }
 
 func (e *Enumerator) Next() (k uint64, v int64, err error) {
+	if e.ending {
+		return 0, 0, io.EOF
+	}
 	e.largerThanTarget = false
 	res := C.iter_next(e.iter)
 	v = int64(res.value)
@@ -93,6 +106,7 @@ func (e *Enumerator) Prev() (k uint64, v int64, err error) {
 		C.iter_prev(e.iter)
 	}
 	e.largerThanTarget = false
+	e.ending = false
 	res := C.iter_prev(e.iter)
 	v = int64(res.value)
 	err = nil
@@ -101,6 +115,10 @@ func (e *Enumerator) Prev() (k uint64, v int64, err error) {
 	}
 	k = uint64(res.key)
 	return
+}
+
+func (tree *Tree) SetDebug(debug bool) {
+	C.cppbtree_set_debug_mode(tree.ptr, C.bool(debug))
 }
 
 

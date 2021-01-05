@@ -1,7 +1,6 @@
 package b
 
 import (
-	"bytes"
 	//"fmt"
 	"io"
 	"testing"
@@ -21,52 +20,52 @@ import (
 //func (e *Enumerator) Next() (k []byte, v uint64, err error) {
 //func (e *Enumerator) Prev() (k []byte, v uint64, err error) {
 
-func mustGet(t *testing.T, bt *Tree, key []byte) uint64 {
+func mustGet(t *testing.T, bt *Tree, key uint64) int64 {
 	v, ok := bt.Get(key)
 	assert.Equal(t, true, ok)
 	return v
 }
 
 func TestBTree(t *testing.T) {
-	bt := TreeNew(func(a, b []byte) int {return bytes.Compare(a,b)})
-	iter, err := bt.SeekFirst()
+	bt := TreeNew()
+	_, err := bt.SeekFirst()
 	assert.Equal(t, io.EOF, err)
-	_, ok := bt.Seek([]byte("ABcd3210"))
+	_, ok := bt.Seek(0xABcd321000)
 	assert.Equal(t, false, ok)
-	bt.Set([]byte("ABcd3210"), 0)
-	bt.Set([]byte("ABcd32100"), 1)
-	bt.Set([]byte("ABcd3211"), 2)
-	bt.Set([]byte("ABcd3212"), 3)
-	bt.Set([]byte("ABd3212"), 4)
-	bt.Set([]byte("ABxd3212"), 5)
-	bt.Set([]byte("ABxd321222"), 6)
-	bt.Set([]byte("ABxd3212x2"), 7)
-	bt.Set([]byte("BBxd3212"), 8)
-	bt.Delete([]byte("ABxd3212x2"))
-	assert.Equal(t, uint64(0), mustGet(t, bt, []byte("ABcd3210")))
-	assert.Equal(t, uint64(1), mustGet(t, bt, []byte("ABcd32100")))
-	assert.Equal(t, uint64(2), mustGet(t, bt, []byte("ABcd3211")))
-	assert.Equal(t, uint64(3), mustGet(t, bt, []byte("ABcd3212")))
-	assert.Equal(t, uint64(4), mustGet(t, bt, []byte("ABd3212")))
-	assert.Equal(t, uint64(5), mustGet(t, bt, []byte("ABxd3212")))
-	assert.Equal(t, uint64(6), mustGet(t, bt, []byte("ABxd321222")))
-	assert.Equal(t, uint64(8), mustGet(t, bt, []byte("BBxd3212")))
+	bt.Set(0xABcd321000, 0)
+	bt.Set(0xABcd321010, 1)
+	bt.Set(0xABcd321100, 2)
+	bt.Set(0xABcd321200, 3)
+	bt.Set(0xABd3212000, 4)
+	bt.Set(0xABed321200, 5)
+	bt.Set(0xABed321222, 6)
+	bt.Set(0xABed321232, 7)
+	bt.Set(0xBBed321200, 8)
+	bt.Delete(0xABed321232)
+	assert.Equal(t, int64(0), mustGet(t, bt, 0xABcd321000))
+	assert.Equal(t, int64(1), mustGet(t, bt, 0xABcd321010))
+	assert.Equal(t, int64(2), mustGet(t, bt, 0xABcd321100))
+	assert.Equal(t, int64(3), mustGet(t, bt, 0xABcd321200))
+	assert.Equal(t, int64(4), mustGet(t, bt, 0xABd3212000))
+	assert.Equal(t, int64(5), mustGet(t, bt, 0xABed321200))
+	assert.Equal(t, int64(6), mustGet(t, bt, 0xABed321222))
+	assert.Equal(t, int64(8), mustGet(t, bt, 0xBBed321200))
 	assert.Equal(t, 8, bt.Len())
-	_, ok = bt.Get([]byte("ABxd3212x2"))
+	_, ok = bt.Get(0xABed321232)
 	assert.Equal(t, false, ok)
-	old, ok := bt.PutNewAndGetOld([]byte("BBxd3212"), 9)
-	assert.Equal(t, uint64(8), old)
+	old, ok := bt.PutNewAndGetOld(0xBBed321200, 9)
+	assert.Equal(t, int64(8), old)
 	assert.Equal(t, true, ok)
-	old, ok = bt.PutNewAndGetOld([]byte("BBxd3214"), 10)
+	old, ok = bt.PutNewAndGetOld(0xBBed321400, 10)
 	assert.Equal(t, false, ok)
-	assert.Equal(t, uint64(10), mustGet(t, bt, []byte("BBxd3214")))
+	assert.Equal(t, int64(10), mustGet(t, bt, 0xBBed321400))
 
-	iter, err = bt.SeekFirst()
+	iter, err := bt.SeekFirst()
 	assert.Equal(t, nil, err)
 
 	k, v, err := iter.Prev()
-	assert.Equal(t, []byte("ABcd3210"), k)
-	assert.Equal(t, uint64(0), v)
+	assert.Equal(t, uint64(0xABcd321000), k)
+	assert.Equal(t, int64(0), v)
 	assert.Equal(t, nil, err)
 
 	_, _, err = iter.Prev()
@@ -74,32 +73,39 @@ func TestBTree(t *testing.T) {
 
 	iter.Close()
 
-	iter, ok = bt.Seek([]byte("ABcd32110"))
+	iter, ok = bt.Seek(0xABcd321101)
 	assert.Equal(t, false, ok) //not exact match
 	k, v, err = iter.Next()
-	assert.Equal(t, []byte("ABcd3212"), k) // larger than target
-	assert.Equal(t, uint64(3), v)
+	assert.Equal(t, uint64(0xABcd321200), k) // larger than target
+	assert.Equal(t, int64(3), v)
 	assert.Equal(t, nil, err)
 	k, v, err = iter.Next()
-	assert.Equal(t, []byte("ABd3212"), k)
-	assert.Equal(t, uint64(4), v)
+	assert.Equal(t, uint64(0xABd3212000), k)
+	assert.Equal(t, int64(4), v)
 	assert.Equal(t, nil, err)
 	iter.Close()
 
-	iter, ok = bt.Seek([]byte("ABxd3211"))
+	iter, ok = bt.Seek(0xABd3212001)
 	assert.Equal(t, false, ok) //not exact match
 	k, v, err = iter.Prev()
-	assert.Equal(t, []byte("ABd3212"), k) // larger than target
-	assert.Equal(t, uint64(4), v)
+	assert.Equal(t, uint64(0xABd3212000), k)
+	assert.Equal(t, int64(4), v)
 	assert.Equal(t, nil, err)
 	iter.Close()
 
-	iter, ok = bt.Seek([]byte("DD"))
+	iter, ok = bt.Seek(0xDD00000000)
 	assert.Equal(t, false, ok) //not exact match
 	k, v, err = iter.Prev()
-	assert.Equal(t, []byte("BBxd3214"), k) // larger than target
-	assert.Equal(t, uint64(10), v)
+	assert.Equal(t, uint64(0xBBed321400), k) // larger than target
+	assert.Equal(t, int64(10), v)
 	assert.Equal(t, nil, err)
+	iter.Close()
+
+	iter, ok = bt.Seek(0xDD00000000)
+	assert.Equal(t, false, ok) //not exact match
+	_, v, err = iter.Next()
+	assert.Equal(t, int64(0), v)
+	assert.Equal(t, io.EOF, err)
 	iter.Close()
 
 	bt.Close()
