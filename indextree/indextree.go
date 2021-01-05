@@ -155,7 +155,7 @@ func (tree *NVTreeMem) Init(repFn func([]byte)) (err error) {
 		}
 		if bytes.Equal(k[len(k)-8:], []byte{255, 255, 255, 255, 255, 255, 255, 255}) {
 			//write the up-to-date value
-			tree.bt.Set(binary.LittleEndian.Uint64(k[:len(k)-8]), int64(binary.LittleEndian.Uint64(v)))
+			tree.bt.Set(binary.BigEndian.Uint64(k[:len(k)-8]), int64(binary.BigEndian.Uint64(v)))
 		}
 		iter.Next()
 	}
@@ -187,7 +187,7 @@ func (tree *NVTreeMem) Set(k []byte, v int64) {
 	if !tree.isWriting {
 		panic("tree.isWriting must be true! bug here...")
 	}
-	oldV, oldVExists := tree.bt.PutNewAndGetOld(binary.LittleEndian.Uint64(k), v)
+	oldV, oldVExists := tree.bt.PutNewAndGetOld(binary.BigEndian.Uint64(k), v)
 
 	if tree.rocksdb == nil {
 		return
@@ -198,13 +198,13 @@ func (tree *NVTreeMem) Set(k []byte, v int64) {
 	newK = append(newK, tree.currHeight[:]...)
 	var buf [8]byte
 	if oldVExists {
-		binary.LittleEndian.PutUint64(buf[:], uint64(oldV))
+		binary.BigEndian.PutUint64(buf[:], uint64(oldV))
 		tree.batchSet(newK, buf[:]) // write a historical value
 	} else {
 		tree.batchSet(newK, []byte{}) // write a historical empty value
 	}
 
-	binary.LittleEndian.PutUint64(buf[:], uint64(v))
+	binary.BigEndian.PutUint64(buf[:], uint64(v))
 	binary.BigEndian.PutUint64(newK[len(newK)-8:], math.MaxUint64)
 	tree.batchSet(newK, buf[:]) // write the up-to-date value
 }
@@ -224,7 +224,7 @@ func (tree *NVTreeMem) Get(k []byte) (int64, bool) {
 	}
 	tree.mtx.RLock()
 	defer tree.mtx.RUnlock()
-	return tree.bt.Get(binary.LittleEndian.Uint64(k))
+	return tree.bt.Get(binary.BigEndian.Uint64(k))
 }
 
 // Get the position of k, at the specified height.
@@ -251,7 +251,7 @@ func (tree *NVTreeMem) GetAtHeight(k []byte, height uint64) (position int64, ok 
 		ok = false
 	} else {
 		ok = true
-		position = int64(binary.LittleEndian.Uint64(v))
+		position = int64(binary.BigEndian.Uint64(v))
 	}
 	return
 }
@@ -262,7 +262,7 @@ func (tree *NVTreeMem) Delete(k []byte) {
 	if !tree.isWriting {
 		panic("tree.isWriting must be true! bug here...")
 	}
-	key := binary.LittleEndian.Uint64(k)
+	key := binary.BigEndian.Uint64(k)
 	oldV, ok := tree.bt.Get(key)
 	if !ok {
 		panic("deleting a nonexistent key! bug here...")
@@ -273,7 +273,7 @@ func (tree *NVTreeMem) Delete(k []byte) {
 		return
 	}
 	var buf [8]byte
-	binary.LittleEndian.PutUint64(buf[:], uint64(oldV))
+	binary.BigEndian.PutUint64(buf[:], uint64(oldV))
 	newK := make([]byte, 0, 1+len(k)+8)
 	newK = append(newK, byte(0)) //first byte is always zero
 	newK = append(newK, k...)
@@ -292,8 +292,8 @@ func (tree *NVTreeMem) Iterator(start, end []byte) Iterator {
 	tree.mtx.RLock()
 	iter := &ForwardIterMem{
 		tree: tree,
-		start: binary.LittleEndian.Uint64(start),
-		end: binary.LittleEndian.Uint64(end),
+		start: binary.BigEndian.Uint64(start),
+		end: binary.BigEndian.Uint64(end),
 	}
 	if bytes.Compare(start, end) >= 0 {
 		iter.err = io.EOF
@@ -312,8 +312,8 @@ func (tree *NVTreeMem) ReverseIterator(start, end []byte) Iterator {
 	tree.mtx.RLock()
 	iter := &BackwardIterMem{
 		tree: tree,
-		start: binary.LittleEndian.Uint64(start),
-		end: binary.LittleEndian.Uint64(end),
+		start: binary.BigEndian.Uint64(start),
+		end: binary.BigEndian.Uint64(end),
 	}
 	if bytes.Compare(start, end) >= 0 {
 		iter.err = io.EOF
@@ -330,6 +330,6 @@ func (tree *NVTreeMem) ReverseIterator(start, end []byte) Iterator {
 
 func u64ToBz(u64 uint64) []byte {
 	var buf [8]byte
-	binary.LittleEndian.PutUint64(buf[:], u64)
+	binary.BigEndian.PutUint64(buf[:], u64)
 	return buf[:]
 }
