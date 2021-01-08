@@ -39,15 +39,15 @@ func (it *MockIndexTree) GetAtHeight(k []byte, height uint64) (int64, bool) {
 }
 
 func (it *MockIndexTree) Get(key []byte) (int64, bool) {
-	return it.bt.Get(binary.LittleEndian.Uint64(key))
+	return it.bt.Get(binary.BigEndian.Uint64(key))
 }
 
 func (it *MockIndexTree) Set(key []byte, v int64) {
-	it.bt.Set(binary.LittleEndian.Uint64(key), v)
+	it.bt.Set(binary.BigEndian.Uint64(key), v)
 }
 
 func (it *MockIndexTree) Delete(key []byte) {
-	it.bt.Delete(binary.LittleEndian.Uint64(key))
+	it.bt.Delete(binary.BigEndian.Uint64(key))
 }
 
 func (it *MockIndexTree) SetPruneHeight(h uint64) {
@@ -60,8 +60,8 @@ func (it *MockIndexTree) Close() {
 // Create a forward iterator from the B-Tree
 func (it *MockIndexTree) Iterator(start, end []byte) Iterator {
 	iter := &ForwardIter{
-		start: binary.LittleEndian.Uint64(start),
-		end: binary.LittleEndian.Uint64(end),
+		start: binary.BigEndian.Uint64(start),
+		end: binary.BigEndian.Uint64(end),
 	}
 	if bytes.Compare(start, end) >= 0 {
 		iter.err = io.EOF
@@ -75,8 +75,8 @@ func (it *MockIndexTree) Iterator(start, end []byte) Iterator {
 // Create a backward iterator from the B-Tree
 func (it *MockIndexTree) ReverseIterator(start, end []byte) Iterator {
 	iter := &BackwardIter{
-		start: binary.LittleEndian.Uint64(start),
-		end: binary.LittleEndian.Uint64(end),
+		start: binary.BigEndian.Uint64(start),
+		end: binary.BigEndian.Uint64(end),
 	}
 	if bytes.Compare(start, end) >= 0 {
 		iter.err = io.EOF

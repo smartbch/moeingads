@@ -268,7 +268,7 @@ func makeHintHotEntry(key string) *HotEntry {
 }
 
 func (mads *MoeingADS) getPrevEntry(k []byte) *Entry {
-	iter := mads.idxTree.ReverseIterator([]byte{}, k)
+	iter := mads.idxTree.ReverseIterator(mads.startKey, k)
 	defer iter.Close()
 	if !iter.Valid() {
 		panic(fmt.Sprintf("The iterator is invalid! Missing a guard node? k=%#v", k))
