@@ -70,7 +70,7 @@ func TestTreeProof(t *testing.T) {
 	//require.Nil(t, tree.GetProof(0))
 	//require.Nil(t, tree.GetProof(2049))
 
-	maxSN := TwigMask*4+1600
+	maxSN := TwigMask*4 + 1600
 	for i := 0; i < maxSN; i++ {
 		//fmt.Printf("---------- %d ----------\n", i)
 		proofPath := tree.GetProof(int64(i))

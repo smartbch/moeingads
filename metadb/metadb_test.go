@@ -1,15 +1,14 @@
 package metadb
 
 import (
-	"testing"
 	"os"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/moeing-chain/MoeingADS/indextree"
 	"github.com/moeing-chain/MoeingADS/datatree"
+	"github.com/moeing-chain/MoeingADS/indextree"
 )
-
 
 func TestMetaDB(t *testing.T) {
 	err := os.RemoveAll("./test.db")

@@ -54,7 +54,7 @@ func assert(b bool, s string) {
 }
 
 const (
-	Mask48 = (int64(1)<<48) - 1
+	Mask48 = (int64(1) << 48) - 1
 )
 
 func RunFuzz(roundCount int, cfg FuzzConfig, fname string) {
@@ -98,8 +98,8 @@ func FuzzInit(gobt *Tree, cppbt *cb.Tree, addedKeyList *[]uint64, cfg FuzzConfig
 			//if oldVG!=oldVC {
 			//	fmt.Printf(" oldVG %d oldVC %d oldExistG %v oldExistC %v\n", oldVG, oldVC, oldExistG, oldExistC)
 			//}
-			assert(oldVG==oldVC, "OldValue should be equal")
-			assert(oldExistG==oldExistC, "OldExist should be equal")
+			assert(oldVG == oldVC, "OldValue should be equal")
+			assert(oldExistG == oldExistC, "OldExist should be equal")
 		}
 		*addedKeyList = append(*addedKeyList, key)
 	}
@@ -107,18 +107,18 @@ func FuzzInit(gobt *Tree, cppbt *cb.Tree, addedKeyList *[]uint64, cfg FuzzConfig
 
 func FuzzChange(gobt *Tree, cppbt *cb.Tree, addedKeyList []uint64, cfg FuzzConfig, rs randsrc.RandSrc) {
 	for i := 0; i < cfg.ChangeCount; i++ {
-		randIdx := int(uint(rs.GetUint64())%uint(len(addedKeyList)))
+		randIdx := int(uint(rs.GetUint64()) % uint(len(addedKeyList)))
 		key := addedKeyList[randIdx]
 		value := rs.GetInt64() & Mask48
 		//fmt.Printf("Change key: %#v value: %d\n", key, value)
 		oldVG, oldExistG := gobt.PutNewAndGetOld(key, value)
 		oldVC, oldExistC := cppbt.PutNewAndGetOld(key, value)
-		assert(oldExistG==oldExistC, "OldExist should be equal")
+		assert(oldExistG == oldExistC, "OldExist should be equal")
 		if oldExistC {
 			//if oldVG != oldVC {
 			//	fmt.Printf("oldVG: %d  oldVC: %d key: %#v\n", oldVG, oldVC, key)
 			//}
-			assert(oldVG==oldVC, "OldValue should be equal")
+			assert(oldVG == oldVC, "OldValue should be equal")
 		}
 	}
 }
@@ -129,13 +129,13 @@ func FuzzQuery(gobt *Tree, cppbt *cb.Tree, addedKeyList []uint64, cfg FuzzConfig
 		if rs.GetBool() {
 			key = rs.GetUint64()
 		} else {
-			randIdx := int(uint(rs.GetUint64())%uint(len(addedKeyList)))
+			randIdx := int(uint(rs.GetUint64()) % uint(len(addedKeyList)))
 			key = addedKeyList[randIdx]
 		}
 		valueG, okG := gobt.Get(key)
 		valueC, okC := cppbt.Get(key)
-		assert(okG==okC, "OK should be equal")
-		assert(valueG==valueC, "value should be equal")
+		assert(okG == okC, "OK should be equal")
+		assert(valueG == valueC, "value should be equal")
 	}
 }
 
@@ -145,14 +145,14 @@ func FuzzIter(gobt *Tree, cppbt *cb.Tree, addedKeyList []uint64, cfg FuzzConfig,
 		if rs.GetBool() {
 			key = rs.GetUint64()
 		} else {
-			randIdx := int(uint(rs.GetUint64())%uint(len(addedKeyList)))
+			randIdx := int(uint(rs.GetUint64()) % uint(len(addedKeyList)))
 			key = addedKeyList[randIdx]
 		}
 		iterG, okG := gobt.Seek(key)
 		defer iterG.Close()
 		iterC, okC := cppbt.Seek(key)
 		defer iterC.Close()
-		assert(okG==okC, "OK should be equal")
+		assert(okG == okC, "OK should be equal")
 		isNext := rs.GetBool()
 		var kC, kG uint64
 		var vC, vG int64
@@ -202,7 +202,7 @@ func FuzzDelete(gobt *Tree, cppbt *cb.Tree, cfg FuzzConfig, rs randsrc.RandSrc) 
 		key := rs.GetUint64()
 		iterG, okG := gobt.Seek(key)
 		iterC, okC := cppbt.Seek(key)
-		assert(okG==okC, "OK should be equal")
+		assert(okG == okC, "OK should be equal")
 		kC, _, errC := iterC.Next()
 		kG, _, errG := iterG.Next()
 		//fmt.Printf("DEL key 0x%x kC 0x%x kG 0x%x errC %d errG %d\n", key, kC, kG, errC, errG)
@@ -219,5 +219,3 @@ func FuzzDelete(gobt *Tree, cppbt *cb.Tree, cfg FuzzConfig, rs randsrc.RandSrc) 
 		}
 	}
 }
-
-

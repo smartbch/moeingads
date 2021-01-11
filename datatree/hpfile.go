@@ -9,16 +9,15 @@ import (
 	"strings"
 	"sync"
 	//"sync/atomic"
-
 	//"github.com/dterei/gotsc"
 )
 
 var TotalWriteTime, TotalReadTime, TotalSyncTime uint64
 
 const (
-	BufferSize = 16*1024*1024
-	SmallBufferSize = 32*1024 //For UnitTest
-	PreReadBufSize = 256*1024
+	BufferSize      = 16 * 1024 * 1024
+	SmallBufferSize = 32 * 1024 //For UnitTest
+	PreReadBufSize  = 256 * 1024
 )
 
 // Head prune-able file
@@ -42,7 +41,7 @@ func NewHPFile(bufferSize, blockSize int, dirName string) (HPFile, error) {
 		bufferSize: bufferSize,
 		buffer:     make([]byte, 0, bufferSize),
 	}
-	if blockSize % bufferSize != 0 {
+	if blockSize%bufferSize != 0 {
 		panic(fmt.Sprintf("Invalid blockSize 0x%x bufferSize 0x%x", blockSize, bufferSize))
 	}
 	fileInfoList, err := ioutil.ReadDir(dirName)
@@ -120,7 +119,7 @@ func (hpf *HPFile) Truncate(size int64) error {
 		delete(hpf.fileMap, hpf.largestID)
 		hpf.largestID--
 	}
-	size -= int64(hpf.largestID)*int64(hpf.blockSize)
+	size -= int64(hpf.largestID) * int64(hpf.blockSize)
 	err := hpf.fileMap[hpf.largestID].Close()
 	if err != nil {
 		return err
@@ -209,11 +208,11 @@ func (hpf *HPFile) readAtWithBuf(buf []byte, off int64) (err error) {
 	if ok {
 		return nil
 	}
-	if len(buf) >= PreReadBufSize || int(pos) + len(buf) > hpf.blockSize {
+	if len(buf) >= PreReadBufSize || int(pos)+len(buf) > hpf.blockSize {
 		_, err = f.ReadAt(buf, pos)
 		return
 	}
-	part := hpf.preReader.GetToFill(fileID, pos, pos + PreReadBufSize)
+	part := hpf.preReader.GetToFill(fileID, pos, pos+PreReadBufSize)
 	n, err := f.ReadAt(part, pos)
 	if err == io.EOF {
 		hpf.preReader.end = pos + int64(n)
@@ -319,10 +318,9 @@ func (pr *PreReader) GetToFill(fileID, start, end int64) []byte {
 }
 
 func (pr *PreReader) TryRead(fileID, start int64, buf []byte) bool {
-	if fileID == pr.fileID && pr.start <= start && start + int64(len(buf)) < pr.end {
+	if fileID == pr.fileID && pr.start <= start && start+int64(len(buf)) < pr.end {
 		copy(buf, pr.buf[start-pr.start:])
 		return true
 	}
 	return false
 }
-

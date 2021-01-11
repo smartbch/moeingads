@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sync/atomic"
 	"sort"
+	"sync/atomic"
 
 	"github.com/dterei/gotsc"
 	sha256 "github.com/minio/sha256-simd"
@@ -17,14 +17,14 @@ import (
 const Debug = false
 
 const (
-	FirstLevelAboveTwig int = 13
-	MinPruneCount int64 = 2
-	entriesPath = "entries"
-	twigMtPath = "twigmt"
-	nodesPath = "nodes.dat"
-	mtree4YTPath = "mtree4YT.dat"
-	twigsPath = "twigs.dat"
-	DeactivedSNListMaxLen = 64
+	FirstLevelAboveTwig   int   = 13
+	MinPruneCount         int64 = 2
+	entriesPath                 = "entries"
+	twigMtPath                  = "twigmt"
+	nodesPath                   = "nodes.dat"
+	mtree4YTPath                = "mtree4YT.dat"
+	twigsPath                   = "twigs.dat"
+	DeactivedSNListMaxLen       = 64
 )
 
 /*
@@ -374,7 +374,7 @@ func (tree *Tree) TwigCanBePruned(twigID int64) bool {
 
 // Prune the twigs between startID and endID
 func (tree *Tree) PruneTwigs(startID, endID int64) []byte {
-	if endID - startID < MinPruneCount {
+	if endID-startID < MinPruneCount {
 		panic(fmt.Sprintf("The count of pruned twigs is too small: %d", endID-startID))
 	}
 	tree.entryFile.PruneHead(tree.twigMtFile.GetFirstEntryPos(endID))
@@ -389,12 +389,12 @@ func (tree *Tree) ReapNodes(start, end int64) []byte {
 
 func (tree *Tree) removeUselessNodes(start, end int64) {
 	maxLevel := calcMaxLevel(tree.youngestTwigID)
-	for level := FirstLevelAboveTwig-1; level <= maxLevel; level++ {
+	for level := FirstLevelAboveTwig - 1; level <= maxLevel; level++ {
 		endRound := end
 		if end%2 != 0 && level != FirstLevelAboveTwig-1 {
 			endRound--
 		}
-		for i := start-1; i < endRound; i++ { // minus 1 from start to cover some margin nodes
+		for i := start - 1; i < endRound; i++ { // minus 1 from start to cover some margin nodes
 			pos := Pos(level, i)
 			delete(tree.nodes, pos)
 		}
@@ -405,7 +405,7 @@ func (tree *Tree) removeUselessNodes(start, end int64) {
 
 func (tree *Tree) getEdgeNodes(end int64) (newEdgeNodes []*EdgeNode) {
 	maxLevel := calcMaxLevel(tree.youngestTwigID)
-	for level := FirstLevelAboveTwig-1; level <= maxLevel; level++ {
+	for level := FirstLevelAboveTwig - 1; level <= maxLevel; level++ {
 		endRound := end
 		if end%2 != 0 && level != FirstLevelAboveTwig-1 {
 			endRound--
@@ -512,11 +512,11 @@ func (tree *Tree) syncNodesByLevel(level int, nList []int64) []int64 {
 			tree.nodes[nodePos] = &zeroHash
 		}
 		if level == FirstLevelAboveTwig {
-			left, ok := tree.getTwigRoot(int64(2*i))
+			left, ok := tree.getTwigRoot(int64(2 * i))
 			if !ok {
 				panic(fmt.Sprintf("Cannot find left twig root %d", 2*i))
 			}
-			right, ok := tree.getTwigRoot(int64(2*i+1))
+			right, ok := tree.getTwigRoot(int64(2*i + 1))
 			if !ok {
 				right = NullTwig.twigRoot
 			}
@@ -528,7 +528,7 @@ func (tree *Tree) syncNodesByLevel(level int, nList []int64) []int64 {
 			nodePosL := Pos(level-1, 2*i)
 			nodePosR := Pos(level-1, 2*i+1)
 			if _, ok := tree.nodes[nodePosL]; !ok {
-				panic(fmt.Sprintf("Failed to find the left child %d-%d %d- %d %d", level,i, level-1, 2*i, 2*i+1))
+				panic(fmt.Sprintf("Failed to find the left child %d-%d %d- %d %d", level, i, level-1, 2*i, 2*i+1))
 			}
 			if _, ok := tree.nodes[nodePosR]; !ok {
 				var h [32]byte
@@ -561,7 +561,7 @@ func (tree *Tree) syncMT4ActiveBits() []int64 {
 	for i := range tree.touchedPosOf512b {
 		nList = append(nList, i)
 	}
-	sort.Slice(nList, func(i, j int) bool {return nList[i] < nList[j]})
+	sort.Slice(nList, func(i, j int) bool { return nList[i] < nList[j] })
 	//if Debug {
 	//	fmt.Printf("nList from touchedPosOf512b: %#v\n", nList)
 	//}
@@ -612,13 +612,13 @@ func (tree *Tree) syncMT4ActiveBits() []int64 {
 }
 
 /*         1
-     2            3
-   4   5       6     7
- 8  9 a b    c   d  e  f
+    2            3
+  4   5       6     7
+8  9 a b    c   d  e  f
 */
 // Sync up the merkle tree, between ChangeStart and ChangeEnd
 func (tree *Tree) syncMT4YoungestTwig() {
-	if tree.mtree4YTChangeStart == -1 {// nothing changed
+	if tree.mtree4YTChangeStart == -1 { // nothing changed
 		return
 	}
 	//for i := 0; i < LeafCountInTwig; i++ {
@@ -635,8 +635,12 @@ func (tree *Tree) syncMT4YoungestTwig() {
 	ParrallelRun(runtime.NumCPU(), func(workerID int) {
 		for {
 			myIdx := atomic.AddInt64(&sharedIdx, 1)
-			if myIdx >= int64(len(tree.leave4YoungestTwig)) {break}
-			if tree.leave4YoungestTwig[myIdx][0] == nil {continue}
+			if myIdx >= int64(len(tree.leave4YoungestTwig)) {
+				break
+			}
+			if tree.leave4YoungestTwig[myIdx][0] == nil {
+				continue
+			}
 			h := sha256.New()
 			h.Write(tree.leave4YoungestTwig[myIdx][0])
 			h.Write(tree.leave4YoungestTwig[myIdx][1])
@@ -667,4 +671,3 @@ func (tree *Tree) syncMT4YoungestTwig() {
 	tree.mtree4YTChangeEnd = 0
 	copy(tree.activeTwigs[tree.youngestTwigID].leftRoot[:], tree.mtree4YoungestTwig[1][:])
 }
-

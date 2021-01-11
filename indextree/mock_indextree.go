@@ -61,7 +61,7 @@ func (it *MockIndexTree) Close() {
 func (it *MockIndexTree) Iterator(start, end []byte) Iterator {
 	iter := &ForwardIter{
 		start: binary.BigEndian.Uint64(start),
-		end: binary.BigEndian.Uint64(end),
+		end:   binary.BigEndian.Uint64(end),
 	}
 	if bytes.Compare(start, end) >= 0 {
 		iter.err = io.EOF
@@ -76,7 +76,7 @@ func (it *MockIndexTree) Iterator(start, end []byte) Iterator {
 func (it *MockIndexTree) ReverseIterator(start, end []byte) Iterator {
 	iter := &BackwardIter{
 		start: binary.BigEndian.Uint64(start),
-		end: binary.BigEndian.Uint64(end),
+		end:   binary.BigEndian.Uint64(end),
 	}
 	if bytes.Compare(start, end) >= 0 {
 		iter.err = io.EOF
@@ -159,5 +159,3 @@ func (iter *BackwardIter) Close() {
 		iter.enumerator.Close()
 	}
 }
-
-

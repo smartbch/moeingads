@@ -1,8 +1,8 @@
 package datatree
 
 import (
-	"testing"
 	sha256 "github.com/minio/sha256-simd"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -17,7 +17,7 @@ type hashData struct {
 func fillHashData(num int, level byte) []hashData {
 	res := make([]hashData, num)
 	for i := range res {
-		res[i] = hashData {
+		res[i] = hashData{
 			impRes: make([]byte, 32),
 			srcA:   make([]byte, 23),
 			srcB:   make([]byte, 40),
@@ -26,7 +26,7 @@ func fillHashData(num int, level byte) []hashData {
 			res[i].srcA[j] = byte(i)
 		}
 		for j := range res[i].srcB {
-			res[i].srcB[j] = byte(i^(i>>8))
+			res[i].srcB[j] = byte(i ^ (i >> 8))
 		}
 		h := sha256.Sum256(append(append([]byte{level}, res[i].srcA...), res[i].srcB...))
 		res[i].refRes = h[:]
@@ -64,4 +64,3 @@ func runHasher(t *testing.T, num int, level byte) {
 	assert.Equal(t, hb[:], hash(b))
 	assert.Equal(t, hc[:], hash2(1, a, b))
 }
-

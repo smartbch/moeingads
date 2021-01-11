@@ -1,13 +1,12 @@
 package datatree
 
 import (
-	"os"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
 
 func compareNodes(t *testing.T, nodesA, nodesB map[NodePos]*[32]byte) {
 	assert.Equal(t, len(nodesA), len(nodesB))

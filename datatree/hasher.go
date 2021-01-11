@@ -1,9 +1,9 @@
 package datatree
 
 import (
+	"runtime"
 	"sync"
 	"sync/atomic"
-	"runtime"
 
 	sha256 "github.com/minio/sha256-simd"
 )
@@ -82,7 +82,9 @@ func (h *Hasher) Run() {
 	ParrallelRun(runtime.NumCPU(), func(workerID int) {
 		for {
 			myIdx := atomic.AddInt64(&sharedIdx, 1)
-			if myIdx >= int64(len(h.jobs)) {return}
+			if myIdx >= int64(len(h.jobs)) {
+				return
+			}
 			h.jobs[myIdx].run()
 		}
 	})
@@ -100,4 +102,3 @@ func ParrallelRun(workerCount int, fn func(workerID int)) {
 	}
 	wg.Wait()
 }
-

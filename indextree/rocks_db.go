@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/tecbot/gorocksdb"
 	"github.com/moeing-chain/MoeingADS/types"
+	"github.com/tecbot/gorocksdb"
 )
 
 // We use rocksdb's customizable compact filter to prune old records
@@ -26,7 +26,7 @@ func (f *HeightCompactionFilter) Filter(level int, key, val []byte) (remove bool
 	if len(key) < 8 {
 		return false, val
 	}
-	if len(key) >= 1 && key[0] !=0 {
+	if len(key) >= 1 && key[0] != 0 {
 		return false, val // not starting with zero
 	}
 	start := len(key) - 8

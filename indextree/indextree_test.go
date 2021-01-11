@@ -60,7 +60,6 @@ func Test1(t *testing.T) {
 	err = tree.Init(func(k []byte) {})
 	assert.Equal(t, nil, err)
 
-
 	assert.Equal(t, int64(0), mustGet(tree, 0x0bcd1234))
 	assert.Equal(t, int64(1), mustGet(tree, 0xABcd1234))
 	assert.Equal(t, int64(2), mustGet(tree, 0xABcd1235))

@@ -17,6 +17,7 @@ const (
 )
 
 type Iterator = types.IteratorUI64
+
 var _ Iterator = (*ForwardIterMem)(nil)
 var _ Iterator = (*BackwardIterMem)(nil)
 
@@ -129,7 +130,7 @@ func NewNVTreeMem(rocksdb *RocksDB) *NVTreeMem {
 
 func (tree *NVTreeMem) Close() {
 	tree.bt.Close()
-	tree.rocksdb.Close()
+	// tree.rocksdb should be closed at somewhere else, not here
 }
 
 func (tree *NVTreeMem) ActiveCount() int {
@@ -148,7 +149,9 @@ func (tree *NVTreeMem) Init(repFn func([]byte)) (err error) {
 			continue // the first byte must be zero
 		}
 		k = k[1:]
-		repFn(k) // to report the progress
+		if repFn != nil {
+			repFn(k) // to report the progress
+		}
 		if len(k) < 8 {
 			panic("key length is too short")
 		}
@@ -299,9 +302,9 @@ func (tree *NVTreeMem) Iterator(start, end []byte) Iterator {
 	}
 	tree.mtx.RLock()
 	iter := &ForwardIterMem{
-		tree: tree,
+		tree:  tree,
 		start: binary.BigEndian.Uint64(start),
-		end: binary.BigEndian.Uint64(end),
+		end:   binary.BigEndian.Uint64(end),
 	}
 	if bytes.Compare(start, end) >= 0 {
 		iter.err = io.EOF
@@ -319,9 +322,9 @@ func (tree *NVTreeMem) ReverseIterator(start, end []byte) Iterator {
 	}
 	tree.mtx.RLock()
 	iter := &BackwardIterMem{
-		tree: tree,
+		tree:  tree,
 		start: binary.BigEndian.Uint64(start),
-		end: binary.BigEndian.Uint64(end),
+		end:   binary.BigEndian.Uint64(end),
 	}
 	if bytes.Compare(start, end) >= 0 {
 		iter.err = io.EOF

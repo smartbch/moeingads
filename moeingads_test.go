@@ -2,11 +2,10 @@ package moeingads
 
 import (
 	"fmt"
-	"testing"
 	"os"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
-
 )
 
 type TestOp struct {
@@ -40,19 +39,19 @@ func getListAdd() []TestOp {
 func getListModify() []TestOp {
 	return []TestOp{
 		{isDel: true, ignore: false, key: []byte("00432110"), value: []byte("10")}, //effective
-		{isDel: true, ignore: true,  key: []byte("00432120"), value: []byte("20")},
+		{isDel: true, ignore: true, key: []byte("00432120"), value: []byte("20")},
 		{isDel: true, ignore: false, key: []byte("00432130"), value: []byte("30")}, //effective
 		{isDel: true, ignore: false, key: []byte("00432140"), value: []byte("40")}, //effective
 		{isDel: true, ignore: false, key: []byte("00432150"), value: []byte("50")}, //effective
-		{isDel: true, ignore: true,  key: []byte("00432160"), value: []byte("60")},
+		{isDel: true, ignore: true, key: []byte("00432160"), value: []byte("60")},
 		{isDel: true, ignore: false, key: []byte("00432170"), value: []byte("70")}, //effective
-		{isDel: true, ignore: true,  key: []byte("00432180"), value: []byte("80")},
+		{isDel: true, ignore: true, key: []byte("00432180"), value: []byte("80")},
 		{isDel: false, ignore: true, key: []byte("00432190"), value: []byte("90")},
-		{isDel: true, ignore: true,  key: []byte("004321a0"), value: []byte("a0")},
+		{isDel: true, ignore: true, key: []byte("004321a0"), value: []byte("a0")},
 		{isDel: true, ignore: false, key: []byte("004321b0"), value: []byte("b0")}, //effective
-		{isDel: true, ignore: true,  key: []byte("004321c0"), value: []byte("c0")},
+		{isDel: true, ignore: true, key: []byte("004321c0"), value: []byte("c0")},
 		{isDel: true, ignore: false, key: []byte("004321d0"), value: []byte("d0")}, //effective
-		{isDel: true, ignore: true,  key: []byte("004321e0"), value: []byte("e0")},
+		{isDel: true, ignore: true, key: []byte("004321e0"), value: []byte("e0")},
 
 		{isDel: false, ignore: false, key: []byte("00432144"), value: []byte("444")},
 		{isDel: false, ignore: false, key: []byte("00432155"), value: []byte("555")},
@@ -91,14 +90,13 @@ func EntryToStr(e *Entry) string {
 }
 
 func Test1(t *testing.T) {
-	first := []byte{0,0,0,0, 0,0,0,0}
-	last := []byte{255,255,255,255, 255,255,255,255}
+	first := []byte{0, 0, 0, 0, 0, 0, 0, 0}
+	last := []byte{255, 255, 255, 255, 255, 255, 255, 255}
 	ads := NewMoeingADS4Mock([][]byte{first, last})
 	e := ads.GetEntry(first)
 	assert.Equal(t, "K:\x00\x00\x00\x00\x00\x00\x00\x00 nK:[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}(8) V: H:-1 LH:-1 SN:0", EntryToStr(e))
 	e = ads.GetEntry(last)
 	assert.Equal(t, "K:\xff\xff\xff\xff\xff\xff\xff\xff nK:[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}(8) V: H:-1 LH:-1 SN:1", EntryToStr(e))
-
 
 	list1 := getListAdd()
 	runList(ads, list1, 0)
@@ -108,23 +106,23 @@ func Test1(t *testing.T) {
 	assert.Equal(t, "K:\xff\xff\xff\xff\xff\xff\xff\xff nK:[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}(8) V: H:-1 LH:-1 SN:1", EntryToStr(e))
 
 	resList := []string{
-"K:00432100 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x31, 0x30}(8) V:00 H:0 LH:0 SN:3",
-"K:00432110 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x32, 0x30}(8) V:10 H:0 LH:0 SN:4",
-"K:00432120 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x33, 0x30}(8) V:20 H:0 LH:0 SN:5",
-"K:00432130 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x34, 0x30}(8) V:30 H:0 LH:0 SN:6",
-"K:00432140 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x35, 0x30}(8) V:40 H:0 LH:0 SN:7",
-"K:00432150 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x36, 0x30}(8) V:50 H:0 LH:0 SN:8",
-"K:00432160 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x37, 0x30}(8) V:60 H:0 LH:0 SN:9",
-"K:00432170 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x38, 0x30}(8) V:70 H:0 LH:0 SN:10",
-"K:00432180 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x39, 0x30}(8) V:80 H:0 LH:0 SN:11",
-"K:00432190 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x61, 0x30}(8) V:90 H:0 LH:0 SN:12",
-"K:004321a0 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x62, 0x30}(8) V:a0 H:0 LH:0 SN:13",
-"K:004321b0 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x63, 0x30}(8) V:b0 H:0 LH:0 SN:14",
-"K:004321c0 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x64, 0x30}(8) V:c0 H:0 LH:0 SN:15",
-"K:004321d0 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x65, 0x30}(8) V:d0 H:0 LH:0 SN:16",
-"K:004321e0 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x66, 0x30}(8) V:e0 H:0 LH:0 SN:17",
-"K:004321f0 nK:[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}(8) V:f0 H:0 LH:0 SN:18",
-}
+		"K:00432100 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x31, 0x30}(8) V:00 H:0 LH:0 SN:3",
+		"K:00432110 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x32, 0x30}(8) V:10 H:0 LH:0 SN:4",
+		"K:00432120 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x33, 0x30}(8) V:20 H:0 LH:0 SN:5",
+		"K:00432130 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x34, 0x30}(8) V:30 H:0 LH:0 SN:6",
+		"K:00432140 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x35, 0x30}(8) V:40 H:0 LH:0 SN:7",
+		"K:00432150 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x36, 0x30}(8) V:50 H:0 LH:0 SN:8",
+		"K:00432160 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x37, 0x30}(8) V:60 H:0 LH:0 SN:9",
+		"K:00432170 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x38, 0x30}(8) V:70 H:0 LH:0 SN:10",
+		"K:00432180 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x39, 0x30}(8) V:80 H:0 LH:0 SN:11",
+		"K:00432190 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x61, 0x30}(8) V:90 H:0 LH:0 SN:12",
+		"K:004321a0 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x62, 0x30}(8) V:a0 H:0 LH:0 SN:13",
+		"K:004321b0 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x63, 0x30}(8) V:b0 H:0 LH:0 SN:14",
+		"K:004321c0 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x64, 0x30}(8) V:c0 H:0 LH:0 SN:15",
+		"K:004321d0 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x65, 0x30}(8) V:d0 H:0 LH:0 SN:16",
+		"K:004321e0 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x66, 0x30}(8) V:e0 H:0 LH:0 SN:17",
+		"K:004321f0 nK:[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}(8) V:f0 H:0 LH:0 SN:18",
+	}
 	for i, op := range list1 {
 		e := ads.GetEntry(op.key)
 		assert.Equal(t, resList[i], EntryToStr(e))
@@ -213,4 +211,3 @@ func Test1(t *testing.T) {
 	ads.Close()
 	os.RemoveAll("./rocksdb.db")
 }
-

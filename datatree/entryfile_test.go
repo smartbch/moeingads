@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-
 func makeEntries() []Entry {
 	e0 := Entry{
 		Key:        []byte("Key0Key0Key0Key0Key0Key0Key0Key0Key0"),
@@ -34,7 +33,7 @@ func makeEntries() []Entry {
 		LastHeight: 12,
 		SerialNum:  2,
 	}
-	return []Entry{e0,e1,e2,NullEntry()}
+	return []Entry{e0, e1, e2, NullEntry()}
 }
 
 func TestEntryFile(t *testing.T) {
@@ -42,12 +41,12 @@ func TestEntryFile(t *testing.T) {
 	os.Mkdir("./entryF", 0700)
 
 	entries := makeEntries()
-	dSNL0 := []int64{1,2,3,4}
+	dSNL0 := []int64{1, 2, 3, 4}
 	dSNL1 := []int64{5}
 	dSNL2 := []int64{}
-	dSNL3 := []int64{10,1}
+	dSNL3 := []int64{10, 1}
 
-	ef, err := NewEntryFile(8*1024, 128*1024/*128KB*/, "./entryF")
+	ef, err := NewEntryFile(8*1024, 128*1024 /*128KB*/, "./entryF")
 	assert.Equal(t, nil, err)
 
 	bz0 := EntryToBytes(entries[0], dSNL0)
@@ -59,7 +58,7 @@ func TestEntryFile(t *testing.T) {
 	bz3 := EntryToBytes(entries[3], dSNL3)
 	pos3 := ef.Append([2][]byte{bz3, nil})
 
-	for i := 0; i < LeafCountInTwig; i+=4 {
+	for i := 0; i < LeafCountInTwig; i += 4 {
 		ef.Append([2][]byte{bz0, nil})
 		ef.Append([2][]byte{bz1, nil})
 		ef.Append([2][]byte{bz2, nil})
@@ -73,7 +72,7 @@ func TestEntryFile(t *testing.T) {
 	ef.Flush()
 	ef.Close()
 
-	ef, err = NewEntryFile(8*1024, 128*1024/*128KB*/, "./entryF")
+	ef, err = NewEntryFile(8*1024, 128*1024 /*128KB*/, "./entryF")
 	assert.Equal(t, nil, err)
 
 	e, l, next := ef.ReadEntryAndSNList(pos0)
@@ -98,7 +97,7 @@ func TestEntryFile(t *testing.T) {
 	twig := &Twig{
 		FirstEntryPos: pos3,
 	}
-	twig.activeBits[0] = 3 // 3 and 0
+	twig.activeBits[0] = 3     // 3 and 0
 	twig.activeBits[255] = 128 // 2
 
 	entryChan := ef.GetActiveEntriesInTwig(twig)

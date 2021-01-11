@@ -10,5 +10,3 @@ import (
 func Test1(t *testing.T) {
 	runTest(DefaultConfig)
 }
-
-

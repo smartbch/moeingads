@@ -103,8 +103,8 @@ func getListDel() []TestOp {
 }
 
 func TestTrunk(t *testing.T) {
-	first := []byte{0,0,0,0, 0,0,0,0}
-	last := []byte{255, 255, 255, 255,   255, 255, 255, 255}
+	first := []byte{0, 0, 0, 0, 0, 0, 0, 0}
+	last := []byte{255, 255, 255, 255, 255, 255, 255, 255}
 	mads := moeingads.NewMoeingADS4Mock([][]byte{first, last})
 
 	root := NewRootStore(mads, func(k []byte) bool {

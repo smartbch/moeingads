@@ -1,11 +1,11 @@
 package metadb
 
 import (
-	"fmt"
 	"encoding/binary"
+	"fmt"
 
-	"github.com/moeing-chain/MoeingADS/indextree"
 	"github.com/moeing-chain/MoeingADS/datatree"
+	"github.com/moeing-chain/MoeingADS/indextree"
 	"github.com/moeing-chain/MoeingADS/types"
 )
 
@@ -23,7 +23,7 @@ const (
 )
 
 type MetaDBWithTMDB struct {
-	kvdb  *indextree.RocksDB
+	kvdb *indextree.RocksDB
 
 	currHeight         int64
 	lastPrunedTwig     int64
@@ -43,9 +43,9 @@ func (db *MetaDBWithTMDB) Close() {
 }
 
 func (db *MetaDBWithTMDB) ReloadFromKVDB() {
-	db.currHeight         = 0
-	db.lastPrunedTwig     = 0
-	db.maxSerialNum       = 0
+	db.currHeight = 0
+	db.lastPrunedTwig = 0
+	db.maxSerialNum = 0
 	db.oldestActiveTwigID = 0
 	//db.activeEntryCount   = 0
 

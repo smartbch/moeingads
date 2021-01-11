@@ -27,8 +27,8 @@ func runTest(cfg FuzzConfig) {
 	RunFuzz(roundCount, cfg, randFilename)
 }
 
-var AllOnes = []byte{255,255,255,255, 255,255,255,255}
-var AllZeros = []byte{0,0,0,0, 0,0,0,0}
+var AllOnes = []byte{255, 255, 255, 255, 255, 255, 255, 255}
+var AllZeros = []byte{0, 0, 0, 0, 0, 0, 0, 0}
 
 type NVTreeRef struct {
 	rocksdb    *it.RocksDB
@@ -42,6 +42,10 @@ func (tree *NVTreeRef) Init(dirname string) (err error) {
 		return err
 	}
 	return nil
+}
+
+func (tree *NVTreeRef) Close() {
+	tree.rocksdb.Close()
 }
 
 func (tree *NVTreeRef) BeginWrite(currHeight int64) {
@@ -77,10 +81,10 @@ func (tree *NVTreeRef) GetAtHeight(k []byte, height uint64) (position int64, ok 
 	copyK = append(copyK, AllOnes...)
 	binary.BigEndian.PutUint64(copyK[len(copyK)-8:], height+1) //overwrite the 'AllOnes' part
 	iter := tree.rocksdb.ReverseIterator(AllZeros, copyK)
-	defer iter.Close();
+	defer iter.Close()
 	//fmt.Printf(" the key : %#v copyK %#v\n", iter.Key(), copyK)
 	if !iter.Valid() || len(iter.Value()) == 0 || !bytes.Equal(iter.Key()[1:9], k) {
-		return 0, false;
+		return 0, false
 	}
 	//fmt.Printf(" %#v is changed to %#v at height %v\n", k, iter.Value(), binary.BigEndian.Uint64(key[len(key)-8:]))
 	return int64(binary.BigEndian.Uint64(iter.Value())), true
@@ -113,6 +117,7 @@ type FuzzConfig struct {
 	IterCount    int
 	IterDistance int
 	DelCount     int
+	ReloadEveryN int
 }
 
 var DefaultConfig = FuzzConfig{
@@ -122,6 +127,7 @@ var DefaultConfig = FuzzConfig{
 	QueryCount:   300,
 	IterCount:    100,
 	IterDistance: 20,
+	ReloadEveryN: 100,
 }
 
 func RunFuzz(roundCount int, cfg FuzzConfig, randFilename string) {
@@ -133,7 +139,7 @@ func RunFuzz(roundCount int, cfg FuzzConfig, randFilename string) {
 		panic(err)
 	}
 	trMem := it.NewNVTreeMem(rocksdb)
-	err = trMem.Init(func([]byte) {})
+	err = trMem.Init(nil)
 	if err != nil {
 		panic(err)
 	}
@@ -148,15 +154,33 @@ func RunFuzz(roundCount int, cfg FuzzConfig, randFilename string) {
 		if i%1000 == 0 {
 			fmt.Printf("====== Now Round %d Height %d ========\n", i, h)
 		}
+		if i%cfg.ReloadEveryN == 0 && i != 0 {
+			fmt.Printf("Reopen begin \n")
+			trMem.Close()
+			rocksdb.Close()
+			rocksdb, err = it.NewRocksDB("idxtree", ".")
+			if err != nil {
+				panic(err)
+			}
+			trMem = it.NewNVTreeMem(rocksdb)
+			err = trMem.Init(nil)
+			if err != nil {
+				panic(err)
+			}
+			fmt.Printf("Reopen end \n")
+		}
 		changeMap := make(map[string]int64)
 		if h != 0 {
-			FuzzDelete(rocksdb, trMem, refTree, cfg, rs, changeMap)
+			FuzzDelete(trMem, refTree, cfg, rs, changeMap)
 		}
 		FuzzInit(rocksdb, trMem, refTree, cfg, rs, h, changeMap)
 		FuzzQuery(trMem, refTree, cfg, rs, h)
 		FuzzIter(trMem, refTree, cfg, rs)
 		h += (1 + rs.GetUint64()%uint64(cfg.HeightStripe))
 	}
+	trMem.Close()
+	rocksdb.Close()
+	refTree.Close()
 	os.RemoveAll("./idxtree.db")
 	os.RemoveAll("./idxtreeref.db")
 }
@@ -167,7 +191,7 @@ func getRandKey(rs randsrc.RandSrc) []byte {
 	return buf[:]
 }
 
-func FuzzDelete(rocksdb *it.RocksDB, trMem *it.NVTreeMem, refTree *NVTreeRef, cfg FuzzConfig, rs randsrc.RandSrc, changeMap map[string]int64) {
+func FuzzDelete(trMem *it.NVTreeMem, refTree *NVTreeRef, cfg FuzzConfig, rs randsrc.RandSrc, changeMap map[string]int64) {
 	for i := 0; i < cfg.DelCount; i++ {
 		key := getRandKey(rs)
 		//fmt.Printf("Here we get rand key %#v\n", key)
@@ -187,12 +211,12 @@ func FuzzDelete(rocksdb *it.RocksDB, trMem *it.NVTreeMem, refTree *NVTreeRef, cf
 func FuzzInit(rocksdb *it.RocksDB, trMem *it.NVTreeMem, refTree *NVTreeRef, cfg FuzzConfig, rs randsrc.RandSrc, h uint64, changeMap map[string]int64) {
 	for i := 0; i < cfg.InitCount; i++ {
 		// set new key/value
-		key, value := getRandKey(rs), (rs.GetInt64()&((int64(1)<<48)-1))
+		key, value := getRandKey(rs), (rs.GetInt64() & ((int64(1) << 48) - 1))
 		changeMap[string(key)] = value
 	}
 	for i := 0; i < cfg.InitCount; i++ {
 		// overwrite existing key
-		key, value := getRandKey(rs), (rs.GetInt64()&((int64(1)<<48)-1))
+		key, value := getRandKey(rs), (rs.GetInt64() & ((int64(1) << 48) - 1))
 		iter := refTree.Iterator(key, AllOnes)
 		if !iter.Valid() {
 			iter.Close()
@@ -230,6 +254,11 @@ func FuzzQuery(trMem *it.NVTreeMem, refTree *NVTreeRef, cfg FuzzConfig, rs rands
 		assert(okMem == okFuzz, "ok should be equal")
 		assert(vMem == vFuzz, "Value at height should be equal")
 
+		vMem, okMem = trMem.GetAtHeight(key, h)
+		vFuzz, okFuzz = refTree.GetAtHeight(key, h)
+		assert(okMem == okFuzz, "ok should be equal")
+		assert(vMem == vFuzz, "Value at height should be equal")
+
 		iter := refTree.Iterator(key, AllOnes)
 		if !iter.Valid() {
 			iter.Close()
@@ -245,13 +274,13 @@ func FuzzQuery(trMem *it.NVTreeMem, refTree *NVTreeRef, cfg FuzzConfig, rs rands
 		if h == 0 {
 			continue
 		}
-		height := rs.GetUint64()%h
+		height := rs.GetUint64() % h
 		vMem, okMem = trMem.GetAtHeight(key[1:], height)
 		vFuzz, okFuzz = refTree.GetAtHeight(key[1:], height)
 		assert(okMem == okFuzz, "ok should be equal")
 		if vMem != vFuzz {
 			fmt.Printf("AtHeight key %#v height %v okMem %v okFuzz %v vMem %x vFuzz %x\n",
-			key[1:], height, okMem, okFuzz, vMem, vFuzz)
+				key[1:], height, okMem, okFuzz, vMem, vFuzz)
 		}
 		assert(vMem == vFuzz, "Value at height should be equal")
 	}
@@ -282,6 +311,13 @@ func FuzzIter(trMem *it.NVTreeMem, refTree *NVTreeRef, cfg FuzzConfig, rs randsr
 	}
 	for i := 0; i < cfg.IterCount; i++ {
 		start, end := getRandKey(rs), getRandKey(rs)
+		if rs.GetUint32()%10 == 0 { // 10% possibility
+			it := refTree.ReverseIterator(start, end)
+			if it.Valid() {
+				end = it.Key()[1:] // Change end to exact-match
+			}
+			it.Close()
+		}
 		iterMem := trMem.ReverseIterator(start, end)
 		iterFuzz := refTree.ReverseIterator(start, end)
 		for j := 0; j < cfg.IterDistance; j++ {
@@ -300,4 +336,3 @@ func FuzzIter(trMem *it.NVTreeMem, refTree *NVTreeRef, cfg FuzzConfig, rs randsr
 		iterFuzz.Close()
 	}
 }
-

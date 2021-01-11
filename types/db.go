@@ -120,5 +120,3 @@ type Iterator interface {
 	// Close releases the Iterator.
 	Close()
 }
-
-

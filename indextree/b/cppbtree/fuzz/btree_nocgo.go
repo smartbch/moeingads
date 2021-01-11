@@ -1007,5 +1007,3 @@ func (t *Tree) countCopies() int64 {
 
 func (d *d) setTree(t *Tree) {
 }
-
-
