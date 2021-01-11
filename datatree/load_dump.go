@@ -16,7 +16,7 @@ import (
 )
 
 func LoadTwigFromFile(infile io.Reader) (twigID int64, twig Twig, err error) {
-	var buf0,buf1 [8]byte
+	var buf0, buf1 [8]byte
 	var buf2 [4]byte
 	var slices [13][]byte
 	slices[0] = buf0[:]
@@ -52,7 +52,7 @@ func LoadTwigFromFile(infile io.Reader) (twigID int64, twig Twig, err error) {
 }
 
 func (twig *Twig) Dump(twigID int64, outfile io.Writer) error {
-	var buf0,buf1 [8]byte
+	var buf0, buf1 [8]byte
 	binary.LittleEndian.PutUint64(buf0[:], uint64(twigID))
 	binary.LittleEndian.PutUint64(buf1[:], uint64(twig.FirstEntryPos))
 	var slices [13][]byte
@@ -88,7 +88,7 @@ func EdgeNodesToBytes(edgeNodes []*EdgeNode) []byte {
 	for i, node := range edgeNodes {
 		if len(node.Value) != 32 {
 			s := fmt.Sprintf("node.Value %#v\n", node.Value)
-			panic("len(node.Value) != 32 "+s)
+			panic("len(node.Value) != 32 " + s)
 		}
 		binary.LittleEndian.PutUint64(res[i*stripe:i*stripe+8], uint64(node.Pos))
 		copy(res[i*stripe+8:(i+1)*stripe], node.Value)
@@ -105,12 +105,11 @@ func BytesToEdgeNodes(bz []byte) []*EdgeNode {
 	for i := 0; i < len(res); i++ {
 		var value [32]byte
 		pos := binary.LittleEndian.Uint64(bz[i*stripe : i*stripe+8])
-		copy(value[:], bz[i*stripe+8 : (i+1)*stripe])
+		copy(value[:], bz[i*stripe+8:(i+1)*stripe])
 		res[i] = &EdgeNode{Pos: NodePos(pos), Value: value[:]}
 	}
 	return res
 }
-
 
 func (tree *Tree) DumpNodes(outfile io.Writer) error {
 	for pos, hash := range tree.nodes {
@@ -189,7 +188,6 @@ func (tree *Tree) LoadMtree4YT(infile io.Reader) error {
 	return nil
 }
 
-
 func (tree *Tree) Flush() {
 	tree.entryFile.Flush()
 	tree.twigMtFile.Flush()
@@ -198,7 +196,7 @@ func (tree *Tree) Flush() {
 	for twigID := range tree.activeTwigs {
 		twigList = append(twigList, twigID)
 	}
-	sort.Slice(twigList, func(i, j int) bool {return twigList[i] < twigList[j]})
+	sort.Slice(twigList, func(i, j int) bool { return twigList[i] < twigList[j] })
 	twigFile, err := os.OpenFile(filepath.Join(tree.dirName, twigsPath), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0700)
 	if err != nil {
 		panic(err)
@@ -245,8 +243,8 @@ func LoadTree(bufferSize, blockSize int, dirName string) *Tree {
 		twigMtFile: &twigMtFile,
 		dirName:    dirName,
 
-		nodes:          make(map[NodePos]*[32]byte),
-		activeTwigs:    make(map[int64]*Twig),
+		nodes:       make(map[NodePos]*[32]byte),
+		activeTwigs: make(map[int64]*Twig),
 
 		mtree4YTChangeStart: -1,
 		mtree4YTChangeEnd:   -1,
@@ -302,7 +300,7 @@ func (tree *Tree) RecoverEntry(pos int64, entry *Entry, deactivedSNList []int64,
 	for _, sn := range deactivedSNList {
 		twigID := sn >> TwigShift
 		if twigID >= oldestActiveTwigID {
-			tree.activeTwigs[sn >> TwigShift].clearBit(int(sn & TwigMask))
+			tree.activeTwigs[sn>>TwigShift].clearBit(int(sn & TwigMask))
 		}
 	}
 	//update youngestTwigID
@@ -393,7 +391,7 @@ func (tree *Tree) RecoverUpperNodes(edgeNodes []*EdgeNode, nList []int64) {
 }
 
 func (tree *Tree) RecoverInactiveTwigRoots(lastPrunedTwigID, oldestActiveTwigID int64) (newList []int64) {
-	newList = make([]int64, 0, 1 + (oldestActiveTwigID-lastPrunedTwigID)/2)
+	newList = make([]int64, 0, 1+(oldestActiveTwigID-lastPrunedTwigID)/2)
 	for twigID := lastPrunedTwigID; twigID < oldestActiveTwigID; twigID++ {
 		var twigRoot [32]byte
 		leftRoot := tree.twigMtFile.GetHashNode(twigID, 1)
@@ -436,7 +434,7 @@ func RecoverTree(bufferSize, blockSize int, dirName string, edgeNodes []*EdgeNod
 	tree.activeTwigs[oldestActiveTwigID] = CopyNullTwig()
 	tree.mtree4YoungestTwig = NullMT4Twig
 	startingInactiveTwigID := lastPrunedTwigID
-	if startingInactiveTwigID % 2 == 1 {
+	if startingInactiveTwigID%2 == 1 {
 		startingInactiveTwigID--
 	}
 	nList0 := tree.RecoverInactiveTwigRoots(startingInactiveTwigID, oldestActiveTwigID)
@@ -505,5 +503,3 @@ func CompareTwig(twigID int64, a, b *Twig) {
 		panic(fmt.Sprintf("FirstEntryPos differ at twig %d", twigID))
 	}
 }
-
-

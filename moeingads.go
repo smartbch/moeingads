@@ -3,8 +3,8 @@ package moeingads
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"math"
+	"os"
 	"runtime"
 	"sort"
 	"sync"
@@ -19,9 +19,9 @@ import (
 )
 
 const (
-	defaultFileSize = 1024*1024*1024
-	StartReapThres int64 = 10000 // 1000 * 1000
-	KeptEntriesToActiveEntriesRatio = 2
+	defaultFileSize                       = 1024 * 1024 * 1024
+	StartReapThres                  int64 = 10000 // 1000 * 1000
+	KeptEntriesToActiveEntriesRatio       = 2
 
 	heMapSize = 128
 	nkMapSize = 64
@@ -64,8 +64,8 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 	_, err := os.Stat(dirName)
 	dirNotExists := os.IsNotExist(err)
 	mads := &MoeingADS{
-		k2heMap:      NewBucketMap(heMapSize),
-		k2nkMap:      NewBucketMap(nkMapSize),
+		k2heMap:       NewBucketMap(heMapSize),
+		k2nkMap:       NewBucketMap(nkMapSize),
 		cachedEntries: make([]*HotEntry, 0, 2000),
 	}
 	for i := range mads.tempEntries64 {
@@ -125,11 +125,11 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 	} else { // only latest index, no historical index at all
 		mads.idxTree = indextree.NewNVTreeMem(nil)
 		oldestActiveTwigID := mads.meta.GetOldestActiveTwigID()
-		mads.idxTree.BeginWrite(0) // we set height=0 here, which will not be used 
+		mads.idxTree.BeginWrite(0) // we set height=0 here, which will not be used
 		keyAndPosChan := make(chan types.KeyAndPos, 100)
 		go mads.datTree.ScanEntriesLite(oldestActiveTwigID, keyAndPosChan)
 		for e := range keyAndPosChan {
-			mads.idxTree.Set(e.Key, uint64(e.Pos))
+			mads.idxTree.Set(e.Key, e.Pos)
 		}
 		mads.idxTree.EndWrite()
 	}
@@ -254,7 +254,7 @@ func isHintHotEntry(hotEntry *HotEntry) bool {
 }
 
 func makeHintHotEntry(key string) *HotEntry {
-	return &HotEntry {
+	return &HotEntry{
 		EntryPtr: &Entry{
 			Key:        []byte(key),
 			Value:      nil,
@@ -268,7 +268,7 @@ func makeHintHotEntry(key string) *HotEntry {
 }
 
 func (mads *MoeingADS) getPrevEntry(k []byte) *Entry {
-	iter := mads.idxTree.ReverseIterator([]byte{}, k)
+	iter := mads.idxTree.ReverseIterator(mads.startKey, k)
 	defer iter.Close()
 	if !iter.Valid() {
 		panic(fmt.Sprintf("The iterator is invalid! Missing a guard node? k=%#v", k))
@@ -277,7 +277,6 @@ func (mads *MoeingADS) getPrevEntry(k []byte) *Entry {
 	//fmt.Printf("In getPrevEntry: %#v %d\n", iter.Key(), iter.Value())
 	return mads.datTree.ReadEntry(int64(pos))
 }
-
 
 const (
 	MinimumTasksInGoroutine = 10
@@ -325,7 +324,7 @@ func (mads *MoeingADS) Delete(key []byte) {
 
 func getPrev(cachedEntries []*HotEntry, i int) int {
 	var j int
-	for j = i-1; j >= 0; j-- {
+	for j = i - 1; j >= 0; j-- {
 		if cachedEntries[j].Operation != types.OpDelete && !isFakeInserted(cachedEntries[j]) {
 			break
 		}
@@ -341,7 +340,7 @@ func getPrev(cachedEntries []*HotEntry, i int) int {
 
 func getNext(cachedEntries []*HotEntry, i int) int {
 	var j int
-	for j = i+1; j < len(cachedEntries); j++ {
+	for j = i + 1; j < len(cachedEntries); j++ {
 		if cachedEntries[j].Operation != types.OpDelete && !isFakeInserted(cachedEntries[j]) {
 			break
 		}
@@ -360,16 +359,20 @@ func (mads *MoeingADS) update() {
 	datatree.ParrallelRun(runtime.NumCPU(), func(workerID int) {
 		for {
 			myIdx := atomic.AddInt64(&sharedIdx, 1)
-			if myIdx >= 64 {break}
+			if myIdx >= 64 {
+				break
+			}
 			for _, e := range mads.k2heMap.maps[myIdx] {
 				mads.tempEntries64[myIdx] = append(mads.tempEntries64[myIdx], e)
 			}
 			for k := range mads.k2nkMap.maps[myIdx] {
-				if _, ok := mads.k2heMap.maps[myIdx][k]; ok {continue}
+				if _, ok := mads.k2heMap.maps[myIdx][k]; ok {
+					continue
+				}
 				mads.tempEntries64[myIdx] = append(mads.tempEntries64[myIdx], makeHintHotEntry(k))
 			}
 			entries := mads.tempEntries64[myIdx]
-			sort.Slice(entries, func(i,j int) bool {
+			sort.Slice(entries, func(i, j int) bool {
 				return bytes.Compare(entries[i].EntryPtr.Key, entries[j].EntryPtr.Key) < 0
 			})
 		}
@@ -435,7 +438,7 @@ func (mads *MoeingADS) update() {
 			//@ start := gotsc.BenchStart()
 			pos := mads.datTree.AppendEntry(ptr)
 			//@ Phase2Time += gotsc.BenchEnd() - start - tscOverhead
-			mads.idxTree.Set(ptr.Key, uint64(pos))
+			mads.idxTree.Set(ptr.Key, pos)
 		}
 	}
 	Phase1n2Time += gotsc.BenchEnd() - start - tscOverhead
@@ -453,7 +456,7 @@ func (mads *MoeingADS) DeactiviateEntry(sn int64) {
 }
 
 func (mads *MoeingADS) CheckConsistency() {
-	iter := mads.idxTree.ReverseIterator([]byte{}, mads.endKey)
+	iter := mads.idxTree.ReverseIterator(mads.startKey, mads.endKey)
 	defer iter.Close()
 	nextKey := mads.endKey
 	for iter.Valid() && !bytes.Equal(iter.Key(), mads.startKey) {
@@ -493,7 +496,7 @@ func (mads *MoeingADS) EndWrite() {
 			mads.meta.IncrMaxSerialNum()
 			pos := mads.datTree.AppendEntryRawBytes(entryBz, sn)
 			key := datatree.ExtractKeyFromRawBytes(entryBz)
-			mads.idxTree.Set(key, uint64(pos))
+			mads.idxTree.Set(key, pos)
 		}
 		mads.datTree.EvictTwig(twigID)
 		mads.meta.IncrOldestActiveTwigID()
@@ -534,7 +537,7 @@ func (mads *MoeingADS) InitGuards(startKey, endKey []byte) {
 	}
 	pos := mads.datTree.AppendEntry(entry)
 	mads.meta.IncrMaxSerialNum()
-	mads.idxTree.Set(startKey, uint64(pos))
+	mads.idxTree.Set(startKey, pos)
 
 	entry = &Entry{
 		Key:        endKey,
@@ -546,7 +549,7 @@ func (mads *MoeingADS) InitGuards(startKey, endKey []byte) {
 	}
 	pos = mads.datTree.AppendEntry(entry)
 	mads.meta.IncrMaxSerialNum()
-	mads.idxTree.Set(endKey, uint64(pos))
+	mads.idxTree.Set(endKey, pos)
 
 	mads.idxTree.EndWrite()
 	mads.rootHash = mads.datTree.EndBlock()
@@ -576,7 +579,7 @@ func (mads *MoeingADS) PruneBeforeHeight(height int64) {
 		for i := start; i < end; i++ {
 			mads.meta.DeleteTwigHeight(i)
 		}
-		mads.meta.SetLastPrunedTwig(end-1)
+		mads.meta.SetLastPrunedTwig(end - 1)
 	}
 	mads.rocksdb.SetPruneHeight(uint64(height))
 }
@@ -609,9 +612,8 @@ func (bm *BucketMap) Store(key string, value *HotEntry) {
 	bm.maps[idx][key] = value
 }
 
-
 type Iterator struct {
-	mads  *MoeingADS
+	mads *MoeingADS
 	iter types.IteratorUI64
 }
 
@@ -648,4 +650,3 @@ func (mads *MoeingADS) Iterator(start, end []byte) types.Iterator {
 func (mads *MoeingADS) ReverseIterator(start, end []byte) types.Iterator {
 	return &Iterator{mads: mads, iter: mads.idxTree.ReverseIterator(start, end)}
 }
-

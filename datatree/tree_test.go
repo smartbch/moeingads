@@ -1,9 +1,9 @@
 package datatree
 
 import (
-	"os"
 	"encoding/binary"
 	"fmt"
+	"os"
 	"testing"
 
 	sha256 "github.com/minio/sha256-simd"
@@ -12,15 +12,15 @@ import (
 
 // test the init function in tree.go
 func TestTreeInit(t *testing.T) {
-	var L8,L9,L10,L11 [32]byte
-	L9  = sha256.Sum256(append(append([]byte{8}, L8[:]...), L8[:]...))
+	var L8, L9, L10, L11 [32]byte
+	L9 = sha256.Sum256(append(append([]byte{8}, L8[:]...), L8[:]...))
 	L10 = sha256.Sum256(append(append([]byte{9}, L9[:]...), L9[:]...))
 	L11 = sha256.Sum256(append(append([]byte{10}, L10[:]...), L10[:]...))
 
-	assert.Equal(t, L9,  NullTwig.activeBitsMTL1[0])
-	assert.Equal(t, L9,  NullTwig.activeBitsMTL1[1])
-	assert.Equal(t, L9,  NullTwig.activeBitsMTL1[2])
-	assert.Equal(t, L9,  NullTwig.activeBitsMTL1[3])
+	assert.Equal(t, L9, NullTwig.activeBitsMTL1[0])
+	assert.Equal(t, L9, NullTwig.activeBitsMTL1[1])
+	assert.Equal(t, L9, NullTwig.activeBitsMTL1[2])
+	assert.Equal(t, L9, NullTwig.activeBitsMTL1[3])
 	assert.Equal(t, L10, NullTwig.activeBitsMTL2[0])
 	assert.Equal(t, L10, NullTwig.activeBitsMTL2[1])
 	assert.Equal(t, L11, NullTwig.activeBitsMTL3)
@@ -99,7 +99,7 @@ func TestTreeTwig(t *testing.T) {
 	for i := 0; i < 2048; i++ {
 		assert.Equal(t, false, twig.getBit(i))
 	}
-	ones := []int{1,2,3, 54, 199, 200, 29, 37, 1000, 2000, 2008, 799, 2045, 2046, 2047}
+	ones := []int{1, 2, 3, 54, 199, 200, 29, 37, 1000, 2000, 2008, 799, 2045, 2046, 2047}
 	for _, i := range ones {
 		twig.setBit(i)
 	}
@@ -133,7 +133,7 @@ func TestTreeEdgeNode(t *testing.T) {
 		en1.Value[i] = 11
 		en2.Value[i] = 12
 	}
-	bz := EdgeNodesToBytes([]*EdgeNode{en0,en1,en2})
+	bz := EdgeNodesToBytes([]*EdgeNode{en0, en1, en2})
 	edgeNodes := BytesToEdgeNodes(bz)
 	assert.Equal(t, 3, len(edgeNodes))
 	assert.Equal(t, en0, edgeNodes[0])
@@ -169,7 +169,7 @@ func TestTreeMaxLevel(t *testing.T) {
 func TestTreeReapNodes(t *testing.T) {
 	tree := &Tree{nodes: make(map[NodePos]*[32]byte)}
 	stripe := 32
-	for level := FirstLevelAboveTwig-1; level < FirstLevelAboveTwig+5; level++ {
+	for level := FirstLevelAboveTwig - 1; level < FirstLevelAboveTwig+5; level++ {
 		for i := 0; i < stripe; i++ {
 			var zero [32]byte
 			tree.nodes[Pos(int(level), int64(i))] = &zero
@@ -233,7 +233,7 @@ func TestTreeReapNodes(t *testing.T) {
 
 func generateMT4YoungestTwig() (mt [4096][32]byte) {
 	for i := range mt {
-		for j := 0; j < 32; j+=2 {
+		for j := 0; j < 32; j += 2 {
 			binary.LittleEndian.PutUint16(mt[i][j:j+2], uint16(i))
 		}
 	}
@@ -355,7 +355,7 @@ func maxNPlus1AtLevel(youngestTwigID int64, level int) int64 {
 	}
 	shift := level - FirstLevelAboveTwig
 	maxN := youngestTwigID >> shift
-	mask := int64((1<<shift)-1)
+	mask := int64((1 << shift) - 1)
 	if (youngestTwigID & mask) != 0 {
 		maxN += 1
 	}
@@ -387,7 +387,7 @@ func initTwigsAndUpperNodes(tree *Tree, n int64) {
 	for i := int64(0); i < n; i++ {
 		//fmt.Printf("Now create twig %d\n", i)
 		tree.activeTwigs[i] = CopyNullTwig()
-		for j := 0; j < 32; j+=2 {
+		for j := 0; j < 32; j += 2 {
 			binary.LittleEndian.PutUint16(tree.activeTwigs[i].twigRoot[j:j+2], uint16(i))
 		}
 		if len(nList) == 0 || nList[len(nList)-1] != i/2 {
@@ -415,7 +415,6 @@ func changeTwigRoots(tree *Tree, idList []int64) []int64 {
 	return nList
 }
 
-
 func TestTreeSyncUpperNodes(t *testing.T) {
 	tree := &Tree{}
 	initTwigsAndUpperNodes(tree, 171)
@@ -440,7 +439,7 @@ func TestTreeSyncUpperNodes(t *testing.T) {
 	tree.syncUpperNodes(nList)
 }
 
-const defaultFileSize = 8*4096*32
+const defaultFileSize = 8 * 4096 * 32
 
 // build a tree for test: append countBefore entries before applying deactSNList,
 // and append countAfter entries after applying deactSNList
@@ -528,4 +527,3 @@ func TestTreeAppendEntry(t *testing.T) {
 	tree.Close()
 	os.RemoveAll(dirName)
 }
-

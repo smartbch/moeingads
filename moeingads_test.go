@@ -2,11 +2,10 @@ package moeingads
 
 import (
 	"fmt"
-	"testing"
 	"os"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
-
 )
 
 type TestOp struct {
@@ -18,72 +17,72 @@ type TestOp struct {
 
 func getListAdd() []TestOp {
 	return []TestOp{
-		{isDel: false, ignore: false, key: []byte("43210"), value: []byte("00")},
-		{isDel: false, ignore: false, key: []byte("43211"), value: []byte("10")},
-		{isDel: false, ignore: false, key: []byte("43212"), value: []byte("20")},
-		{isDel: false, ignore: false, key: []byte("43213"), value: []byte("30")},
-		{isDel: false, ignore: false, key: []byte("43214"), value: []byte("40")},
-		{isDel: false, ignore: false, key: []byte("43215"), value: []byte("50")},
-		{isDel: false, ignore: false, key: []byte("43216"), value: []byte("60")},
-		{isDel: false, ignore: false, key: []byte("43217"), value: []byte("70")},
-		{isDel: false, ignore: false, key: []byte("43218"), value: []byte("80")},
-		{isDel: false, ignore: false, key: []byte("43219"), value: []byte("90")},
-		{isDel: false, ignore: false, key: []byte("4321a"), value: []byte("a0")},
-		{isDel: false, ignore: false, key: []byte("4321b"), value: []byte("b0")},
-		{isDel: false, ignore: false, key: []byte("4321c"), value: []byte("c0")},
-		{isDel: false, ignore: false, key: []byte("4321d"), value: []byte("d0")},
-		{isDel: false, ignore: false, key: []byte("4321e"), value: []byte("e0")},
-		{isDel: false, ignore: false, key: []byte("4321f"), value: []byte("f0")},
+		{isDel: false, ignore: false, key: []byte("00432100"), value: []byte("00")},
+		{isDel: false, ignore: false, key: []byte("00432110"), value: []byte("10")},
+		{isDel: false, ignore: false, key: []byte("00432120"), value: []byte("20")},
+		{isDel: false, ignore: false, key: []byte("00432130"), value: []byte("30")},
+		{isDel: false, ignore: false, key: []byte("00432140"), value: []byte("40")},
+		{isDel: false, ignore: false, key: []byte("00432150"), value: []byte("50")},
+		{isDel: false, ignore: false, key: []byte("00432160"), value: []byte("60")},
+		{isDel: false, ignore: false, key: []byte("00432170"), value: []byte("70")},
+		{isDel: false, ignore: false, key: []byte("00432180"), value: []byte("80")},
+		{isDel: false, ignore: false, key: []byte("00432190"), value: []byte("90")},
+		{isDel: false, ignore: false, key: []byte("004321a0"), value: []byte("a0")},
+		{isDel: false, ignore: false, key: []byte("004321b0"), value: []byte("b0")},
+		{isDel: false, ignore: false, key: []byte("004321c0"), value: []byte("c0")},
+		{isDel: false, ignore: false, key: []byte("004321d0"), value: []byte("d0")},
+		{isDel: false, ignore: false, key: []byte("004321e0"), value: []byte("e0")},
+		{isDel: false, ignore: false, key: []byte("004321f0"), value: []byte("f0")},
 	}
 }
 
 func getListModify() []TestOp {
 	return []TestOp{
-		{isDel: true, ignore: false, key: []byte("43211"), value: []byte("10")}, //effective
-		{isDel: true, ignore: true,  key: []byte("43212"), value: []byte("20")},
-		{isDel: true, ignore: false, key: []byte("43213"), value: []byte("30")}, //effective
-		{isDel: true, ignore: false, key: []byte("43214"), value: []byte("40")}, //effective
-		{isDel: true, ignore: false, key: []byte("43215"), value: []byte("50")}, //effective
-		{isDel: true, ignore: true,  key: []byte("43216"), value: []byte("60")},
-		{isDel: true, ignore: false, key: []byte("43217"), value: []byte("70")}, //effective
-		{isDel: true, ignore: true,  key: []byte("43218"), value: []byte("80")},
-		{isDel: false, ignore: true, key: []byte("43219"), value: []byte("90")},
-		{isDel: true, ignore: true,  key: []byte("4321a"), value: []byte("a0")},
-		{isDel: true, ignore: false, key: []byte("4321b"), value: []byte("b0")}, //effective
-		{isDel: true, ignore: true,  key: []byte("4321c"), value: []byte("c0")},
-		{isDel: true, ignore: false, key: []byte("4321d"), value: []byte("d0")}, //effective
-		{isDel: true, ignore: true,  key: []byte("4321e"), value: []byte("e0")},
+		{isDel: true, ignore: false, key: []byte("00432110"), value: []byte("10")}, //effective
+		{isDel: true, ignore: true, key: []byte("00432120"), value: []byte("20")},
+		{isDel: true, ignore: false, key: []byte("00432130"), value: []byte("30")}, //effective
+		{isDel: true, ignore: false, key: []byte("00432140"), value: []byte("40")}, //effective
+		{isDel: true, ignore: false, key: []byte("00432150"), value: []byte("50")}, //effective
+		{isDel: true, ignore: true, key: []byte("00432160"), value: []byte("60")},
+		{isDel: true, ignore: false, key: []byte("00432170"), value: []byte("70")}, //effective
+		{isDel: true, ignore: true, key: []byte("00432180"), value: []byte("80")},
+		{isDel: false, ignore: true, key: []byte("00432190"), value: []byte("90")},
+		{isDel: true, ignore: true, key: []byte("004321a0"), value: []byte("a0")},
+		{isDel: true, ignore: false, key: []byte("004321b0"), value: []byte("b0")}, //effective
+		{isDel: true, ignore: true, key: []byte("004321c0"), value: []byte("c0")},
+		{isDel: true, ignore: false, key: []byte("004321d0"), value: []byte("d0")}, //effective
+		{isDel: true, ignore: true, key: []byte("004321e0"), value: []byte("e0")},
 
-		{isDel: false, ignore: false, key: []byte("432144"), value: []byte("444")},
-		{isDel: false, ignore: false, key: []byte("432155"), value: []byte("555")},
-		{isDel: false, ignore: false, key: []byte("432166"), value: []byte("666")},
-		{isDel: false, ignore: false, key: []byte("432177"), value: []byte("777")},
-		{isDel: false, ignore: false, key: []byte("432188"), value: []byte("888")},
-		{isDel: false, ignore: false, key: []byte("4321aa"), value: []byte("aaa")},
-		{isDel: false, ignore: false, key: []byte("4321bb"), value: []byte("bbb")},
+		{isDel: false, ignore: false, key: []byte("00432144"), value: []byte("444")},
+		{isDel: false, ignore: false, key: []byte("00432155"), value: []byte("555")},
+		{isDel: false, ignore: false, key: []byte("00432166"), value: []byte("666")},
+		{isDel: false, ignore: false, key: []byte("00432177"), value: []byte("777")},
+		{isDel: false, ignore: false, key: []byte("00432188"), value: []byte("888")},
+		{isDel: false, ignore: false, key: []byte("004321aa"), value: []byte("aaa")},
+		{isDel: false, ignore: false, key: []byte("004321bb"), value: []byte("bbb")},
 	}
 }
 
-func runList(okv *MoeingADS, opList []TestOp, height int64) {
+func runList(ads *MoeingADS, opList []TestOp, height int64) {
 	for _, op := range opList {
 		if op.isDel {
-			okv.PrepareForDeletion(op.key)
+			ads.PrepareForDeletion(op.key)
 		} else {
-			okv.PrepareForUpdate(op.key)
+			ads.PrepareForUpdate(op.key)
 		}
 	}
-	okv.BeginWrite(height)
+	ads.BeginWrite(height)
 	for _, op := range opList {
 		if op.ignore {
 			continue
 		}
 		if op.isDel {
-			okv.Delete(op.key)
+			ads.Delete(op.key)
 		} else {
-			okv.Set(op.key, op.value)
+			ads.Set(op.key, op.value)
 		}
 	}
-	okv.EndWrite()
+	ads.EndWrite()
 }
 
 func EntryToStr(e *Entry) string {
@@ -91,105 +90,104 @@ func EntryToStr(e *Entry) string {
 }
 
 func Test1(t *testing.T) {
-	first := []byte{0}
-	last := []byte{255,255,255,255,255,255}
-	okv := NewMoeingADS4Mock([][]byte{first, last})
-	e := okv.GetEntry(first)
-	assert.Equal(t, "K:\x00 nK:[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}(6) V: H:-1 LH:-1 SN:0", EntryToStr(e))
-	e = okv.GetEntry(last)
-	assert.Equal(t, "K:\xff\xff\xff\xff\xff\xff nK:[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}(6) V: H:-1 LH:-1 SN:1", EntryToStr(e))
-
+	first := []byte{0, 0, 0, 0, 0, 0, 0, 0}
+	last := []byte{255, 255, 255, 255, 255, 255, 255, 255}
+	ads := NewMoeingADS4Mock([][]byte{first, last})
+	e := ads.GetEntry(first)
+	assert.Equal(t, "K:\x00\x00\x00\x00\x00\x00\x00\x00 nK:[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}(8) V: H:-1 LH:-1 SN:0", EntryToStr(e))
+	e = ads.GetEntry(last)
+	assert.Equal(t, "K:\xff\xff\xff\xff\xff\xff\xff\xff nK:[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}(8) V: H:-1 LH:-1 SN:1", EntryToStr(e))
 
 	list1 := getListAdd()
-	runList(okv, list1, 0)
-	e = okv.GetEntry(first)
-	assert.Equal(t, "K:\x00 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x30}(5) V: H:0 LH:-1 SN:2", EntryToStr(e))
-	e = okv.GetEntry(last)
-	assert.Equal(t, "K:\xff\xff\xff\xff\xff\xff nK:[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}(6) V: H:-1 LH:-1 SN:1", EntryToStr(e))
+	runList(ads, list1, 0)
+	e = ads.GetEntry(first)
+	assert.Equal(t, "K:\x00\x00\x00\x00\x00\x00\x00\x00 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x30, 0x30}(8) V: H:0 LH:-1 SN:2", EntryToStr(e))
+	e = ads.GetEntry(last)
+	assert.Equal(t, "K:\xff\xff\xff\xff\xff\xff\xff\xff nK:[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}(8) V: H:-1 LH:-1 SN:1", EntryToStr(e))
 
 	resList := []string{
-"K:43210 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x31}(5) V:00 H:0 LH:0 SN:3",
-"K:43211 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x32}(5) V:10 H:0 LH:0 SN:4",
-"K:43212 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x33}(5) V:20 H:0 LH:0 SN:5",
-"K:43213 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x34}(5) V:30 H:0 LH:0 SN:6",
-"K:43214 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x35}(5) V:40 H:0 LH:0 SN:7",
-"K:43215 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x36}(5) V:50 H:0 LH:0 SN:8",
-"K:43216 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x37}(5) V:60 H:0 LH:0 SN:9",
-"K:43217 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x38}(5) V:70 H:0 LH:0 SN:10",
-"K:43218 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x39}(5) V:80 H:0 LH:0 SN:11",
-"K:43219 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x61}(5) V:90 H:0 LH:0 SN:12",
-"K:4321a nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x62}(5) V:a0 H:0 LH:0 SN:13",
-"K:4321b nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x63}(5) V:b0 H:0 LH:0 SN:14",
-"K:4321c nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x64}(5) V:c0 H:0 LH:0 SN:15",
-"K:4321d nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x65}(5) V:d0 H:0 LH:0 SN:16",
-"K:4321e nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x66}(5) V:e0 H:0 LH:0 SN:17",
-"K:4321f nK:[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}(6) V:f0 H:0 LH:0 SN:18",
-}
+		"K:00432100 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x31, 0x30}(8) V:00 H:0 LH:0 SN:3",
+		"K:00432110 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x32, 0x30}(8) V:10 H:0 LH:0 SN:4",
+		"K:00432120 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x33, 0x30}(8) V:20 H:0 LH:0 SN:5",
+		"K:00432130 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x34, 0x30}(8) V:30 H:0 LH:0 SN:6",
+		"K:00432140 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x35, 0x30}(8) V:40 H:0 LH:0 SN:7",
+		"K:00432150 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x36, 0x30}(8) V:50 H:0 LH:0 SN:8",
+		"K:00432160 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x37, 0x30}(8) V:60 H:0 LH:0 SN:9",
+		"K:00432170 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x38, 0x30}(8) V:70 H:0 LH:0 SN:10",
+		"K:00432180 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x39, 0x30}(8) V:80 H:0 LH:0 SN:11",
+		"K:00432190 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x61, 0x30}(8) V:90 H:0 LH:0 SN:12",
+		"K:004321a0 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x62, 0x30}(8) V:a0 H:0 LH:0 SN:13",
+		"K:004321b0 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x63, 0x30}(8) V:b0 H:0 LH:0 SN:14",
+		"K:004321c0 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x64, 0x30}(8) V:c0 H:0 LH:0 SN:15",
+		"K:004321d0 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x65, 0x30}(8) V:d0 H:0 LH:0 SN:16",
+		"K:004321e0 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x66, 0x30}(8) V:e0 H:0 LH:0 SN:17",
+		"K:004321f0 nK:[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}(8) V:f0 H:0 LH:0 SN:18",
+	}
 	for i, op := range list1 {
-		e := okv.GetEntry(op.key)
+		e := ads.GetEntry(op.key)
 		assert.Equal(t, resList[i], EntryToStr(e))
 	}
 
 	fmt.Printf("===========================\n")
-	findIt := okv.PrepareForDeletion([]byte("1234"))
+	findIt := ads.PrepareForDeletion([]byte("00001234"))
 	assert.Equal(t, false, findIt)
 	list2 := getListModify()
-	runList(okv, list2, 1)
-	e = okv.GetEntry(first)
-	assert.Equal(t, "K:\x00 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x30}(5) V: H:0 LH:-1 SN:2", EntryToStr(e))
-	e = okv.GetEntry(last)
-	assert.Equal(t, "K:\xff\xff\xff\xff\xff\xff nK:[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}(6) V: H:-1 LH:-1 SN:1", EntryToStr(e))
-	e = okv.GetEntry([]byte("43210"))
-	assert.Equal(t, "K:43210 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x32}(5) V:00 H:1 LH:0 SN:19", EntryToStr(e))
-	e = okv.GetEntry([]byte("43211"))
+	runList(ads, list2, 1)
+	e = ads.GetEntry(first)
+	assert.Equal(t, "K:\x00\x00\x00\x00\x00\x00\x00\x00 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x30, 0x30}(8) V: H:0 LH:-1 SN:2", EntryToStr(e))
+	e = ads.GetEntry(last)
+	assert.Equal(t, "K:\xff\xff\xff\xff\xff\xff\xff\xff nK:[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}(8) V: H:-1 LH:-1 SN:1", EntryToStr(e))
+	e = ads.GetEntry([]byte("00432100"))
+	assert.Equal(t, "K:00432100 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x32, 0x30}(8) V:00 H:1 LH:0 SN:19", EntryToStr(e))
+	e = ads.GetEntry([]byte("00432110"))
 	assert.Nil(t, e)
-	e = okv.GetEntry([]byte("43212"))
-	assert.Equal(t, "K:43212 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x34, 0x34}(6) V:20 H:1 LH:0 SN:20", EntryToStr(e))
-	e = okv.GetEntry([]byte("43213"))
+	e = ads.GetEntry([]byte("00432120"))
+	assert.Equal(t, "K:00432120 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x34, 0x34}(8) V:20 H:1 LH:0 SN:20", EntryToStr(e))
+	e = ads.GetEntry([]byte("00432130"))
 	assert.Nil(t, e)
-	e = okv.GetEntry([]byte("43214"))
+	e = ads.GetEntry([]byte("00432140"))
 	assert.Nil(t, e)
-	e = okv.GetEntry([]byte("432144"))
-	assert.Equal(t, "K:432144 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x35, 0x35}(6) V:444 H:1 LH:0 SN:21", EntryToStr(e))
-	e = okv.GetEntry([]byte("43215"))
+	e = ads.GetEntry([]byte("00432144"))
+	assert.Equal(t, "K:00432144 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x35, 0x35}(8) V:444 H:1 LH:0 SN:21", EntryToStr(e))
+	e = ads.GetEntry([]byte("00432150"))
 	assert.Nil(t, e)
-	e = okv.GetEntry([]byte("432155"))
-	assert.Equal(t, "K:432155 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x36}(5) V:555 H:1 LH:0 SN:22", EntryToStr(e))
-	e = okv.GetEntry([]byte("43216"))
-	assert.Equal(t, "K:43216 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x36, 0x36}(6) V:60 H:1 LH:0 SN:23", EntryToStr(e))
-	e = okv.GetEntry([]byte("432166"))
-	assert.Equal(t, "K:432166 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x37, 0x37}(6) V:666 H:1 LH:0 SN:24", EntryToStr(e))
-	e = okv.GetEntry([]byte("43217"))
+	e = ads.GetEntry([]byte("00432155"))
+	assert.Equal(t, "K:00432155 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x36, 0x30}(8) V:555 H:1 LH:0 SN:22", EntryToStr(e))
+	e = ads.GetEntry([]byte("00432160"))
+	assert.Equal(t, "K:00432160 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x36, 0x36}(8) V:60 H:1 LH:0 SN:23", EntryToStr(e))
+	e = ads.GetEntry([]byte("00432166"))
+	assert.Equal(t, "K:00432166 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x37, 0x37}(8) V:666 H:1 LH:0 SN:24", EntryToStr(e))
+	e = ads.GetEntry([]byte("00432170"))
 	assert.Nil(t, e)
-	e = okv.GetEntry([]byte("432177"))
-	assert.Equal(t, "K:432177 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x38}(5) V:777 H:1 LH:0 SN:25", EntryToStr(e))
-	e = okv.GetEntry([]byte("43218"))
-	assert.Equal(t, "K:43218 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x38, 0x38}(6) V:80 H:1 LH:0 SN:26", EntryToStr(e))
-	e = okv.GetEntry([]byte("432188"))
-	assert.Equal(t, "K:432188 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x39}(5) V:888 H:1 LH:0 SN:27", EntryToStr(e))
-	e = okv.GetEntry([]byte("43219"))
-	assert.Equal(t, "K:43219 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x61}(5) V:90 H:0 LH:0 SN:12", EntryToStr(e))
-	e = okv.GetEntry([]byte("4321a"))
-	assert.Equal(t, "K:4321a nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x61, 0x61}(6) V:a0 H:1 LH:0 SN:28", EntryToStr(e))
-	e = okv.GetEntry([]byte("4321aa"))
-	assert.Equal(t, "K:4321aa nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x62, 0x62}(6) V:aaa H:1 LH:0 SN:29", EntryToStr(e))
-	e = okv.GetEntry([]byte("4321b"))
+	e = ads.GetEntry([]byte("00432177"))
+	assert.Equal(t, "K:00432177 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x38, 0x30}(8) V:777 H:1 LH:0 SN:25", EntryToStr(e))
+	e = ads.GetEntry([]byte("00432180"))
+	assert.Equal(t, "K:00432180 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x38, 0x38}(8) V:80 H:1 LH:0 SN:26", EntryToStr(e))
+	e = ads.GetEntry([]byte("00432188"))
+	assert.Equal(t, "K:00432188 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x39, 0x30}(8) V:888 H:1 LH:0 SN:27", EntryToStr(e))
+	e = ads.GetEntry([]byte("00432190"))
+	assert.Equal(t, "K:00432190 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x61, 0x30}(8) V:90 H:0 LH:0 SN:12", EntryToStr(e))
+	e = ads.GetEntry([]byte("004321a0"))
+	assert.Equal(t, "K:004321a0 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x61, 0x61}(8) V:a0 H:1 LH:0 SN:28", EntryToStr(e))
+	e = ads.GetEntry([]byte("004321aa"))
+	assert.Equal(t, "K:004321aa nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x62, 0x62}(8) V:aaa H:1 LH:0 SN:29", EntryToStr(e))
+	e = ads.GetEntry([]byte("004321b0"))
 	assert.Nil(t, e)
-	e = okv.GetEntry([]byte("4321bb"))
-	assert.Equal(t, "K:4321bb nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x63}(5) V:bbb H:1 LH:0 SN:30", EntryToStr(e))
-	e = okv.GetEntry([]byte("4321c"))
-	assert.Equal(t, "K:4321c nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x65}(5) V:c0 H:1 LH:0 SN:31", EntryToStr(e))
-	e = okv.GetEntry([]byte("4321d"))
+	e = ads.GetEntry([]byte("004321bb"))
+	assert.Equal(t, "K:004321bb nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x63, 0x30}(8) V:bbb H:1 LH:0 SN:30", EntryToStr(e))
+	e = ads.GetEntry([]byte("004321c0"))
+	assert.Equal(t, "K:004321c0 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x65, 0x30}(8) V:c0 H:1 LH:0 SN:31", EntryToStr(e))
+	e = ads.GetEntry([]byte("004321d0"))
 	assert.Nil(t, e)
-	e = okv.GetEntry([]byte("4321e"))
-	assert.Equal(t, "K:4321e nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x66}(5) V:e0 H:0 LH:0 SN:17", EntryToStr(e))
-	e = okv.GetEntry([]byte("4321f"))
-	assert.Equal(t, "K:4321f nK:[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}(6) V:f0 H:0 LH:0 SN:18", EntryToStr(e))
+	e = ads.GetEntry([]byte("004321e0"))
+	assert.Equal(t, "K:004321e0 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x66, 0x30}(8) V:e0 H:0 LH:0 SN:17", EntryToStr(e))
+	e = ads.GetEntry([]byte("004321f0"))
+	assert.Equal(t, "K:004321f0 nK:[]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}(8) V:f0 H:0 LH:0 SN:18", EntryToStr(e))
 
-	iter := okv.Iterator([]byte("4321c"), []byte("4321f"))
+	iter := ads.Iterator([]byte("004321c0"), []byte("004321f0"))
 	start, end := iter.Domain()
-	assert.Equal(t, []byte("4321c"), start)
-	assert.Equal(t, []byte("4321f"), end)
+	assert.Equal(t, []byte("004321c0"), start)
+	assert.Equal(t, []byte("004321f0"), end)
 	assert.Equal(t, true, iter.Valid())
 	assert.Equal(t, start, iter.Key())
 	assert.Equal(t, []byte("c0"), iter.Value())
@@ -200,17 +198,16 @@ func Test1(t *testing.T) {
 	assert.Nil(t, iter.Value())
 	iter.Close()
 
-	e = okv.GetEntry([]byte("432177"))
-	assert.Equal(t, "K:432177 nK:[]byte{0x34, 0x33, 0x32, 0x31, 0x38}(5) V:777 H:1 LH:0 SN:25", EntryToStr(e))
-	e = okv.GetEntry([]byte("43218"))
-	iter = okv.ReverseIterator([]byte("432177"), []byte("43218"))
+	e = ads.GetEntry([]byte("00432177"))
+	assert.Equal(t, "K:00432177 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x38, 0x30}(8) V:777 H:1 LH:0 SN:25", EntryToStr(e))
+	e = ads.GetEntry([]byte("00432180"))
+	iter = ads.ReverseIterator([]byte("00432177"), []byte("00432180"))
 	assert.Equal(t, true, iter.Valid())
 	start, _ = iter.Domain()
 	assert.Equal(t, start, iter.Key())
 	assert.Equal(t, []byte("777"), iter.Value())
 	iter.Next()
 
-	okv.Close()
+	ads.Close()
 	os.RemoveAll("./rocksdb.db")
 }
-

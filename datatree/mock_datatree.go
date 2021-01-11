@@ -40,7 +40,7 @@ func (dt *MockDataTree) AppendEntry(entry *Entry) int64 {
 	twigID := sn >> TwigShift
 	dt.twigs[twigID].entries[sn&TwigMask] = *entry
 	dt.twigs[twigID].activeBits[sn&TwigMask] = true
-	if (sn&TwigMask) == TwigMask {
+	if (sn & TwigMask) == TwigMask {
 		dt.twigs[twigID+1] = &MockTwig{}
 	}
 	return sn * 1024

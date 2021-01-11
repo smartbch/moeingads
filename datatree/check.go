@@ -23,17 +23,17 @@ func checkMT(mt [4096][32]byte) {
 
 func checkUpperNodes(tree *Tree) {
 	for pos, parentHash := range tree.nodes {
-		level := int64(pos)>>56
-		n := (int64(pos)<<8)>>8
+		level := int64(pos) >> 56
+		n := (int64(pos) << 8) >> 8
 		//fmt.Printf("Checking %d-%d %d- %d %d\n", level, n, level-1, 2*n, 2*n+1)
 		var leftChild, rightChild [32]byte
 		if level == int64(FirstLevelAboveTwig) {
 			var ok bool
-			leftChild, ok = tree.getTwigRoot(int64(2*n))
+			leftChild, ok = tree.getTwigRoot(int64(2 * n))
 			if !ok {
 				continue
 			}
-			rightChild, ok = tree.getTwigRoot(int64(2*n+1))
+			rightChild, ok = tree.getTwigRoot(int64(2*n + 1))
 			if !ok {
 				rightChild = NullTwig.twigRoot
 			}
@@ -54,7 +54,7 @@ func checkUpperNodes(tree *Tree) {
 			}
 			leftChild, rightChild = *leftChildPtr, *rightChildPtr
 		}
-		h := sha256.Sum256(append(append([]byte{byte(level-1)}, leftChild[:]...), rightChild[:]...))
+		h := sha256.Sum256(append(append([]byte{byte(level - 1)}, leftChild[:]...), rightChild[:]...))
 		if !bytes.Equal(h[:], (*parentHash)[:]) {
 			fmt.Printf("left: %#v right: %#v\n", leftChild, rightChild)
 			panic(fmt.Sprintf("Mismatch at %d-%d l:%d r:%d", level, n, 2*n, 2*n+1))
@@ -64,7 +64,7 @@ func checkUpperNodes(tree *Tree) {
 
 func hashEqual(tag string, a, b [32]byte) {
 	if !bytes.Equal(a[:], b[:]) {
-		panic(tag+"Not Equal")
+		panic(tag + "Not Equal")
 	}
 }
 
@@ -74,11 +74,11 @@ func checkTwig(twig *Twig) {
 	hashEqual("L1-2", twig.activeBitsMTL1[2], sha256.Sum256(append([]byte{8}, twig.activeBits[64*2:64*3]...)))
 	hashEqual("L1-3", twig.activeBitsMTL1[3], sha256.Sum256(append([]byte{8}, twig.activeBits[64*3:64*4]...)))
 	hashEqual("L2-0", twig.activeBitsMTL2[0], sha256.Sum256(append([]byte{9},
-	       append(twig.activeBitsMTL1[0][:], twig.activeBitsMTL1[1][:]...)...)))
+		append(twig.activeBitsMTL1[0][:], twig.activeBitsMTL1[1][:]...)...)))
 	hashEqual("L2-1", twig.activeBitsMTL2[1], sha256.Sum256(append([]byte{9},
-	       append(twig.activeBitsMTL1[2][:], twig.activeBitsMTL1[3][:]...)...)))
+		append(twig.activeBitsMTL1[2][:], twig.activeBitsMTL1[3][:]...)...)))
 	hashEqual("L3", twig.activeBitsMTL3, sha256.Sum256(append([]byte{10},
-	       append(twig.activeBitsMTL2[0][:], twig.activeBitsMTL2[1][:]...)...)))
+		append(twig.activeBitsMTL2[0][:], twig.activeBitsMTL2[1][:]...)...)))
 	hashEqual("Top", twig.twigRoot, sha256.Sum256(append([]byte{11},
 		append(twig.leftRoot[:], twig.activeBitsMTL3[:]...)...)))
 }

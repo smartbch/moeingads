@@ -40,7 +40,7 @@ type IteratorUI64 interface {
 	Valid() bool
 	Next()
 	Key() []byte
-	Value() uint64
+	Value() int64
 	Close()
 }
 
@@ -51,9 +51,9 @@ type IndexTree interface {
 	EndWrite()
 	Iterator(start, end []byte) IteratorUI64
 	ReverseIterator(start, end []byte) IteratorUI64
-	Get(k []byte) (uint64, bool)
-	GetAtHeight(k []byte, height uint64) (uint64, bool)
-	Set(k []byte, v uint64)
+	Get(k []byte) (int64, bool)
+	GetAtHeight(k []byte, height uint64) (int64, bool)
+	Set(k []byte, v int64)
 	Delete(k []byte)
 	Close()
 }

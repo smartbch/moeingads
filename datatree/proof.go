@@ -20,7 +20,8 @@ type ProofPath struct {
 	Root        [32]byte
 }
 
-const OtherNodeCount = 1+11+1+3+1
+const OtherNodeCount = 1 + 11 + 1 + 3 + 1
+
 func (pp *ProofPath) ToBytes() []byte {
 	res := make([]byte, 0, 8+(len(pp.UpperPath)+OtherNodeCount)*32)
 	var buf [8]byte
@@ -44,8 +45,8 @@ func (pp *ProofPath) ToBytes() []byte {
 func BytesToProofPath(bz []byte) (*ProofPath, error) {
 	pp := &ProofPath{}
 	n := len(bz) - 8
-	upperCount := n/32-OtherNodeCount
-	if n % 32 != 0 || upperCount < 0 {
+	upperCount := n/32 - OtherNodeCount
+	if n%32 != 0 || upperCount < 0 {
 		return nil, fmt.Errorf("Invalid byte slice length: %d", len(bz))
 	}
 	pp.UpperPath = make([]ProofNode, upperCount)
@@ -62,12 +63,12 @@ func BytesToProofPath(bz []byte) (*ProofPath, error) {
 	bz = bz[32:]
 	for i := 0; i < len(pp.RightOfTwig); i++ {
 		copy(pp.RightOfTwig[i].PeerHash[:], bz[:32])
-		pp.RightOfTwig[i].PeerAtLeft = ((pp.SerialNum >> (8+i)) & 1) == 1
+		pp.RightOfTwig[i].PeerAtLeft = ((pp.SerialNum >> (8 + i)) & 1) == 1
 		bz = bz[32:]
 	}
 	for i := 0; i < len(pp.UpperPath); i++ {
 		copy(pp.UpperPath[i].PeerHash[:], bz[:32])
-		pp.UpperPath[i].PeerAtLeft = ((pp.SerialNum >> (FirstLevelAboveTwig-2+i)) & 1) == 1
+		pp.UpperPath[i].PeerAtLeft = ((pp.SerialNum >> (FirstLevelAboveTwig - 2 + i)) & 1) == 1
 		bz = bz[32:]
 	}
 	copy(pp.Root[:], bz[:32])
@@ -183,7 +184,7 @@ func (tree *Tree) GetProof(sn int64) *ProofPath {
 
 func (tree *Tree) getUpperPathAndRoot(twigID int64) (upperPath []ProofNode, root [32]byte) {
 	maxLevel := calcMaxLevel(tree.youngestTwigID)
-	peerHash, ok := tree.getTwigRoot(twigID^1)
+	peerHash, ok := tree.getTwigRoot(twigID ^ 1)
 	if !ok {
 		peerHash = NullTwig.twigRoot
 	}
@@ -192,14 +193,14 @@ func (tree *Tree) getUpperPathAndRoot(twigID int64) (upperPath []ProofNode, root
 		return
 	}
 	upperPath = make([]ProofNode, 0, maxLevel-FirstLevelAboveTwig+1)
-	upperPath = append(upperPath, ProofNode {
+	upperPath = append(upperPath, ProofNode{
 		SelfHash:   selfHash,
 		PeerHash:   peerHash,
 		PeerAtLeft: (twigID & 1) != 0,
 	})
 	for level, n := FirstLevelAboveTwig, twigID/2; level < maxLevel; level, n = level+1, n/2 {
 		//fmt.Printf("level: %d  n: %d maxLevel: %d ok:%v\n", level, n, maxLevel, ok)
-		upperPath = append(upperPath, ProofNode {
+		upperPath = append(upperPath, ProofNode{
 			SelfHash:   *tree.nodes[Pos(level, n)],
 			PeerHash:   *tree.nodes[Pos(level, n^1)],
 			PeerAtLeft: (n & 1) != 0,
@@ -212,21 +213,21 @@ func getRightPath(twig *Twig, sn int64) (right [3]ProofNode) {
 	n := (sn & TwigMask)
 	self := n / 256
 	peer := self ^ 1
-	copy(right[0].SelfHash[:], twig.activeBits[self*32 : self*32+32])
-	copy(right[0].PeerHash[:], twig.activeBits[peer*32 : peer*32+32])
-	right[0].PeerAtLeft = (peer & 1 ) == 0
+	copy(right[0].SelfHash[:], twig.activeBits[self*32:self*32+32])
+	copy(right[0].PeerHash[:], twig.activeBits[peer*32:peer*32+32])
+	right[0].PeerAtLeft = (peer & 1) == 0
 
 	self = n / 512
 	peer = self ^ 1
 	right[1].SelfHash = twig.activeBitsMTL1[self]
 	right[1].PeerHash = twig.activeBitsMTL1[peer]
-	right[1].PeerAtLeft = (peer & 1 ) == 0
+	right[1].PeerAtLeft = (peer & 1) == 0
 
 	self = n / 1024
 	peer = self ^ 1
 	right[2].SelfHash = twig.activeBitsMTL2[self]
 	right[2].PeerHash = twig.activeBitsMTL2[peer]
-	right[2].PeerAtLeft = (peer & 1 ) == 0
+	right[2].PeerAtLeft = (peer & 1) == 0
 	return
 }
 
@@ -236,9 +237,9 @@ func getLeftPath(sn int64, getHash func(int) [32]byte) (left [11]ProofNode) {
 		self := n >> level
 		peer := self ^ 1
 		left[level] = ProofNode{
-			SelfHash:   getHash(stripe+int(self)),
-			PeerHash:   getHash(stripe+int(peer)),
-			PeerAtLeft: (peer & 1 ) == 0,
+			SelfHash:   getHash(stripe + int(self)),
+			PeerHash:   getHash(stripe + int(peer)),
+			PeerAtLeft: (peer & 1) == 0,
 		}
 	}
 	return
@@ -256,4 +257,3 @@ func getLeftPathOnDisk(tf *TwigMtFile, twigID int64, sn int64) (left [11]ProofNo
 		return
 	})
 }
-
