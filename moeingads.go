@@ -456,7 +456,7 @@ func (mads *MoeingADS) DeactiviateEntry(sn int64) {
 }
 
 func (mads *MoeingADS) CheckConsistency() {
-	iter := mads.idxTree.ReverseIterator([]byte{}, mads.endKey)
+	iter := mads.idxTree.ReverseIterator(mads.startKey, mads.endKey)
 	defer iter.Close()
 	nextKey := mads.endKey
 	for iter.Valid() && !bytes.Equal(iter.Key(), mads.startKey) {

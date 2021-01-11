@@ -70,7 +70,7 @@ func CheckAccountWithRoot(sn uint32, root *store.RootStore) {
 	hash := sha256.Sum256(addr[:])
 	var sk [rabbit.KeySize]byte
 	copy(sk[:], hash[:])
-	sk[0] |= 0x1
+	//sk[0] |= 0x1
 	bz := root.Get(sk[:])
 	cachedValue := rabbit.BytesToCachedValue(bz)
 	if cachedValue.IsEmpty() {

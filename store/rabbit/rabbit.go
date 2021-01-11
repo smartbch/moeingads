@@ -74,7 +74,8 @@ func (rabbit *RabbitStore) find(key []byte, earlyExit bool) (cv *CachedValue, pa
 	status = NotFound
 	for i := 0; i < MaxFindDepth; i++ {
 		copy(k[:], hash[:])
-		k[0] = k[0] | 0x1 // force the MSB to 1
+		// k[0] = k[0] | 0x1 // force the MSB to 1
+		k[0] = (k[0] % 128) + 64 // limit the range to avoid start&end Guard
 		path = append(path, k)
 		cv = rabbit.sms.GetCachedValue(k)
 		if cv == nil {

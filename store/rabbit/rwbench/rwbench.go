@@ -145,9 +145,9 @@ func GetRandKV(touchedShortKeys map[[rabbit.KeySize]byte]struct{}, rs randsrc.Ra
 		copy(sk1[:], k1[:])
 		copy(sk2[:], k2[:])
 		copy(sk3[:], k3[:])
-		sk1[0] |= 0x1
-		sk2[0] |= 0x1
-		sk3[0] |= 0x1
+		//sk1[0] |= 0x1
+		//sk2[0] |= 0x1
+		//sk3[0] |= 0x1
 		v = rs.GetBytes(32)
 		v1 := sha256.Sum256(v)
 		v2 := sha256.Sum256(v1[:])
@@ -155,9 +155,9 @@ func GetRandKV(touchedShortKeys map[[rabbit.KeySize]byte]struct{}, rs randsrc.Ra
 		copy(sv1[:], v1[:])
 		copy(sv2[:], v2[:])
 		copy(sv3[:], v3[:])
-		sv1[0] |= 0x1
-		sv2[0] |= 0x1
-		sv3[0] |= 0x1
+		//sv1[0] |= 0x1
+		//sv2[0] |= 0x1
+		//sv3[0] |= 0x1
 		if _, ok := touchedShortKeys[sk1]; ok {
 			continue
 		}
