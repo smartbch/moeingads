@@ -3,6 +3,7 @@ package indextree
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"math"
 	"sync"
@@ -128,6 +129,7 @@ func NewNVTreeMem(rocksdb *RocksDB) *NVTreeMem {
 
 func (tree *NVTreeMem) Close() {
 	tree.bt.Close()
+	tree.rocksdb.Close()
 }
 
 func (tree *NVTreeMem) ActiveCount() int {
@@ -200,12 +202,15 @@ func (tree *NVTreeMem) Set(k []byte, v int64) {
 	if oldVExists {
 		binary.BigEndian.PutUint64(buf[:], uint64(oldV))
 		tree.batchSet(newK, buf[:]) // write a historical value
+		//fmt.Printf("historical %#v %x\n", newK, oldV)
 	} else {
 		tree.batchSet(newK, []byte{}) // write a historical empty value
+		//fmt.Printf("historical %#v nil\n", newK)
 	}
 
 	binary.BigEndian.PutUint64(buf[:], uint64(v))
 	binary.BigEndian.PutUint64(newK[len(newK)-8:], math.MaxUint64)
+	//fmt.Printf("up-to-date %#v %#v\n", newK, buf[:])
 	tree.batchSet(newK, buf[:]) // write the up-to-date value
 }
 
@@ -235,15 +240,17 @@ func (tree *NVTreeMem) GetAtHeight(k []byte, height uint64) (position int64, ok 
 	newK := make([]byte, 1+len(k)+8) // all bytes equal zero
 	copy(newK[1:], k)
 	binary.BigEndian.PutUint64(newK[1+len(k):], height+1)
+	//fmt.Printf("GetAtHeight newK %#v\n", newK)
 	iter := tree.rocksdb.Iterator(newK, nil)
 	defer iter.Close()
 	if !iter.Valid() {
 		return 0, false
 	}
 
+	//fmt.Printf("GetAtHeight iter.Key() %#v iter.Value() %#v\n", iter.Key(), iter.Value())
 	binary.BigEndian.PutUint64(newK[len(k):], math.MaxUint64)
-	if bytes.Compare(iter.Key(), newK) > 0 { // to a different k
-		return 0, false
+	if bytes.Compare(iter.Key(), newK) > 0 { // iter is pointing to a different k
+		return tree.Get(k)
 	}
 
 	v := iter.Value()
@@ -265,7 +272,7 @@ func (tree *NVTreeMem) Delete(k []byte) {
 	key := binary.BigEndian.Uint64(k)
 	oldV, ok := tree.bt.Get(key)
 	if !ok {
-		panic("deleting a nonexistent key! bug here...")
+		panic(fmt.Sprintf("deleting a nonexistent key: %#v bug here...", key))
 	}
 	tree.bt.Delete(key)
 
@@ -279,6 +286,7 @@ func (tree *NVTreeMem) Delete(k []byte) {
 	newK = append(newK, k...)
 	newK = append(newK, tree.currHeight[:]...)
 	tree.batchSet(newK, buf[:]) // write a historical value
+	//fmt.Printf("Deletion historical %#v %#v\n", newK, buf[:])
 
 	binary.BigEndian.PutUint64(newK[len(newK)-8:], math.MaxUint64)
 	tree.batchDelete(newK) // delete the up-to-date value

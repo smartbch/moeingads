@@ -1,4 +1,4 @@
-package main
+package fuzz
 
 import (
 	"fmt"
@@ -11,18 +11,18 @@ import (
 	cb "github.com/moeing-chain/MoeingADS/indextree/b/cppbtree"
 )
 
-func main() {
-	if len(os.Args) != 3 {
-		fmt.Printf("Usage: %s <rand-source-file> <round-count>\n", os.Args[0])
+func runTest(cfg FuzzConfig) {
+	randFilename := os.Getenv("RANDFILE")
+	if len(randFilename) == 0 {
+		fmt.Printf("No RANDFILE specified. Exiting...")
 		return
 	}
-	randFilename := os.Args[1]
-	roundCount, err := strconv.Atoi(os.Args[2])
+	roundCount, err := strconv.Atoi(os.Getenv("RANDCOUNT"))
 	if err != nil {
 		panic(err)
 	}
 
-	RunFuzz(roundCount, DefaultConfig, randFilename)
+	RunFuzz(roundCount, cfg, randFilename)
 }
 
 var DefaultConfig = FuzzConfig{
@@ -149,7 +149,9 @@ func FuzzIter(gobt *Tree, cppbt *cb.Tree, addedKeyList []uint64, cfg FuzzConfig,
 			key = addedKeyList[randIdx]
 		}
 		iterG, okG := gobt.Seek(key)
+		defer iterG.Close()
 		iterC, okC := cppbt.Seek(key)
+		defer iterC.Close()
 		assert(okG==okC, "OK should be equal")
 		isNext := rs.GetBool()
 		var kC, kG uint64
