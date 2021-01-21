@@ -427,7 +427,7 @@ func (tree *Tree) EvictTwig(twigID int64) {
 	tree.twigsToBeDeleted = append(tree.twigsToBeDeleted, twigID)
 }
 
-func (tree *Tree) EndBlock() (rootHash []byte) {
+func (tree *Tree) EndBlock() (rootHash [32]byte) {
 	//start := gotsc.BenchStart()
 	// sync up the merkle tree
 	rootHash = tree.syncMT()
@@ -454,7 +454,7 @@ func (tree *Tree) EndBlock() (rootHash []byte) {
 }
 
 // following functions are used for syncing up merkle tree
-func (tree *Tree) syncMT() []byte {
+func (tree *Tree) syncMT() [32]byte {
 	maxLevel := calcMaxLevel(tree.youngestTwigID)
 	tree.syncMT4YoungestTwig()
 	nList := tree.syncMT4ActiveBits()
@@ -463,8 +463,8 @@ func (tree *Tree) syncMT() []byte {
 	//}
 	tree.syncUpperNodes(nList)
 	tree.touchedPosOf512b = make(map[int64]struct{}) // clear the list
-	hash := tree.nodes[Pos(maxLevel, 0)]
-	return append([]byte{}, (*hash)[:]...) // copy and return the merkle root
+	rootHash := tree.nodes[Pos(maxLevel, 0)]
+	return *rootHash
 }
 
 func (tree *Tree) syncUpperNodes(nList []int64) {

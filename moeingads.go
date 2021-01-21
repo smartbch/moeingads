@@ -32,7 +32,6 @@ type MoeingADS struct {
 	idxTree       types.IndexTree
 	datTree       types.DataTree
 	rocksdb       *indextree.RocksDB
-	rootHash      []byte
 	k2heMap       *BucketMap // key-to-hot-entry map
 	k2nkMap       *BucketMap // key-to-next-key map
 	tempEntries64 [64][]*HotEntry
@@ -163,7 +162,8 @@ type Entry = types.Entry
 type HotEntry = types.HotEntry
 
 func (mads *MoeingADS) GetRootHash() []byte {
-	return append([]byte{}, mads.rootHash...)
+	r := mads.meta.GetRootHash()
+	return append([]byte{}, r[:]...)
 }
 
 func (mads *MoeingADS) GetEntry(k []byte) *Entry {
@@ -506,9 +506,9 @@ func (mads *MoeingADS) EndWrite() {
 	Phase3Time += gotsc.BenchEnd() - start - tscOverhead
 	start = gotsc.BenchStart()
 	//fmt.Printf("end numOfKeptEntries %d ActiveCount %d x2 %d\n", mads.numOfKeptEntries(), mads.idxTree.ActiveCount(), mads.idxTree.ActiveCount()*2)
-	root := mads.datTree.EndBlock()
+	rootHash := mads.datTree.EndBlock()
 	Phase4Time += gotsc.BenchEnd() - start - tscOverhead
-	mads.rootHash = root
+	mads.meta.SetRootHash(rootHash)
 	mads.k2heMap = NewBucketMap(heMapSize) // clear content
 	mads.k2nkMap = NewBucketMap(nkMapSize) // clear content
 	for i := range mads.tempEntries64 {
@@ -554,7 +554,8 @@ func (mads *MoeingADS) InitGuards(startKey, endKey []byte) {
 	mads.idxTree.Set(endKey, pos)
 
 	mads.idxTree.EndWrite()
-	mads.rootHash = mads.datTree.EndBlock()
+	rootHash := mads.datTree.EndBlock()
+	mads.meta.SetRootHash(rootHash)
 	mads.meta.Commit()
 	mads.rocksdb.CloseOldBatch()
 	mads.rocksdb.OpenNewBatch()

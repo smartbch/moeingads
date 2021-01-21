@@ -134,9 +134,11 @@ func (root *RootStore) EndWrite() {
 }
 
 func (root *RootStore) Update(updater func(db types.SetDeleter)) {
+	root.Lock()
 	root.BeginWrite()
 	updater(root)
 	root.EndWrite()
+	root.Unlock()
 }
 
 func (root *RootStore) CheckConsistency() {

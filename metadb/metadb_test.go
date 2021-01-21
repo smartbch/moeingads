@@ -11,6 +11,10 @@ import (
 )
 
 func TestMetaDB(t *testing.T) {
+	var rootHash [32]byte
+	for i := range rootHash {
+		rootHash[i] = byte(i)
+	}
 	err := os.RemoveAll("./test.db")
 	assert.Equal(t, nil, err)
 
@@ -48,6 +52,7 @@ func TestMetaDB(t *testing.T) {
 	mdb.setTwigHeight(1, 100)
 	mdb.setTwigHeight(2, 120)
 	mdb.SetEdgeNodes([]byte("edge nodes data"))
+	mdb.SetRootHash(rootHash)
 
 	mdb.Commit()
 	kvdb.CloseOldBatch()
@@ -59,6 +64,7 @@ func TestMetaDB(t *testing.T) {
 	assert.Equal(t, int64(100), mdb.GetTwigHeight(1))
 	assert.Equal(t, int64(-1), mdb.GetTwigHeight(3))
 	assert.Equal(t, []byte("edge nodes data"), mdb.GetEdgeNodes())
+	assert.Equal(t, rootHash, mdb.GetRootHash())
 
 	mdb.maxSerialNum = 5*datatree.LeafCountInTwig - 1
 	mdb.SetCurrHeight(150)

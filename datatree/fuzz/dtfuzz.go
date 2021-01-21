@@ -19,6 +19,10 @@ const (
 
 func runTest() {
 	randFilename := os.Getenv("RANDFILE")
+	if len(randFilename) == 0 {
+		fmt.Printf("No RANDFILE specified, exit...")
+		return
+	}
 	roundCount, err := strconv.Atoi(os.Getenv("RANDCOUNT"))
 	if err != nil {
 		panic(err)

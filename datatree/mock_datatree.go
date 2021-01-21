@@ -100,8 +100,8 @@ func (dt *MockDataTree) GetFileSizes() (int64, int64) {
 	return 0, 0
 }
 
-func (dt *MockDataTree) EndBlock() []byte {
-	return nil
+func (dt *MockDataTree) EndBlock() (rootHash [32]byte) {
+	return
 }
 
 func (dt *MockDataTree) Close() {

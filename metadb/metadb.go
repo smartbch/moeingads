@@ -19,7 +19,7 @@ const (
 	ByteMaxSerialNum       = byte(0x16)
 	ByteOldestActiveTwigID = byte(0x17)
 	ByteIsRunning          = byte(0x18)
-	//ByteActiveEntryCount   = byte(0x19)
+	ByteRootHash           = byte(0x19)
 )
 
 type MetaDBWithTMDB struct {
@@ -29,7 +29,7 @@ type MetaDBWithTMDB struct {
 	lastPrunedTwig     int64
 	maxSerialNum       int64
 	oldestActiveTwigID int64
-	//activeEntryCount   int64
+	rootHash           [32]byte
 }
 
 var _ types.MetaDB = (*MetaDBWithTMDB)(nil)
@@ -47,7 +47,6 @@ func (db *MetaDBWithTMDB) ReloadFromKVDB() {
 	db.lastPrunedTwig = 0
 	db.maxSerialNum = 0
 	db.oldestActiveTwigID = 0
-	//db.activeEntryCount   = 0
 
 	bz := db.kvdb.Get([]byte{ByteCurrHeight})
 	if bz != nil {
@@ -69,10 +68,10 @@ func (db *MetaDBWithTMDB) ReloadFromKVDB() {
 		db.oldestActiveTwigID = int64(binary.LittleEndian.Uint64(bz))
 	}
 
-	//bz = db.kvdb.Get([]byte{ByteActiveEntryCount})
-	//if bz != nil {
-	//	db.activeEntryCount = int64(binary.LittleEndian.Uint64(bz))
-	//}
+	bz = db.kvdb.Get([]byte{ByteRootHash})
+	if bz != nil {
+		copy(db.rootHash[:], bz)
+	}
 }
 
 func (db *MetaDBWithTMDB) Commit() {
@@ -89,8 +88,7 @@ func (db *MetaDBWithTMDB) Commit() {
 	binary.LittleEndian.PutUint64(buf[:], uint64(db.oldestActiveTwigID))
 	db.kvdb.CurrBatch().Set([]byte{ByteOldestActiveTwigID}, buf[:])
 
-	//binary.LittleEndian.PutUint64(buf[:], uint64(db.activeEntryCount))
-	//db.kvdb.CurrBatch().Set([]byte{ByteActiveEntryCount}, buf[:])
+	db.kvdb.CurrBatch().Set([]byte{ByteRootHash}, db.rootHash[:])
 }
 
 func (db *MetaDBWithTMDB) SetCurrHeight(h int64) {
@@ -181,17 +179,13 @@ func (db *MetaDBWithTMDB) IncrMaxSerialNum() {
 	}
 }
 
-//func (db *MetaDBWithTMDB) GetActiveEntryCount() int64 {
-//	return db.activeEntryCount
-//}
-//
-//func (db *MetaDBWithTMDB) IncrActiveEntryCount() {
-//	db.activeEntryCount++
-//}
-//
-//func (db *MetaDBWithTMDB) DecrActiveEntryCount() {
-//	db.activeEntryCount--
-//}
+func (db *MetaDBWithTMDB) GetRootHash() [32]byte {
+	return db.rootHash
+}
+
+func (db *MetaDBWithTMDB) SetRootHash(h [32]byte) {
+	db.rootHash = h
+}
 
 func (db *MetaDBWithTMDB) GetOldestActiveTwigID() int64 {
 	return db.oldestActiveTwigID
@@ -220,7 +214,6 @@ func (db *MetaDBWithTMDB) Init() {
 	db.lastPrunedTwig = -1
 	db.maxSerialNum = 0
 	db.oldestActiveTwigID = 0
-	//db.activeEntryCount = 0
 	db.SetTwigMtFileSize(0)
 	db.SetEntryFileSize(0)
 	db.Commit()
@@ -235,4 +228,5 @@ func (db *MetaDBWithTMDB) PrintInfo() {
 	fmt.Printf("MaxSerialNum       %v\n", db.GetMaxSerialNum())
 	fmt.Printf("OldestActiveTwigID %v\n", db.GetOldestActiveTwigID())
 	fmt.Printf("IsRunning          %v\n", db.GetIsRunning())
+	fmt.Printf("RootHash           %#v\n", db.GetRootHash())
 }

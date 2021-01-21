@@ -73,7 +73,7 @@ type DataTree interface {
 	TwigCanBePruned(twigID int64) bool
 	PruneTwigs(startID, endID int64) []byte
 	GetFileSizes() (int64, int64)
-	EndBlock() []byte
+	EndBlock() [32]byte
 	Flush()
 	Close()
 }
@@ -105,10 +105,8 @@ type MetaDB interface {
 	GetMaxSerialNum() int64
 	IncrMaxSerialNum() // It should call setTwigHeight(twigID int64, height int64)
 
-	//// the count of all the active entries, increased in AppendEntry, decreased in DeactiviateEntry
-	//GetActiveEntryCount() int64
-	//IncrActiveEntryCount()
-	//DecrActiveEntryCount()
+	GetRootHash() [32]byte
+	SetRootHash(h [32]byte)
 
 	// the ID of the oldest active twig, increased by ReapOldestActiveTwig
 	GetOldestActiveTwigID() int64
