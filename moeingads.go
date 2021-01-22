@@ -41,7 +41,12 @@ type MoeingADS struct {
 }
 
 func NewMoeingADS4Mock(startEndKeys [][]byte) *MoeingADS {
-	mads := &MoeingADS{k2heMap: NewBucketMap(heMapSize), k2nkMap: NewBucketMap(nkMapSize)}
+	mads := &MoeingADS{
+		k2heMap:  NewBucketMap(heMapSize),
+		k2nkMap:  NewBucketMap(nkMapSize),
+		startKey: append([]byte{}, startEndKeys[0]...),
+		endKey:   append([]byte{}, startEndKeys[1]...),
+	}
 
 	mads.datTree = datatree.NewMockDataTree()
 	mads.idxTree = indextree.NewMockIndexTree()
@@ -54,7 +59,7 @@ func NewMoeingADS4Mock(startEndKeys [][]byte) *MoeingADS {
 
 	mads.meta = metadb.NewMetaDB(mads.rocksdb)
 	mads.rocksdb.OpenNewBatch()
-	mads.InitGuards(startEndKeys[0], startEndKeys[1])
+	mads.initGuards()
 	return mads
 }
 
@@ -66,6 +71,8 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 		k2heMap:       NewBucketMap(heMapSize),
 		k2nkMap:       NewBucketMap(nkMapSize),
 		cachedEntries: make([]*HotEntry, 0, 2000),
+		startKey:      append([]byte{}, startEndKeys[0]...),
+		endKey:        append([]byte{}, startEndKeys[1]...),
 	}
 	for i := range mads.tempEntries64 {
 		mads.tempEntries64[i] = make([]*HotEntry, 0, len(mads.cachedEntries)/8)
@@ -100,7 +107,7 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 			mads.datTree.AppendEntry(entry)
 			mads.datTree.DeactiviateEntry(sn)
 		}
-		mads.InitGuards(startEndKeys[0], startEndKeys[1])
+		mads.initGuards()
 		mads.rocksdb.CloseOldBatch()
 	} else if mads.meta.GetIsRunning() { // MoeingADS is *NOT* closed properly
 		oldestActiveTwigID := mads.meta.GetOldestActiveTwigID()
@@ -129,6 +136,7 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 		go mads.datTree.ScanEntriesLite(oldestActiveTwigID, keyAndPosChan)
 		for e := range keyAndPosChan {
 			if string(e.Key) != "dummy" {
+				fmt.Printf("Fuck %#v %#v\n", e.Key, e.Pos)
 				mads.idxTree.Set(e.Key, e.Pos)
 			}
 		}
@@ -270,6 +278,7 @@ func makeHintHotEntry(key string) *HotEntry {
 }
 
 func (mads *MoeingADS) getPrevEntry(k []byte) *Entry {
+	fmt.Printf("Fuck startKey %#v\n", mads.startKey)
 	iter := mads.idxTree.ReverseIterator(mads.startKey, k)
 	defer iter.Close()
 	if !iter.Valid() {
@@ -523,35 +532,33 @@ func (mads *MoeingADS) EndWrite() {
 	mads.rocksdb.CloseOldBatch()
 }
 
-func (mads *MoeingADS) InitGuards(startKey, endKey []byte) {
-	mads.startKey = append([]byte{}, startKey...)
-	mads.endKey = append([]byte{}, endKey...)
+func (mads *MoeingADS) initGuards() {
 	mads.idxTree.BeginWrite(-1)
 	mads.meta.SetCurrHeight(-1)
 
 	entry := &Entry{
-		Key:        startKey,
+		Key:        mads.startKey,
 		Value:      []byte{},
-		NextKey:    endKey,
+		NextKey:    mads.endKey,
 		Height:     -1,
 		LastHeight: -1,
 		SerialNum:  mads.meta.GetMaxSerialNum(),
 	}
 	pos := mads.datTree.AppendEntry(entry)
 	mads.meta.IncrMaxSerialNum()
-	mads.idxTree.Set(startKey, pos)
+	mads.idxTree.Set(mads.startKey, pos)
 
 	entry = &Entry{
-		Key:        endKey,
+		Key:        mads.endKey,
 		Value:      []byte{},
-		NextKey:    endKey,
+		NextKey:    mads.endKey,
 		Height:     -1,
 		LastHeight: -1,
 		SerialNum:  mads.meta.GetMaxSerialNum(),
 	}
 	pos = mads.datTree.AppendEntry(entry)
 	mads.meta.IncrMaxSerialNum()
-	mads.idxTree.Set(endKey, pos)
+	mads.idxTree.Set(mads.endKey, pos)
 
 	mads.idxTree.EndWrite()
 	rootHash := mads.datTree.EndBlock()
