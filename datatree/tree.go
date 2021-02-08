@@ -335,10 +335,6 @@ func (tree *Tree) appendEntry(bzTwo [2][]byte, sn int64) int64 {
 	//copy(tree.mtree4YoungestTwig[LeafCountInTwig+position][:], hash(bz))
 	tree.leave4YoungestTwig[position] = bzTwo
 
-	//!! if bzTwo[1] != nil {
-	//!! 	fmt.Printf("Fuck bzTwo pos %d %#v\n", pos, bzTwo)
-	//!! }
-
 	if position == 0 { // when this is the first entry of current twig
 		//fmt.Printf("Here FirstEntryPos of %d : %d\n", twigID, pos)
 		tree.activeTwigs[twigID].FirstEntryPos = pos

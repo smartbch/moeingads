@@ -136,7 +136,6 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 		go mads.datTree.ScanEntriesLite(oldestActiveTwigID, keyAndPosChan)
 		for e := range keyAndPosChan {
 			if string(e.Key) != "dummy" {
-				fmt.Printf("Fuck %#v %#v\n", e.Key, e.Pos)
 				mads.idxTree.Set(e.Key, e.Pos)
 			}
 		}
@@ -278,7 +277,6 @@ func makeHintHotEntry(key string) *HotEntry {
 }
 
 func (mads *MoeingADS) getPrevEntry(k []byte) *Entry {
-	fmt.Printf("Fuck startKey %#v\n", mads.startKey)
 	iter := mads.idxTree.ReverseIterator(mads.startKey, k)
 	defer iter.Close()
 	if !iter.Valid() {
