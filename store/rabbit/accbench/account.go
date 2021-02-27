@@ -9,6 +9,7 @@ import (
 	"os"
 	"sort"
 	"sync/atomic"
+	"time"
 
 	"github.com/coinexchain/randsrc"
 	"github.com/dterei/gotsc"
@@ -23,17 +24,17 @@ import (
 
 var (
 	GuardStart = []byte{0, 0, 0, 0, 0, 0, 0, 0}
-	GuardEnd   = []byte{255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
+	GuardEnd   = []byte{255, 255, 255, 255, 255, 255, 255, 255}
 )
 
 const (
-	MaxCoinCount = 20  // maximum count of coin types in an account
+	MaxCoinCount = 5  // maximum count of coin types in an account
 	NumCoinType  = 100 // total coin types in the system
 
 	AddrLen                 = 20
-	ShortIDLen              = 8
-	AmountLen               = 32
-	EntryLen                = ShortIDLen + AmountLen
+	ShortIDLen              = 8 // each coin has its own short id
+	AmountLen               = 32 // for 256-bit integers
+	EntryLen                = ShortIDLen + AmountLen // A entry for one type of coin owned by an account
 	AddressOffset           = 0
 	SequenceOffset          = AddressOffset + AddrLen
 	NativeTokenAmountOffset = SequenceOffset + 8
@@ -46,7 +47,7 @@ const (
 
 var Phase1Time, Phase2Time, Phase3Time, tscOverhead uint64
 
-// convert coin type as an integer to coin id as a hash
+// convert coin type as an integer to short id using sha256
 func CoinTypeToCoinID(i int) (res [ShortIDLen]byte) {
 	hash := sha256.Sum256([]byte(fmt.Sprintf("coin%d", i)))
 	copy(res[:], hash[:])
@@ -159,7 +160,7 @@ func (acc Account) SetTokenAmount(i int, amount [AmountLen]byte) {
 }
 
 func (acc Account) Find(tokenID [ShortIDLen]byte) int {
-	i := sort.Search(acc.coinCount, func(i int) bool {
+	i := sort.Search(acc.coinCount, func(i int) bool { //Binary search
 		id := acc.GetTokenID(i)
 		return bytes.Compare(id[:], tokenID[:]) >= 0
 	})
@@ -178,7 +179,7 @@ func SNToAddr(accountSN int64) (addr [AddrLen]byte) {
 	return
 }
 
-// the serial number of an account decides which types of coins it has
+// the serial number of an account decides which types of coins it has (psuedo random)
 func GetCoinList(accountSN int64) []uint8 {
 	hash := sha256.Sum256([]byte(fmt.Sprintf("listofcoins%d", accountSN)))
 	coinCount := 1 + hash[0]%MaxCoinCount
@@ -205,6 +206,7 @@ func GetRandAmount(rs randsrc.RandSrc) [AmountLen]byte {
 	return BigIntToBytes(i)
 }
 
+// Generate an account with zero amounts for coins
 func GenerateZeroCoinAccount(accountSN int64) Account {
 	var zero [AmountLen]byte
 	coinList := GetCoinList(accountSN)
@@ -219,6 +221,7 @@ func GenerateZeroCoinAccount(accountSN int64) Account {
 	return NewAccount(SNToAddr(accountSN), accountSN<<32, zero, coins)
 }
 
+// Generate an account with random amounts for coins
 func GenerateAccount(accountSN int64, rs randsrc.RandSrc) Account {
 	nativeTokenAmount := GetRandAmount(rs)
 	coinList := GetCoinList(accountSN)
@@ -245,11 +248,12 @@ func RunGenerateAccounts(numAccounts int, randFilename string, jsonFile string) 
 	}
 	root := store.NewRootStore(mads, nil)
 
+	fmt.Printf("Finish Creating DB %f\n", float64(time.Now().UnixNano())/1000000000.0)
 	if numAccounts%NumNewAccountsInBlock != 0 {
 		panic("numAccounts % NumNewAccountsInBlock != 0")
 	}
 	numBlocks := numAccounts / NumNewAccountsInBlock
-	start := gotsc.BenchStart()
+	//start := gotsc.BenchStart()
 	for i := 0; i < numBlocks; i++ {
 		root.SetHeight(int64(i))
 		if i%10 == 0 {
@@ -257,9 +261,9 @@ func RunGenerateAccounts(numAccounts int, randFilename string, jsonFile string) 
 		}
 		trunk := root.GetTrunkStore().(*store.TrunkStore)
 		GenerateAccountsInBlock(int64(i*NumNewAccountsInBlock), trunk, rs, addr2num)
-		start := gotsc.BenchStart()
+		//start := gotsc.BenchStart()
 		trunk.Close(true)
-		Phase3Time += gotsc.BenchEnd() - start - tscOverhead
+		//Phase3Time += gotsc.BenchEnd() - start - tscOverhead
 	}
 
 	b, err := json.Marshal(addr2num)
@@ -267,34 +271,35 @@ func RunGenerateAccounts(numAccounts int, randFilename string, jsonFile string) 
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("len(addr2num): %d, addr2num: %s\n", len(addr2num), string(b))
+	//fmt.Printf("len(addr2num): %d, addr2num: %s\n", len(addr2num), string(b))
 	out.Write(b)
 	out.Close()
+	fmt.Printf("Finish Creating Accounts %f\n", float64(time.Now().UnixNano())/1000000000.0)
 
-	fmt.Printf("total tsc time %d\n", gotsc.BenchEnd()-start)
-	fmt.Printf("phase1 time %d\n", Phase1Time)
-	fmt.Printf("phase2 time %d\n", Phase2Time)
-	fmt.Printf("phase3 time %d\n", Phase3Time)
-	fmt.Printf("phaseTrunk time %d\n", store.PhaseTrunkTime)
-	fmt.Printf("phaseEndW time %d\n", store.PhaseEndWriteTime)
-	fmt.Printf("moeingads.phase0 time %d\n", moeingads.Phase0Time)
-	fmt.Printf("moeingads.pha1n2 time %d\n", moeingads.Phase1n2Time)
-	fmt.Printf("moeingads.phase1 time %d\n", moeingads.Phase1Time)
-	fmt.Printf("moeingads.phase2 time %d\n", moeingads.Phase2Time)
-	fmt.Printf("moeingads.phase3 time %d\n", moeingads.Phase3Time)
-	fmt.Printf("moeingads.phase4 time %d\n", moeingads.Phase4Time)
-	fmt.Printf("dat.ph1 time %d\n", datatree.Phase1Time)
-	fmt.Printf("dat.ph2 time %d\n", datatree.Phase2Time)
-	fmt.Printf("dat.ph3 time %d\n", datatree.Phase3Time)
-	fmt.Printf("write time %d\n", datatree.TotalWriteTime)
-	fmt.Printf("read time %d\n", datatree.TotalReadTime)
-	fmt.Printf("sync time %d\n", datatree.TotalSyncTime)
-	mads.PrintMetaInfo()
+	//fmt.Printf("total tsc time %d\n", gotsc.BenchEnd()-start)
+	//fmt.Printf("phase1 time %d\n", Phase1Time)
+	//fmt.Printf("phase2 time %d\n", Phase2Time)
+	//fmt.Printf("phase3 time %d\n", Phase3Time)
+	//fmt.Printf("phaseTrunk time %d\n", store.PhaseTrunkTime)
+	//fmt.Printf("phaseEndW time %d\n", store.PhaseEndWriteTime)
+	//fmt.Printf("moeingads.phase0 time %d\n", moeingads.Phase0Time)
+	//fmt.Printf("moeingads.pha1n2 time %d\n", moeingads.Phase1n2Time)
+	//fmt.Printf("moeingads.phase1 time %d\n", moeingads.Phase1Time)
+	//fmt.Printf("moeingads.phase2 time %d\n", moeingads.Phase2Time)
+	//fmt.Printf("moeingads.phase3 time %d\n", moeingads.Phase3Time)
+	//fmt.Printf("moeingads.phase4 time %d\n", moeingads.Phase4Time)
+	//fmt.Printf("dat.ph1 time %d\n", datatree.Phase1Time)
+	//fmt.Printf("dat.ph2 time %d\n", datatree.Phase2Time)
+	//fmt.Printf("dat.ph3 time %d\n", datatree.Phase3Time)
+	//fmt.Printf("write time %d\n", datatree.TotalWriteTime)
+	//fmt.Printf("read time %d\n", datatree.TotalReadTime)
+	//fmt.Printf("sync time %d\n", datatree.TotalSyncTime)
+	//mads.PrintMetaInfo()
 	root.Close()
 }
 
 func GenerateAccountsInBlock(startSN int64, trunk *store.TrunkStore, rs randsrc.RandSrc, addr2num map[[AddrLen]byte]uint64) {
-	start := gotsc.BenchStart()
+	//start := gotsc.BenchStart()
 
 	var accounts [NumNewAccountsInBlock]Account
 	for i := 0; i < NumNewAccountsInBlock; i++ {
@@ -315,8 +320,10 @@ func GenerateAccountsInBlock(startSN int64, trunk *store.TrunkStore, rs randsrc.
 			WriteAccount(accounts[myIdx], rbt, addr2num)
 		}
 	})
-	Phase1Time += gotsc.BenchEnd() - start - tscOverhead
-	start = gotsc.BenchStart()
+
+	//Phase1Time += gotsc.BenchEnd() - start - tscOverhead
+	//start = gotsc.BenchStart()
+
 	// Serial collection
 	touchedShortKey := make(map[[rabbit.KeySize]byte]struct{}, NumNewAccountsInBlock)
 	for i, rbt := range rbtList {
@@ -328,7 +335,7 @@ func GenerateAccountsInBlock(startSN int64, trunk *store.TrunkStore, rs randsrc.
 			}
 			return false
 		})
-		if hasConflict { // re-execute it serially
+		if hasConflict {
 			panic(fmt.Sprintf("hasConflict %d\n", i))
 		}
 		rbt.ScanAllShortKeys(func(key [rabbit.KeySize]byte, dirty bool) (stop bool) {
@@ -338,7 +345,7 @@ func GenerateAccountsInBlock(startSN int64, trunk *store.TrunkStore, rs randsrc.
 		rbt.Close()
 		rbt.WriteBack()
 	}
-	Phase2Time += gotsc.BenchEnd() - start - tscOverhead
+	//Phase2Time += gotsc.BenchEnd() - start - tscOverhead
 }
 
 func WriteAccount(acc Account, rbt rabbit.RabbitStore, addr2num map[[AddrLen]byte]uint64) {

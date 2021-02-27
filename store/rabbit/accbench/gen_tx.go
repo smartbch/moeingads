@@ -63,7 +63,7 @@ func getNum(addr2num map[[AddrLen]byte]uint64, addr [AddrLen]byte) (res [rabbit.
 	// otherwise we re-compute the card number, with one hop
 	hash := sha256.Sum256(addr[:])
 	copy(res[:], hash[:])
-	//res[0] |= 0x1
+	res[0] = (res[0] % 128) + 64 // limit the range to avoid start&end Guard
 	return
 }
 

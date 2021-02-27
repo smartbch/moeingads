@@ -12,7 +12,7 @@ import (
 
 	"github.com/coinexchain/randsrc"
 	sha256 "github.com/minio/sha256-simd"
-	"github.com/pkg/profile"
+	//"github.com/pkg/profile"
 
 	moeingads "github.com/moeing-chain/MoeingADS"
 	"github.com/moeing-chain/MoeingADS/datatree"
@@ -43,6 +43,7 @@ func CheckAccountsInBlock(snList []uint32, root *store.RootStore) {
 	})
 }
 
+// Compare accounts' coin types. Coin amouts are not compared.
 func CompareAccounts(acc, accRD *Account) {
 	if !bytes.Equal(acc.Address(), accRD.Address()) {
 		var buffer bytes.Buffer
@@ -70,7 +71,6 @@ func CheckAccountWithRoot(sn uint32, root *store.RootStore) {
 	hash := sha256.Sum256(addr[:])
 	var sk [rabbit.KeySize]byte
 	copy(sk[:], hash[:])
-	//sk[0] |= 0x1
 	bz := root.Get(sk[:])
 	cachedValue := rabbit.BytesToCachedValue(bz)
 	if cachedValue.IsEmpty() {
@@ -164,7 +164,7 @@ func RunCheckAccounts(numAccounts int, randFilename string) {
 		panic("numAccounts % NumNewAccountsInBlock != 0")
 	}
 	numBlocks := numAccounts / NumNewAccountsInBlock
-	pjob := profile.Start()
+	//pjob := profile.Start()
 	for i := 0; i < numBlocks; i++ {
 		root.SetHeight(int64(i))
 		if i%100 == 0 {
@@ -173,7 +173,7 @@ func RunCheckAccounts(numAccounts int, randFilename string) {
 		snList := ReadOneBlockOfAccounts(f, i)
 		CheckAccountsInBlock(snList[:], root)
 	}
-	pjob.Stop()
+	//pjob.Stop()
 	fmt.Printf("Read Finished %f\n", float64(time.Now().UnixNano())/1000000000.0)
 
 	root.Close()

@@ -88,7 +88,7 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 	mads.meta = metadb.NewMetaDB(mads.rocksdb)
 	if !dirNotExists {
 		mads.meta.ReloadFromKVDB()
-		mads.meta.PrintInfo()
+		//mads.meta.PrintInfo()
 	}
 
 	if dirNotExists { // Create a new database in this dir
