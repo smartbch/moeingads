@@ -81,7 +81,7 @@ $ time -v ./escchainbench runtx $BLKCOUNT |tee runtx.log
 
 First, `gents` generate blocks of random transactions and the `runtx` executes these transactions.
 
-On this 2018 MacBook, `runtx` takes 6133 seconds to execute the $5000*32768=163840000$ transactions and the maximum resident set in DRAM is 7005MB. The TPS is 26714, which means 7 transactions for each account in one day. If each transaction costs 21000 gas (which is the intrinsic gas of an Ethereum transaction), then in 15 seconds 8.41491 billion ($21000*26714*15$) gas can be consumed. 
+On this 2018 MacBook, `runtx` takes 6133 seconds to execute the 5000\*32768=163840000​ transactions and the maximum resident set in DRAM is 7005MB. The TPS is 26714, which means 7 transactions for each account in one day. If each transaction costs 21000 gas (which is the intrinsic gas of an Ethereum transaction), then in 15 seconds 8.41491 billion (21000\*26714\*15 gas can be consumed. 
 
 The `time` command shows "Percent of CPU this job got" is 516%. Since the CPU can support 12 threads, there are still plenty of parallelism to be exploit, for example, the step 1 and 3 running in parallel with step 2.
 
