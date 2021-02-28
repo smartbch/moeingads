@@ -8,8 +8,8 @@ Let's suppose there is a chain named "Extreme Stable Coin Chain" (ESC Chain). It
 2. It does not support smart contracts.
 3. It has one native token to pay gas fee and several other types of stable coins.
 4. The amounts of coins are represented as 256-bit integers.
-5. One account can own at most 20 types of stable coins.
-6. The only transaction type is sending one kind of stable coin or the native token to another account, deducting sender's native token as gas fee.
+5. One account can own at most 8 types of stable coins.
+6. The only transaction type is sending one kind of stable coin or the native token to another account, while deducting sender's native token as gas fee.
 
 When producing a block, a super node 1) collects the incoming transactions sent through P2P network, 2) execute the transactions and update the world state, 3) packs the executed valid transactions into blocks. Clearly these three steps can be pipelined and the second step is the most time consuming. The other two stages in the pipeline, step 1 and step 3, can hide their latency behind step 2.
 
@@ -23,7 +23,7 @@ The benchmarks simulate such a system: there are totally 100 stable coins, and $
 
 The benchmarks are:
 
-1. **genacc**: to generate $n$ random accounts into the system. The generating process will continue for $n/20000$ blocks and during each block 20000 random accounts are generated.
+1. **genacc**: it generates $n$ random accounts into the system. The generating process will continue for $n/20000$ blocks and during each block 20000 random accounts are generated.
 2. **checkacc**: it reads the $n$ generated accounts out, in a randomized order. It can show the QPS (queries per second) MoeingADS can support.
 3. **runtx**: it runs $m$ blocks, and each block has 32768 random valid transactions. It can show the TPS (transactions per second) MoeingADS can support.
 
@@ -42,7 +42,7 @@ $ cd MoeingADS/store/escchainbench
 $ go build -tags cppbtree
 ```
 
-After executing above commands, you'll have a executable file named `escchainbench` in the current directory.
+After executing above commands, you'll have an executable file named `escchainbench` in the current directory.
 
 Step 1: set some parameters.
 
@@ -52,7 +52,7 @@ $ export ACCNUM=$((328*1000*1000))
 $ export BLKCOUNT=5000
 ```
 
-RANDFILE is a large file used as random seeds. You can use a compressed archive file or a video file. ACCNUM is the total count of the accounts in the simulated system. We choose to use 328 million, which is roughly the population of U.S. BLKCOUNT is the number of blocks will be executed in test.
+RANDFILE is a large file used as random seeds. You can use a compressed archive file or a video file. ACCNUM is the total number of generated accounts in the simulated system. It's set to 328 million, which is roughly the population of U.S. BLKCOUNT is the number of blocks will be executed in the TPS test.
 
 Step 2: generate the accounts randomly.
 
@@ -60,9 +60,9 @@ Step 2: generate the accounts randomly.
 $ time -v ./escchainbench genacc $ACCNUM |tee gen.log
 ```
 
-We use the `time` command to record how much DRAM is used by the testbench.
+We use the `time` command to record how much DRAM is used by the benchmark.
 
-On this 2018 MacBook, `genacc` takes 6330 seconds to create the 328 million accounts and the maximum resident set in DRAM is 6856MB. Averagely 51817 accounts can be created in one second.
+On this 2018 MacBook, `genacc` takes 6330 seconds to create the 328 million accounts and the maximum resident set in DRAM is 6856MB. Averagely 51817 accounts can be created in one second. After this step, the data base's size is 253GB.
 
 Step 3: test the query speed.
 
@@ -79,15 +79,15 @@ $ time -v ./escchainbench gentx $ACCNUM $BLKCOUNT |tee gentx.log
 $ time -v ./escchainbench runtx $BLKCOUNT |tee runtx.log
 ```
 
-First, `gents` generate blocks of random transactions and the `runtx` executes these transactions.
+First, `gentx` generates blocks of random transactions and then `runtx` executes these transactions. After this step, the data base's size is 264GB.
 
-On this 2018 MacBook, `runtx` takes 6133 seconds to execute the 5000\*32768=163840000​ transactions and the maximum resident set in DRAM is 7005MB. The TPS is 26714, which means 7 transactions for each account in one day. If each transaction costs 21000 gas (which is the intrinsic gas of an Ethereum transaction), then in 15 seconds 8.41491 billion (21000\*26714\*15 gas can be consumed. 
+On this 2018 MacBook, `runtx` takes 6133 seconds to execute the 5000\*32768=163840000​ transactions and the maximum resident set in DRAM is 7005MB. The TPS is 26714, which means averagely 7 transactions for each account in one day. If each transaction costs 21000 gas (the intrinsic gas of an Ethereum transaction), then in 15 seconds 8.41491 billion (21000\*26714\*15 gas can be consumed. 
 
 The `time` command shows "Percent of CPU this job got" is 516%. Since the CPU can support 12 threads, there are still plenty of parallelism to be exploit, for example, the step 1 and 3 running in parallel with step 2.
 
-A block on Ethereum can consume at most 1250000 gas in 15 seconds. So ESC chain is about 673 times faster than ethereum in payment.
+A block on Ethereum can consume at most 12.5 million gas in 15 seconds. So ESC chain is about 673 times faster than ethereum in payment.
 
-It can be expected that ESC chain runs much faster on a 2021 MacBook with [M1X processor](https://www.trustedreviews.com/news/apple-macbook-pro-2021-release-date-price-specs-and-design-4112058).
+It can be expected that ESC chain will run much faster on a 2021 MacBook with the 12-core [M1X processor](https://www.trustedreviews.com/news/apple-macbook-pro-2021-release-date-price-specs-and-design-4112058).
 
 #### Conclusion
 
