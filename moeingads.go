@@ -488,7 +488,7 @@ var Phase1n2Time, Phase1Time, Phase2Time, Phase3Time, Phase4Time, Phase0Time, ts
 
 func (mads *MoeingADS) EndWrite() {
 	mads.update()
-	start := gotsc.BenchStart()
+	//start := gotsc.BenchStart()
 	//if mads.meta.GetActiveEntryCount() != int64(mads.idxTree.ActiveCount()) - 2 {
 	//	panic(fmt.Sprintf("Fuck meta.GetActiveEntryCount %d mads.idxTree.ActiveCount %d\n", mads.meta.GetActiveEntryCount(), mads.idxTree.ActiveCount()))
 	//}
@@ -510,11 +510,11 @@ func (mads *MoeingADS) EndWrite() {
 		mads.datTree.EvictTwig(twigID)
 		mads.meta.IncrOldestActiveTwigID()
 	}
-	Phase3Time += gotsc.BenchEnd() - start - tscOverhead
-	start = gotsc.BenchStart()
+	//Phase3Time += gotsc.BenchEnd() - start - tscOverhead
+	//start = gotsc.BenchStart()
 	//fmt.Printf("end numOfKeptEntries %d ActiveCount %d x2 %d\n", mads.numOfKeptEntries(), mads.idxTree.ActiveCount(), mads.idxTree.ActiveCount()*2)
 	rootHash := mads.datTree.EndBlock()
-	Phase4Time += gotsc.BenchEnd() - start - tscOverhead
+	//Phase4Time += gotsc.BenchEnd() - start - tscOverhead
 	mads.meta.SetRootHash(rootHash)
 	mads.k2heMap = NewBucketMap(heMapSize) // clear content
 	mads.k2nkMap = NewBucketMap(nkMapSize) // clear content

@@ -28,7 +28,7 @@ var (
 )
 
 const (
-	MaxCoinCount = 5  // maximum count of coin types in an account
+	MaxCoinCount = 8  // maximum count of coin types in an account
 	NumCoinType  = 100 // total coin types in the system
 
 	AddrLen                 = 20

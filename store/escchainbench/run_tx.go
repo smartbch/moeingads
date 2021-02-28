@@ -217,7 +217,7 @@ func RunTx(numBlock int, txFile string) {
 	root := store.NewRootStore(mads, nil)
 	//pjob := profile.Start()
 	for i := 0; i < numBlock; i++ {
-		start := gotsc.BenchStart()
+		//start := gotsc.BenchStart()
 		height := startHeight + int64(i)
 		fmt.Printf("block %d (%d)\n", i, height)
 		root.SetHeight(height)
@@ -225,8 +225,8 @@ func RunTx(numBlock int, txFile string) {
 		for j := 0; j < NumEpochInBlock; j++ {
 			block.epochList[j].Run(root)
 		}
-		Phase1Time += gotsc.BenchEnd() - start - tscOverhead
-		start = gotsc.BenchStart()
+		//Phase1Time += gotsc.BenchEnd() - start - tscOverhead
+		//start = gotsc.BenchStart()
 		root.BeginWrite()
 		for j := 0; j < NumEpochInBlock; j++ {
 			for k := 0; k < NumWorkers; k++ {
@@ -236,7 +236,10 @@ func RunTx(numBlock int, txFile string) {
 			}
 		}
 		root.EndWrite()
-		Phase2Time += gotsc.BenchEnd() - start - tscOverhead
+		//Phase2Time += gotsc.BenchEnd() - start - tscOverhead
+		if height > 100 && height % 100 == 0 {
+			mads.PruneBeforeHeight(height-100)
+		}
 	}
 	//pjob.Stop()
 	//fmt.Printf("Finished %f\n", float64(time.Now().UnixNano())/1e9)

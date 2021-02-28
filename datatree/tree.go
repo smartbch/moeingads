@@ -373,7 +373,9 @@ func (tree *Tree) PruneTwigs(startID, endID int64) []byte {
 	if endID-startID < MinPruneCount {
 		panic(fmt.Sprintf("The count of pruned twigs is too small: %d", endID-startID))
 	}
-	tree.entryFile.PruneHead(tree.twigMtFile.GetFirstEntryPos(endID))
+	endPos := tree.twigMtFile.GetFirstEntryPos(endID)
+	//fmt.Printf("NOW entry prune till %d\n", endPos)
+	tree.entryFile.PruneHead(endPos)
 	tree.twigMtFile.PruneHead(endID * TwigMtSize)
 	return tree.ReapNodes(startID, endID)
 }

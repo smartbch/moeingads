@@ -46,3 +46,4 @@ store/rabbit/accbench/accbench
 *.note
 *.sh
 *.h~
+store/escchainbench/escchainbench
