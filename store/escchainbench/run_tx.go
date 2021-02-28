@@ -242,7 +242,7 @@ func RunTx(numBlock int, txFile string) {
 		}
 	}
 	//pjob.Stop()
-	//fmt.Printf("Finished %f\n", float64(time.Now().UnixNano())/1e9)
+	fmt.Printf("Finished %f\n", float64(time.Now().UnixNano())/1e9)
 	//fmt.Printf("phase1 time %d\n", Phase1Time)
 	//fmt.Printf("phase2 time %d\n", Phase2Time)
 	//fmt.Printf("moeingads.phase0 time %d\n", moeingads.Phase0Time)
