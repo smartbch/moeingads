@@ -81,9 +81,9 @@ $ time -v ./escchainbench runtx $BLKCOUNT |tee runtx.log
 
 First, `gentx` generates blocks of random transactions and then `runtx` executes these transactions. After this step, the data base's size is 264GB.
 
-On this 2018 MacBook, `runtx` takes 6133 seconds to execute the 5000\*32768=163840000​ transactions and the maximum resident set in DRAM is 7005MB. The TPS is 26714, which means averagely 7 transactions for each account in one day. If each transaction costs 21000 gas (the intrinsic gas of an Ethereum transaction), then in 15 seconds 8.41491 billion (21000\*26714\*15 gas can be consumed. 
+On this 2018 MacBook, `runtx` takes 6133 seconds to execute the 5000\*32768=163840000 transactions and the maximum resident set in DRAM is 7005MB. The TPS is 163840000/6133=26714, which means averagely 7 transactions for each account in one day. If each transaction costs 21000 gas (the intrinsic gas of an Ethereum transaction), then in 15 seconds 8.41491 billion (21000\*26714\*15) gas can be consumed.
 
-The `time` command shows "Percent of CPU this job got" is 516%. Since the CPU can support 12 threads, there are still plenty of parallelism to be exploit, for example, the step 1 and 3 running in parallel with step 2.
+The `time` command shows "Percent of CPU this job got" is 516%. Since the CPU can support 12 threads, it allows the system to further exploit hardware's parallelism, for example, the step 1 and 3 running in parallel with step 2.
 
 A block on Ethereum can consume at most 12.5 million gas in 15 seconds. So ESC chain is about 673 times faster than ethereum in payment.
 
