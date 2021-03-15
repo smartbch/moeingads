@@ -31,7 +31,7 @@ The benchmarks are:
 
 #### How to run the benchmarks
 
-To make the case more realistic, the test machine must have 16GB DRAM and about 300GB free SSD space. Such a machine can also run an go-ethereum client smoothly. The OS must be Linux or MacOS (Windows is not supported) and please install [golang](https://golang.org/doc/install) and [rocksdb](https://golang.org/doc/install) beforehand. The machine used in this article is a 2018 model MacBook Pro, with a 2.6GHz six-core i7 processor.
+To make the case more realistic, the test machine must have 16GB DRAM and about 300GB free SSD space. Such a machine can also run an go-ethereum client smoothly. The OS must be Linux or MacOS (Windows is not supported) and please install [golang](https://golang.org/doc/install) and [rocksdb](https://github.com/facebook/rocksdb/blob/master/INSTALL.md) beforehand. The machine used in this article is a 2018 model MacBook Pro, with a 2.6GHz six-core i7 processor.
 
 Step 0: check out the benchmarks' code and build executable. 
 
@@ -95,3 +95,6 @@ We present a conceptual chain named ESC (Extreme Stable Coin) chain which focuse
 
 ESC chain is an application-specific chain without smart contract support. Moeing chain is more powerful and thus has overhead. We do not expect it can run as fast as ESC chain. But 8.4 billion gas gives us enough confidence that Moeing chain can achieve the "one billion gas every 15 seconds" target in the middle term.
 
+
+
+![img](https://lh6.googleusercontent.com/Yjk5POCJUBNY9b5hrjxRH6i4FDRFOgX1jvDKowz3nhs_fUaCHS5iEleiNktjMLEpgnhGkiaJp14F-dRk2pvCgLllVmaYXjP5jRWluiIAmwNQcz8caNznvAzD5cnT3VD0GRWo6OLRqJzy4911cw)
