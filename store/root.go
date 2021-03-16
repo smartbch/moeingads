@@ -5,8 +5,8 @@ import (
 	"math"
 	"sync"
 
-	moeingads "github.com/smartbch/MoeingADS"
-	"github.com/smartbch/MoeingADS/store/types"
+	"github.com/smartbch/moeingads"
+	"github.com/smartbch/moeingads/store/types"
 )
 
 const (

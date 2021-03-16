@@ -7,14 +7,14 @@ import (
 
 	"github.com/coinexchain/randsrc"
 
-	"github.com/smartbch/MoeingADS/datatree"
+	"github.com/smartbch/moeingads/datatree"
 )
 
 const (
 	PruneRatio = 0.5
 )
 
-// go test -c . -coverpkg=github.com/smartbch/MoeingADS/datatree
+// go test -c . -coverpkg=github.com/smartbch/moeingads/datatree
 // RANDFILE=~/Downloads/goland-2019.1.3.dmg RANDCOUNT=$((120*10000)) ./fuzz.test -test.coverprofile system.out
 
 func runTest() {

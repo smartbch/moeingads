@@ -5,7 +5,7 @@ import (
 
 	"github.com/dterei/gotsc"
 
-	"github.com/smartbch/MoeingADS/store/types"
+	"github.com/smartbch/moeingads/store/types"
 )
 
 var PhaseTrunkTime, PhaseEndWriteTime, tscOverhead uint64

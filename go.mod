@@ -1,4 +1,4 @@
-module github.com/smartbch/MoeingADS
+module github.com/smartbch/moeingads
 
 go 1.15
 

@@ -4,9 +4,9 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/smartbch/MoeingADS/datatree"
-	"github.com/smartbch/MoeingADS/indextree"
-	"github.com/smartbch/MoeingADS/types"
+	"github.com/smartbch/moeingads/datatree"
+	"github.com/smartbch/moeingads/indextree"
+	"github.com/smartbch/moeingads/types"
 )
 
 const (

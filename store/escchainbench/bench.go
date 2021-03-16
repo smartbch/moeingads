@@ -5,7 +5,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/smartbch/MoeingADS/datatree"
+	"github.com/smartbch/moeingads/datatree"
 )
 
 func printUsage() {

@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"io"
 
-	"github.com/smartbch/MoeingADS/indextree/b"
+	"github.com/smartbch/moeingads/indextree/b"
 )
 
 type MockIndexTree struct {

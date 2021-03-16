@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-// go test -tags cppbtree -c -coverpkg github.com/smartbch/MoeingADS/store .
+// go test -tags cppbtree -c -coverpkg github.com/smartbch/moeingads/store .
 // RANDFILE=~/Downloads/goland-2019.1.3.dmg RANDCOUNT=1000 ./fuzz.test
 
 func Test1(t *testing.T) {

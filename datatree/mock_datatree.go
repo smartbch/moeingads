@@ -3,7 +3,7 @@ package datatree
 import (
 	"fmt"
 
-	"github.com/smartbch/MoeingADS/types"
+	"github.com/smartbch/moeingads/types"
 )
 
 type MockTwig struct {

@@ -3,7 +3,7 @@ package rabbit
 import (
 	"encoding/binary"
 
-	"github.com/smartbch/MoeingADS/store/types"
+	"github.com/smartbch/moeingads/store/types"
 )
 
 const (

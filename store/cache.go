@@ -1,7 +1,7 @@
 package store
 
 import (
-	"github.com/smartbch/MoeingADS/store/types"
+	"github.com/smartbch/moeingads/store/types"
 )
 
 // CacheStore is used in two places: 1. as the temporal cache in TrunkStore,

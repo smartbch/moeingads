@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/smartbch/MoeingADS/types"
+	"github.com/smartbch/moeingads/types"
 	"github.com/tecbot/gorocksdb"
 )
 

@@ -10,10 +10,10 @@ import (
 
 	"github.com/coinexchain/randsrc"
 
-	moeingads "github.com/smartbch/MoeingADS"
-	"github.com/smartbch/MoeingADS/store"
-	"github.com/smartbch/MoeingADS/store/rabbit"
-	storetypes "github.com/smartbch/MoeingADS/store/types"
+	"github.com/smartbch/moeingads"
+	"github.com/smartbch/moeingads/store"
+	"github.com/smartbch/moeingads/store/rabbit"
+	storetypes "github.com/smartbch/moeingads/store/types"
 )
 
 const (
