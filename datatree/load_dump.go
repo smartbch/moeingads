@@ -12,7 +12,7 @@ import (
 
 	"github.com/mmcloughlin/meow"
 
-	"github.com/moeing-chain/MoeingADS/types"
+	"github.com/smartbch/MoeingADS/types"
 )
 
 func LoadTwigFromFile(infile io.Reader) (twigID int64, twig Twig, err error) {

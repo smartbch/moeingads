@@ -15,11 +15,11 @@ import (
 	"github.com/dterei/gotsc"
 	sha256 "github.com/minio/sha256-simd"
 
-	moeingads "github.com/moeing-chain/MoeingADS"
-	"github.com/moeing-chain/MoeingADS/datatree"
-	"github.com/moeing-chain/MoeingADS/store"
-	"github.com/moeing-chain/MoeingADS/store/rabbit"
-	"github.com/moeing-chain/MoeingADS/store/types"
+	moeingads "github.com/smartbch/MoeingADS"
+	"github.com/smartbch/MoeingADS/datatree"
+	"github.com/smartbch/MoeingADS/store"
+	"github.com/smartbch/MoeingADS/store/rabbit"
+	"github.com/smartbch/MoeingADS/store/types"
 )
 
 var (

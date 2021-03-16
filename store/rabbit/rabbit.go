@@ -6,7 +6,7 @@ import (
 
 	sha256 "github.com/minio/sha256-simd"
 
-	"github.com/moeing-chain/MoeingADS/store/types"
+	"github.com/smartbch/MoeingADS/store/types"
 )
 
 const (

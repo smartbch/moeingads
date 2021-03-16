@@ -13,10 +13,10 @@ import (
 	"github.com/mmcloughlin/meow"
 	//"github.com/pkg/profile"
 
-	moeingads "github.com/moeing-chain/MoeingADS"
-	"github.com/moeing-chain/MoeingADS/datatree"
-	"github.com/moeing-chain/MoeingADS/store"
-	"github.com/moeing-chain/MoeingADS/store/rabbit"
+	moeingads "github.com/smartbch/MoeingADS"
+	"github.com/smartbch/MoeingADS/datatree"
+	"github.com/smartbch/MoeingADS/store"
+	"github.com/smartbch/MoeingADS/store/rabbit"
 )
 
 const (

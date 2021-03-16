@@ -12,10 +12,10 @@ import (
 
 	"github.com/dterei/gotsc"
 
-	"github.com/moeing-chain/MoeingADS/datatree"
-	"github.com/moeing-chain/MoeingADS/indextree"
-	"github.com/moeing-chain/MoeingADS/metadb"
-	"github.com/moeing-chain/MoeingADS/types"
+	"github.com/smartbch/MoeingADS/datatree"
+	"github.com/smartbch/MoeingADS/indextree"
+	"github.com/smartbch/MoeingADS/metadb"
+	"github.com/smartbch/MoeingADS/types"
 )
 
 const (

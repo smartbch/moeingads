@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/moeing-chain/MoeingADS/store/types"
+	"github.com/smartbch/MoeingADS/store/types"
 )
 
 // MockRootStore mimics RootStore's behavior, with an in-memory CacheStore

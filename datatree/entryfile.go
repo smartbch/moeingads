@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/moeing-chain/MoeingADS/types"
+	"github.com/smartbch/MoeingADS/types"
 )
 
 type Entry = types.Entry

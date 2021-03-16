@@ -9,10 +9,10 @@ import (
 
 	"github.com/coinexchain/randsrc"
 
-	"github.com/moeing-chain/MoeingADS/store"
+	"github.com/smartbch/MoeingADS/store"
 )
 
-// go test -c -coverpkg github.com/moeing-chain/MoeingADS/store/rabbit .
+// go test -c -coverpkg github.com/smartbch/MoeingADS/store/rabbit .
 
 // RANDFILE=~/Downloads/goland-2019.1.3.dmg RANDCOUNT=10000 ./rabbit.test
 

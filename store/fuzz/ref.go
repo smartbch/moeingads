@@ -1,8 +1,8 @@
 package fuzz
 
 import (
-	"github.com/moeing-chain/MoeingADS/store"
-	storetypes "github.com/moeing-chain/MoeingADS/store/types"
+	"github.com/smartbch/MoeingADS/store"
+	storetypes "github.com/smartbch/MoeingADS/store/types"
 )
 
 type UndoOp struct {

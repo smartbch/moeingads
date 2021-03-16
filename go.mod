@@ -1,4 +1,4 @@
-module github.com/moeing-chain/MoeingADS
+module github.com/smartbch/MoeingADS
 
 go 1.15
 

@@ -3,7 +3,7 @@ package rabbit
 import (
 	"fmt"
 
-	"github.com/moeing-chain/MoeingADS/store/types"
+	"github.com/smartbch/MoeingADS/store/types"
 )
 
 // A SimpleMultiStore serves a transaction which uses 'RabbitJump' algorithm to access KVs.

@@ -3,7 +3,7 @@
 package b
 
 import (
-	"github.com/moeing-chain/MoeingADS/indextree/b/cppbtree"
+	"github.com/smartbch/MoeingADS/indextree/b/cppbtree"
 )
 
 type Enumerator = cppbtree.Enumerator

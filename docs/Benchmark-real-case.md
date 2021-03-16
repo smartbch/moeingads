@@ -1,6 +1,6 @@
 ### ESC Chain: Benchmarking MoeingADS with a real case
 
-MoeingADS is the most important corner stone of Moeing chain. MoeingADS puts an upper bound for Moeing chain's TPS. You may want to know, when ignoring all the other factors (consensus engine, smart contract execution, etc) and only having MoeingADS in the critical path, how high can the TPS reach? Because no matter how hard we optimize the other parts of Moeing chain, its TPS cannot get higher than this upper limit.
+MoeingADS is the most important corner stone of Smart Bitcoin Cash. MoeingADS puts an upper bound for Smart Bitcoin Cash's TPS. You may want to know, when ignoring all the other factors (consensus engine, smart contract execution, etc) and only having MoeingADS in the critical path, how high can the TPS reach? Because no matter how hard we optimize the other parts of Smart Bitcoin Cash, its TPS cannot get higher than this upper limit.
 
 Let's suppose there is a chain named "Extreme Stable Coin Chain" (ESC Chain). Its characters include:
 
@@ -37,7 +37,7 @@ Step 0: check out the benchmarks' code and build executable.
 
 ```bash
 $ mkdir ~/benchmark; cd ~/benchmark
-$ git clone https://github.com/moeing-chain/MoeingADS
+$ git clone https://github.com/smartbch/MoeingADS
 $ cd MoeingADS/store/escchainbench
 $ go build -tags cppbtree
 ```
@@ -93,7 +93,7 @@ It can be expected that ESC chain will run much faster on a 2021 MacBook with th
 
 We present a conceptual chain named ESC (Extreme Stable Coin) chain which focuses on stable coin payment. Benchmarks show that when built on MoeingADS, ESC chain can consume 8.4 billion gas in 15 seconds, which is 673 times faster than Ethereum.
 
-ESC chain is an application-specific chain without smart contract support. Moeing chain is more powerful and thus has overhead. We do not expect it can run as fast as ESC chain. But 8.4 billion gas gives us enough confidence that Moeing chain can achieve the "one billion gas every 15 seconds" target in the middle term.
+ESC chain is an application-specific chain without smart contract support. Smart Bitcoin Cash is more powerful and thus has overhead. We do not expect it can run as fast as ESC chain. But 8.4 billion gas gives us enough confidence that Smart Bitcoin Cash can achieve the "one billion gas every 15 seconds" target in the middle term.
 
 
 

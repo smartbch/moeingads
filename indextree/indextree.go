@@ -8,8 +8,8 @@ import (
 	"math"
 	"sync"
 
-	"github.com/moeing-chain/MoeingADS/indextree/b"
-	"github.com/moeing-chain/MoeingADS/types"
+	"github.com/smartbch/MoeingADS/indextree/b"
+	"github.com/smartbch/MoeingADS/types"
 )
 
 const (
