@@ -95,6 +95,3 @@ We present a conceptual chain named ESC (Extreme Stable Coin) chain which focuse
 
 ESC chain is an application-specific chain without smart contract support. Smart Bitcoin Cash is more powerful and thus has overhead. We do not expect it can run as fast as ESC chain. But 8.4 billion gas gives us enough confidence that Smart Bitcoin Cash can achieve the "one billion gas every 15 seconds" target in the middle term.
 
-
-
-![img](https://lh6.googleusercontent.com/Yjk5POCJUBNY9b5hrjxRH6i4FDRFOgX1jvDKowz3nhs_fUaCHS5iEleiNktjMLEpgnhGkiaJp14F-dRk2pvCgLllVmaYXjP5jRWluiIAmwNQcz8caNznvAzD5cnT3VD0GRWo6OLRqJzy4911cw)
