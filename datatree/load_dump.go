@@ -377,7 +377,7 @@ func (tree *Tree) RecoverActiveTwigs(oldestActiveTwigID int64) []int64 {
 	return nList
 }
 
-func (tree *Tree) RecoverUpperNodes(edgeNodes []*EdgeNode, nList []int64) {
+func (tree *Tree) RecoverUpperNodes(edgeNodes []*EdgeNode, nList []int64) [32]byte {
 	for _, edgeNode := range edgeNodes {
 		var buf [32]byte
 		copy(buf[:], edgeNode.Value)
@@ -386,11 +386,15 @@ func (tree *Tree) RecoverUpperNodes(edgeNodes []*EdgeNode, nList []int64) {
 	}
 	//fmt.Printf("syncUpperNodes %v\n", nList)
 	//if len(nList) > 0 && nList[0] >= 2438 {Debug = true}
-	tree.syncUpperNodes(nList)
+	return tree.syncUpperNodes(nList)
 	//Debug = false
 }
 
 func (tree *Tree) RecoverInactiveTwigRoots(lastPrunedTwigID, oldestActiveTwigID int64) (newList []int64) {
+	if lastPrunedTwigID < 0 {
+		return
+	}
+	//fmt.Printf("RecoverInactiveTwigRoots lastPrunedTwigID %d oldestActiveTwigID %d\n", lastPrunedTwigID, oldestActiveTwigID)
 	newList = make([]int64, 0, 1+(oldestActiveTwigID-lastPrunedTwigID)/2)
 	for twigID := lastPrunedTwigID; twigID < oldestActiveTwigID; twigID++ {
 		var twigRoot [32]byte
@@ -405,7 +409,7 @@ func (tree *Tree) RecoverInactiveTwigRoots(lastPrunedTwigID, oldestActiveTwigID 
 	return
 }
 
-func RecoverTree(bufferSize, blockSize int, dirName string, edgeNodes []*EdgeNode, lastPrunedTwigID, oldestActiveTwigID, youngestTwigID int64) *Tree {
+func RecoverTree(bufferSize, blockSize int, dirName string, edgeNodes []*EdgeNode, lastPrunedTwigID, oldestActiveTwigID, youngestTwigID int64) (tree *Tree, rootHash [32]byte) {
 	dirEntry := filepath.Join(dirName, entriesPath)
 	entryFile, err := NewEntryFile(bufferSize, blockSize, dirEntry)
 	if err != nil {
@@ -416,7 +420,7 @@ func RecoverTree(bufferSize, blockSize int, dirName string, edgeNodes []*EdgeNod
 	if err != nil {
 		panic(err)
 	}
-	tree := &Tree{
+	tree = &Tree{
 		entryFile:  &entryFile,
 		twigMtFile: &twigMtFile,
 		dirName:    dirName,
@@ -447,8 +451,8 @@ func RecoverTree(bufferSize, blockSize int, dirName string, edgeNodes []*EdgeNod
 	} else {
 		newList = append(nList0, nList...)
 	}
-	tree.RecoverUpperNodes(edgeNodes, newList)
-	return tree
+	rootHash = tree.RecoverUpperNodes(edgeNodes, newList)
+	return
 }
 
 func CompareTreeTwigs(treeA, treeB *Tree) {

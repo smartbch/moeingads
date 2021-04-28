@@ -452,20 +452,18 @@ func (tree *Tree) EndBlock() (rootHash [32]byte) {
 }
 
 // following functions are used for syncing up merkle tree
-func (tree *Tree) syncMT() [32]byte {
-	maxLevel := calcMaxLevel(tree.youngestTwigID)
+func (tree *Tree) syncMT() (rootHash [32]byte) {
 	tree.syncMT4YoungestTwig()
 	nList := tree.syncMT4ActiveBits()
 	//if Debug {
 	//	fmt.Printf("nList: %v\n", nList)
 	//}
-	tree.syncUpperNodes(nList)
+	rootHash = tree.syncUpperNodes(nList)
 	tree.touchedPosOf512b = make(map[int64]struct{}) // clear the list
-	rootHash := tree.nodes[Pos(maxLevel, 0)]
-	return *rootHash
+	return
 }
 
-func (tree *Tree) syncUpperNodes(nList []int64) {
+func (tree *Tree) syncUpperNodes(nList []int64) (rootHash [32]byte) {
 	maxLevel := calcMaxLevel(tree.youngestTwigID)
 	for level := FirstLevelAboveTwig; level <= maxLevel; level++ {
 		//if Debug {
@@ -473,6 +471,7 @@ func (tree *Tree) syncUpperNodes(nList []int64) {
 		//}
 		nList = tree.syncNodesByLevel(level, nList)
 	}
+	return *tree.nodes[Pos(maxLevel, 0)]
 }
 
 func maxNAtLevel(youngestTwigID int64, level int) int64 {
