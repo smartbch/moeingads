@@ -142,7 +142,10 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 		keyAndPosChan := make(chan types.KeyAndPos, 100)
 		go mads.datTree.ScanEntriesLite(oldestActiveTwigID, keyAndPosChan)
 		for e := range keyAndPosChan {
-			if string(e.Key) != "dummy" {
+			if string(e.Key) == "dummy" {
+				continue
+			}
+			if mads.datTree.GetActiveBit(e.SerialNum) {
 				mads.idxTree.Set(e.Key, e.Pos)
 			}
 		}

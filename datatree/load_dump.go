@@ -352,7 +352,11 @@ func (tree *Tree) ScanEntriesLite(oldestActiveTwigID int64, outChan chan types.K
 	size := tree.entryFile.Size()
 	for pos < size {
 		entryBz, next := tree.entryFile.ReadEntryRawBytes(pos)
-		outChan <- types.KeyAndPos{ExtractKeyFromRawBytes(entryBz), pos}
+		outChan <- types.KeyAndPos{
+			Key:       ExtractKeyFromRawBytes(entryBz),
+			Pos:       pos,
+			SerialNum: ExtractSerialNum(entryBz),
+		}
 		pos = next
 	}
 	close(outChan)
