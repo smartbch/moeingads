@@ -245,8 +245,8 @@ func (ctx *Context) reloadTree() {
 
 func (ctx *Context) recoverTree() {
 	ctx.tree.Flush()
-	tree1, _ := datatree.RecoverTree(datatree.BufferSize, defaultFileSize, dirName,
-		ctx.edgeNodes, ctx.lastPrunedTwigID, ctx.oldestActiveTwigID, ctx.serialNum>>datatree.TwigShift)
+	tree1, _ := datatree.RecoverTree(datatree.BufferSize, defaultFileSize, dirName, ctx.edgeNodes,
+		ctx.lastPrunedTwigID, ctx.oldestActiveTwigID, ctx.serialNum>>datatree.TwigShift, nil)
 
 	datatree.CompareTreeTwigs(ctx.tree, tree1)
 	datatree.CheckHashConsistency(tree1)

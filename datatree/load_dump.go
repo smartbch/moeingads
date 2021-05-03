@@ -413,7 +413,7 @@ func (tree *Tree) RecoverInactiveTwigRoots(lastPrunedTwigID, oldestActiveTwigID 
 	return
 }
 
-func RecoverTree(bufferSize, blockSize int, dirName string, edgeNodes []*EdgeNode, lastPrunedTwigID, oldestActiveTwigID, youngestTwigID int64) (tree *Tree, rootHash [32]byte) {
+func RecoverTree(bufferSize, blockSize int, dirName string, edgeNodes []*EdgeNode, lastPrunedTwigID, oldestActiveTwigID, youngestTwigID int64, fileSizes []int64) (tree *Tree, rootHash [32]byte) {
 	dirEntry := filepath.Join(dirName, entriesPath)
 	entryFile, err := NewEntryFile(bufferSize, blockSize, dirEntry)
 	if err != nil {
@@ -438,6 +438,11 @@ func RecoverTree(bufferSize, blockSize int, dirName string, edgeNodes []*EdgeNod
 		twigsToBeDeleted:    make([]int64, 0, 10),
 		touchedPosOf512b:    make(map[int64]struct{}),
 		deactivedSNList:     make([]int64, 0, 10),
+	}
+	if len(fileSizes) == 2 {
+		//fmt.Printf("OldSize entryFile %d twigMtFile %d\n", tree.entryFile.Size(), tree.twigMtFile.Size())
+		//fmt.Printf("NewSize entryFile %d twigMtFile %d\n", fileSizes[0], fileSizes[1])
+		tree.TruncateFiles(fileSizes[0], fileSizes[1])
 	}
 	tree.activeTwigs[oldestActiveTwigID] = CopyNullTwig()
 	tree.mtree4YoungestTwig = NullMT4Twig
