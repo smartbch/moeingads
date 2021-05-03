@@ -3,7 +3,6 @@ package datatree
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 
 	"github.com/smartbch/moeingads/types"
 )
@@ -269,8 +268,14 @@ func (ef *EntryFile) readMagicBytesAndLength(off int64, withBuf bool) (length in
 	if err != nil {
 		panic(err)
 	}
+	//fmt.Printf("Now off %d %x %#v %#v\n", off, off, buf[:], MagicBytes[:])
 	if !bytes.Equal(buf[:8], MagicBytes[:]) {
-		fmt.Printf("Now off %d %x\n", off, off)
+		//var buf [120]byte
+		//err := ef.HPFile.ReadAt(buf[:], off, withBuf)
+		//if err != nil {
+		//	panic(err)
+		//}
+		//fmt.Printf("%#v\n", buf[:])
 		panic("Invalid MagicBytes")
 	}
 	length = int64(GetUint24(buf[9:12]))
@@ -362,8 +367,11 @@ func (ef *EntryFile) Truncate(size int64) {
 func (ef *EntryFile) Flush() {
 	ef.HPFile.Flush()
 }
-func (ef *EntryFile) FlushAsync() {
-	ef.HPFile.FlushAsync()
+func (ef *EntryFile) WaitForFlushing() {
+	ef.HPFile.WaitForFlushing()
+}
+func (ef *EntryFile) StartFlushing() {
+	ef.HPFile.StartFlushing()
 }
 func (ef *EntryFile) Close() {
 	err := ef.HPFile.Close()

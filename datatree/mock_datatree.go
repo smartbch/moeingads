@@ -104,6 +104,9 @@ func (dt *MockDataTree) EndBlock() (rootHash [32]byte) {
 	return
 }
 
+func (dt *MockDataTree) WaitForFlushing() {
+}
+
 func (dt *MockDataTree) Close() {
 }
 

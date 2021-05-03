@@ -191,6 +191,7 @@ func (ctx *Context) endBlock() {
 	ctx.height++
 	//fmt.Printf("Now EndBlock %d\n", ctx.stepCount)
 	ctx.tree.EndBlock()
+	ctx.tree.WaitForFlushing()
 	for i := 0; i < int(ctx.cfg.ProofCount); i++ {
 		sn := ctx.oldestInactiveSN()
 		if i > 0 {

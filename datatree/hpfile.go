@@ -156,7 +156,12 @@ func (hpf *HPFile) flush() {
 	//atomic.AddUint64(&TotalSyncTime, gotsc.BenchEnd() - start - tscOverhead)
 }
 
-func (hpf *HPFile) FlushAsync() {
+func (hpf *HPFile) WaitForFlushing() {
+	hpf.mtx.RLock()
+	hpf.mtx.RUnlock()
+}
+
+func (hpf *HPFile) StartFlushing() {
 	hpf.mtx.Lock()
 	go func() {
 		defer hpf.mtx.Unlock()

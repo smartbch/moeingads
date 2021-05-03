@@ -65,6 +65,7 @@ func TestTreeProof(t *testing.T) {
 	fmt.Printf("build finished\n")
 	tree.EvictTwig(0)
 	tree.EndBlock()
+	tree.WaitForFlushing()
 	CheckHashConsistency(tree)
 
 	//require.Nil(t, tree.GetProof(0))

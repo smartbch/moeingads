@@ -440,8 +440,8 @@ func RecoverTree(bufferSize, blockSize int, dirName string, edgeNodes []*EdgeNod
 		deactivedSNList:     make([]int64, 0, 10),
 	}
 	if len(fileSizes) == 2 {
-		//fmt.Printf("OldSize entryFile %d twigMtFile %d\n", tree.entryFile.Size(), tree.twigMtFile.Size())
-		//fmt.Printf("NewSize entryFile %d twigMtFile %d\n", fileSizes[0], fileSizes[1])
+		fmt.Printf("OldSize entryFile %d twigMtFile %d\n", tree.entryFile.Size(), tree.twigMtFile.Size())
+		fmt.Printf("NewSize entryFile %d twigMtFile %d\n", fileSizes[0], fileSizes[1])
 		tree.TruncateFiles(fileSizes[0], fileSizes[1])
 	}
 	tree.activeTwigs[oldestActiveTwigID] = CopyNullTwig()

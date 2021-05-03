@@ -522,11 +522,8 @@ func (mads *MoeingADS) EndWrite() {
 		mads.datTree.EvictTwig(twigID)
 		mads.meta.IncrOldestActiveTwigID()
 	}
-	//Phase3Time += gotsc.BenchEnd() - start - tscOverhead
-	//start = gotsc.BenchStart()
 	//fmt.Printf("end numOfKeptEntries %d ActiveCount %d x2 %d\n", mads.numOfKeptEntries(), mads.idxTree.ActiveCount(), mads.idxTree.ActiveCount()*2)
 	rootHash := mads.datTree.EndBlock()
-	//Phase4Time += gotsc.BenchEnd() - start - tscOverhead
 	mads.meta.SetRootHash(rootHash)
 	mads.k2heMap = NewBucketMap(heMapSize) // clear content
 	mads.k2nkMap = NewBucketMap(nkMapSize) // clear content
@@ -537,6 +534,7 @@ func (mads *MoeingADS) EndWrite() {
 	eS, tS := mads.datTree.GetFileSizes()
 	mads.meta.SetEntryFileSize(eS)
 	mads.meta.SetTwigMtFileSize(tS)
+	mads.datTree.WaitForFlushing()
 	mads.meta.Commit()
 	mads.idxTree.EndWrite()
 	mads.rocksdb.CloseOldBatch()

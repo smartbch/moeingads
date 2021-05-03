@@ -482,6 +482,7 @@ func TestTreeAppendEntry(t *testing.T) {
 	deactSNList := []int64{101, 999, 1002}
 	tree, posList, maxSerialNum := buildTestTree(dirName, deactSNList, TwigMask, 6)
 	tree.EndBlock()
+	tree.WaitForFlushing()
 
 	for i, pos := range posList {
 		entry, snList, _ := tree.entryFile.ReadEntryAndSNList(pos)

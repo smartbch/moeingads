@@ -83,8 +83,8 @@ func (tf *TwigMtFile) Truncate(size int64) {
 func (tf *TwigMtFile) Flush() {
 	tf.HPFile.Flush()
 }
-func (tf *TwigMtFile) FlushAsync() {
-	tf.HPFile.FlushAsync()
+func (tf *TwigMtFile) StartFlushing() {
+	tf.HPFile.StartFlushing()
 }
 func (tf *TwigMtFile) Close() {
 	err := tf.HPFile.Close()

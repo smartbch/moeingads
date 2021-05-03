@@ -36,6 +36,7 @@ func TestLoadTree(t *testing.T) {
 	deactSNList := []int64{101, 999, 1002}
 	tree0, _, _ := buildTestTree(dirName, deactSNList, TwigMask, 6)
 	tree0.EndBlock()
+	tree0.WaitForFlushing()
 	nodes0 := tree0.nodes
 	activeTwigs0 := tree0.activeTwigs
 	mtree4YoungestTwig0 := tree0.mtree4YoungestTwig

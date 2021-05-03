@@ -428,6 +428,8 @@ func (tree *Tree) EvictTwig(twigID int64) {
 func (tree *Tree) EndBlock() (rootHash [32]byte) {
 	//start := gotsc.BenchStart()
 	// sync up the merkle tree
+	tree.entryFile.StartFlushing()
+	tree.twigMtFile.StartFlushing()
 	rootHash = tree.syncMT()
 	// run the pending twig-deletion jobs
 	// they were not deleted earlier becuase syncMT needs their content
@@ -443,12 +445,12 @@ func (tree *Tree) EndBlock() (rootHash [32]byte) {
 		delete(tree.activeTwigs, twigID)
 	}
 	tree.twigsToBeDeleted = tree.twigsToBeDeleted[:0] // clear its content
-	//Phase1Time += gotsc.BenchEnd() - start - tscOverhead
-	//start = gotsc.BenchStart()
-	tree.entryFile.FlushAsync()
-	tree.twigMtFile.FlushAsync()
-	//Phase2Time += gotsc.BenchEnd() - start - tscOverhead
 	return
+}
+
+func (tree *Tree) WaitForFlushing() {
+	tree.entryFile.WaitForFlushing()
+	tree.twigMtFile.WaitForFlushing()
 }
 
 // following functions are used for syncing up merkle tree
