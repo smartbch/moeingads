@@ -76,6 +76,7 @@ type DataTree interface {
 	GetFileSizes() (int64, int64)
 	EndBlock() [32]byte
 	WaitForFlushing()
+	PrintTree()
 	Flush()
 	Close()
 }

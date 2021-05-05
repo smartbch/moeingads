@@ -670,3 +670,25 @@ func (tree *Tree) syncMT4YoungestTwig() {
 	tree.mtree4YTChangeEnd = 0
 	copy(tree.activeTwigs[tree.youngestTwigID].leftRoot[:], tree.mtree4YoungestTwig[1][:])
 }
+
+func (tree *Tree) PrintTree() {
+	keys := make([]int64, 0, len(tree.activeTwigs))
+	for key := range tree.activeTwigs {
+		keys = append(keys, key)
+	}
+	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+	for _, key := range keys {
+		twig := tree.activeTwigs[key]
+		fmt.Printf("TWIG %x %#v %#v\n", key, twig.leftRoot, twig.activeBits)
+	}
+
+	keys = make([]int64, 0, len(tree.nodes))
+	for key := range tree.nodes {
+		keys = append(keys, int64(key))
+	}
+	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+	for _, key := range keys {
+		fmt.Printf("NODE %x %#v\n", key, tree.nodes[NodePos(key)])
+	}
+}
+

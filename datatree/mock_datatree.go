@@ -112,3 +112,6 @@ func (dt *MockDataTree) Close() {
 
 func (dt *MockDataTree) Flush() {
 }
+
+func (dt *MockDataTree) PrintTree() {
+}

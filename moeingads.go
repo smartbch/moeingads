@@ -120,6 +120,7 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 		mads.datTree, recoveredRoot = datatree.RecoverTree(datatree.BufferSize, defaultFileSize,
 			dirName, edgeNodes, mads.meta.GetLastPrunedTwig(), oldestActiveTwigID, youngestTwigID,
 			[]int64{mads.meta.GetEntryFileSize(), mads.meta.GetTwigMtFileSize()})
+		//fmt.Println("Upper Tree At Recover"); mads.datTree.PrintTree()
 		recordedRoot := mads.meta.GetRootHash()
 		if recordedRoot != recoveredRoot {
 			fmt.Printf("%#v %#v\n", recordedRoot, recoveredRoot)
@@ -535,6 +536,7 @@ func (mads *MoeingADS) EndWrite() {
 	mads.meta.SetEntryFileSize(eS)
 	mads.meta.SetTwigMtFileSize(tS)
 	mads.datTree.WaitForFlushing()
+	//fmt.Println("Upper Tree At EndWrite"); mads.datTree.PrintTree()
 	mads.meta.Commit()
 	mads.idxTree.EndWrite()
 	mads.rocksdb.CloseOldBatch()

@@ -368,13 +368,15 @@ func (tree *Tree) RecoverActiveTwigs(oldestActiveTwigID int64) []int64 {
 	for e := range entryXChan {
 		tree.RecoverEntry(e.Pos, e.Entry, e.DeactivedSNList, oldestActiveTwigID)
 	}
+	//fmt.Printf("start %d end %d\n", tree.mtree4YTChangeStart, tree.mtree4YTChangeEnd)
 	tree.syncMT4YoungestTwig()
+	//fmt.Printf("leftRoot %#v\n", tree.activeTwigs[tree.youngestTwigID].leftRoot[:])
 	//fmt.Printf("RecoverActiveTwigs touchedPosOf512b %v\n", tree.touchedPosOf512b)
-	idList := make([]int, 0, len(tree.activeTwigs))
-	for id := range tree.activeTwigs {
-		idList = append(idList, int(id))
-	}
-	sort.Ints(idList)
+	//idList := make([]int, 0, len(tree.activeTwigs))
+	//for id := range tree.activeTwigs {
+	//	idList = append(idList, int(id))
+	//}
+	//sort.Ints(idList)
 	//fmt.Printf("RecoverActiveTwigs activeTwigs %v\n", idList)
 	nList := tree.syncMT4ActiveBits()
 	tree.touchedPosOf512b = make(map[int64]struct{}) // clear the list
