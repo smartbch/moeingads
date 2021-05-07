@@ -30,6 +30,10 @@ func (dt *MockDataTree) DeactiviateEntry(sn int64) int {
 	return 0
 }
 
+func (dt *MockDataTree) DeactivedSNListSize() int {
+	return 0
+}
+
 func (dt *MockDataTree) AppendEntryRawBytes(entryBz []byte, sn int64) int64 {
 	e := EntryFromRawBytes(entryBz)
 	return dt.AppendEntry(e)

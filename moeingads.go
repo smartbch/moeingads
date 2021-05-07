@@ -469,12 +469,16 @@ func (mads *MoeingADS) update() {
 func (mads *MoeingADS) DeactiviateEntry(sn int64) {
 	pendingDeactCount := mads.datTree.DeactiviateEntry(sn)
 	if pendingDeactCount > datatree.DeactivedSNListMaxLen {
-		sn := mads.meta.GetMaxSerialNum()
-		mads.meta.IncrMaxSerialNum()
-		entry := datatree.DummyEntry(sn)
-		mads.datTree.AppendEntry(entry)
-		mads.datTree.DeactiviateEntry(sn)
+		mads.flushDeactivedSNList()
 	}
+}
+
+func (mads *MoeingADS) flushDeactivedSNList() {
+	sn := mads.meta.GetMaxSerialNum()
+	mads.meta.IncrMaxSerialNum()
+	entry := datatree.DummyEntry(sn)
+	mads.datTree.AppendEntry(entry)
+	mads.datTree.DeactiviateEntry(sn)
 }
 
 func (mads *MoeingADS) CheckConsistency() {
@@ -524,6 +528,9 @@ func (mads *MoeingADS) EndWrite() {
 		mads.meta.IncrOldestActiveTwigID()
 	}
 	//fmt.Printf("end numOfKeptEntries %d ActiveCount %d x2 %d\n", mads.numOfKeptEntries(), mads.idxTree.ActiveCount(), mads.idxTree.ActiveCount()*2)
+	if mads.datTree.DeactivedSNListSize() != 0 {
+		mads.flushDeactivedSNList()
+	}
 	rootHash := mads.datTree.EndBlock()
 	mads.meta.SetRootHash(rootHash)
 	mads.k2heMap = NewBucketMap(heMapSize) // clear content

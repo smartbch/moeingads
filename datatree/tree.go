@@ -302,6 +302,10 @@ func (tree *Tree) DeactiviateEntry(sn int64) int {
 	return len(tree.deactivedSNList)
 }
 
+func (tree *Tree) DeactivedSNListSize() int {
+	return len(tree.deactivedSNList)
+}
+
 func (tree *Tree) AppendEntry(entry *Entry) int64 {
 	// write the entry while flushing deactivedSNList
 	bz := EntryToBytes(*entry, tree.deactivedSNList)
