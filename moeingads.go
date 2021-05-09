@@ -477,8 +477,8 @@ func (mads *MoeingADS) flushDeactivedSNList() {
 	sn := mads.meta.GetMaxSerialNum()
 	mads.meta.IncrMaxSerialNum()
 	entry := datatree.DummyEntry(sn)
-	mads.datTree.AppendEntry(entry)
 	mads.datTree.DeactiviateEntry(sn)
+	mads.datTree.AppendEntry(entry)
 }
 
 func (mads *MoeingADS) CheckConsistency() {
