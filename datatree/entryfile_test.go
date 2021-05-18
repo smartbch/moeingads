@@ -100,7 +100,7 @@ func TestEntryFile(t *testing.T) {
 	twig.activeBits[0] = 3     // 3 and 0
 	twig.activeBits[255] = 128 // 2
 
-	entryChan := ef.GetActiveEntriesInTwig(twig)
+	entryChan := ef.getActiveEntriesInTwig(twig, false)
 	activeEntries := make([]*Entry, 0, 3)
 	for bz := range entryChan {
 		e := EntryFromRawBytes(bz)

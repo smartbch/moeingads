@@ -414,6 +414,10 @@ func (ef *EntryFile) Append(b [2][]byte) (pos int64) {
 }
 
 func (ef *EntryFile) GetActiveEntriesInTwig(twig *Twig) chan []byte {
+	return ef.getActiveEntriesInTwig(twig, true)
+}
+
+func (ef *EntryFile) getActiveEntriesInTwig(twig *Twig, checkSN bool) chan []byte {
 	res := make(chan []byte, 100)
 	go func() {
 		start := twig.FirstEntryPos
@@ -422,7 +426,7 @@ func (ef *EntryFile) GetActiveEntriesInTwig(twig *Twig) chan []byte {
 				entryBz, next := ef.ReadEntryRawBytes(start)
 				start = next
 				sn := ExtractSerialNum(entryBz)
-				if (sn % LeafCountInTwig) != int64(i) {
+				if checkSN && (sn % LeafCountInTwig) != int64(i) {
 					panic(fmt.Sprintf("mismatch! %d %d %d\n", sn, sn%LeafCountInTwig, i))
 				}
 				res <- entryBz
