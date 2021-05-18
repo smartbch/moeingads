@@ -37,8 +37,8 @@ func makeEntries() []Entry {
 }
 
 func TestEntryFile(t *testing.T) {
-	os.RemoveAll("./entryF")
-	os.Mkdir("./entryF", 0700)
+	_ = os.RemoveAll("./entryF")
+	_ = os.Mkdir("./entryF", 0700)
 
 	entries := makeEntries()
 	dSNL0 := []int64{1, 2, 3, 4}

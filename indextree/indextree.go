@@ -333,7 +333,7 @@ func (tree *NVTreeMem) ReverseIterator(start, end []byte) Iterator {
 	var ok bool
 	iter.enumerator, ok = tree.bt.Seek(iter.end)
 	if ok { // [start, end) end is exclusive
-		iter.enumerator.Prev()
+		_, _, _ = iter.enumerator.Prev()
 	}
 	iter.Next() //fill key, value, err
 	return iter

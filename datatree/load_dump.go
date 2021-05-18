@@ -39,7 +39,7 @@ func LoadTwigFromFile(infile io.Reader) (twigID int64, twig Twig, err error) {
 			return
 		}
 		if i < 12 {
-			h.Write(slice)
+			_, _ = h.Write(slice)
 		}
 	}
 	if !bytes.Equal(buf2[:], h.Sum(nil)) {
@@ -70,7 +70,7 @@ func (twig *Twig) Dump(twigID int64, outfile io.Writer) error {
 	slices[11] = twig.twigRoot[:]
 	h := meow.New32(0)
 	for _, slice := range slices[:12] {
-		h.Write(slice)
+		_, _ = h.Write(slice)
 	}
 	slices[12] = h.Sum(nil)
 	for _, slice := range slices[:] {
@@ -117,7 +117,7 @@ func (tree *Tree) DumpNodes(outfile io.Writer) error {
 		h := meow.New32(0)
 		var bzList [2][]byte
 		bzList[0] = EdgeNodesToBytes([]*EdgeNode{edgeNode})
-		h.Write(bzList[0])
+		_, _ = h.Write(bzList[0])
 		bzList[1] = h.Sum(nil)
 		for _, bz := range bzList {
 			_, err := outfile.Write(bz)
@@ -140,7 +140,7 @@ func (tree *Tree) LoadNodes(infile io.Reader) error {
 			return err
 		}
 		h := meow.New32(0)
-		h.Write(buf[:8+32])
+		_, _ = h.Write(buf[:8+32])
 		if !bytes.Equal(buf[8+32:], h.Sum(nil)) {
 			return errors.New("Checksum mismatch")
 		}
@@ -155,7 +155,7 @@ func (tree *Tree) LoadNodes(infile io.Reader) error {
 func (tree *Tree) DumpMtree4YT(outfile io.Writer) error {
 	h := meow.New32(0)
 	for _, buf := range tree.mtree4YoungestTwig[:] {
-		h.Write(buf[:])
+		_, _ = h.Write(buf[:])
 		_, err := outfile.Write(buf[:])
 		if err != nil {
 			return err
@@ -175,7 +175,7 @@ func (tree *Tree) LoadMtree4YT(infile io.Reader) error {
 		if err != nil {
 			return err
 		}
-		h.Write(tree.mtree4YoungestTwig[i][:])
+		_, _ = h.Write(tree.mtree4YoungestTwig[i][:])
 	}
 	var buf [4]byte
 	_, err := infile.Read(buf[:])
@@ -203,7 +203,7 @@ func (tree *Tree) Flush() {
 	}
 	defer twigFile.Close()
 	for _, twigID := range twigList {
-		tree.activeTwigs[twigID].Dump(twigID, twigFile)
+		_ = tree.activeTwigs[twigID].Dump(twigID, twigFile)
 	}
 
 	nodesFile, err := os.OpenFile(filepath.Join(tree.dirName, nodesPath), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0700)

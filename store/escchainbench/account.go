@@ -272,8 +272,8 @@ func RunGenerateAccounts(numAccounts int, randFilename string, jsonFile string) 
 		panic(err)
 	}
 	//fmt.Printf("len(addr2num): %d, addr2num: %s\n", len(addr2num), string(b))
-	out.Write(b)
-	out.Close()
+	_, _ = out.Write(b)
+	_ = out.Close()
 	fmt.Printf("Finish Creating Accounts %f\n", float64(time.Now().UnixNano())/1000000000.0)
 
 	//fmt.Printf("total tsc time %d\n", gotsc.BenchEnd()-start)

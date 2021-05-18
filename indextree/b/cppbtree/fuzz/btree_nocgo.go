@@ -910,7 +910,7 @@ func (e *Enumerator) Next() (k KEY, v VALUE, err error) {
 	i := e.q.d[e.i]
 	k, v = i.k, i.v
 	e.k, e.hit = k, true
-	e.next()
+	_ = e.next()
 	return
 }
 
@@ -965,7 +965,7 @@ func (e *Enumerator) Prev() (k KEY, v VALUE, err error) {
 	i := e.q.d[e.i]
 	k, v = i.k, i.v
 	e.k, e.hit = k, true
-	e.prev()
+	_ = e.prev()
 	return
 }
 

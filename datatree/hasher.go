@@ -15,15 +15,15 @@ const (
 
 func hash(in []byte) []byte {
 	h := sha256.New()
-	h.Write(in)
+	_, _ = h.Write(in)
 	return h.Sum(nil)
 }
 
 func hash2(level byte, a, b []byte) []byte {
 	h := sha256.New()
-	h.Write([]byte{level})
-	h.Write(a)
-	h.Write(b)
+	_, _ = h.Write([]byte{level})
+	_, _ = h.Write(a)
+	_, _ = h.Write(b)
 	return h.Sum(nil)
 }
 
@@ -36,9 +36,9 @@ type hashJob struct {
 
 func (job hashJob) run() {
 	h := sha256.New()
-	h.Write([]byte{job.level})
-	h.Write(job.srcA)
-	h.Write(job.srcB)
+	_, _ = h.Write([]byte{job.level})
+	_, _ = h.Write(job.srcA)
+	_, _ = h.Write(job.srcB)
 	copy(job.target, h.Sum(nil))
 }
 

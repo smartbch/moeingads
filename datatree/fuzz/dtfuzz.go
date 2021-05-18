@@ -94,8 +94,8 @@ const (
 )
 
 func NewContext(cfg FuzzConfig, rs randsrc.RandSrc) *Context {
-	os.RemoveAll(dirName)
-	os.Mkdir(dirName, 0700)
+	_ = os.RemoveAll(dirName)
+	_ = os.Mkdir(dirName, 0700)
 	return &Context{
 		tree: datatree.NewEmptyTree(datatree.BufferSize, defaultFileSize, dirName),
 		rs:   rs,

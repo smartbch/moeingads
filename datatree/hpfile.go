@@ -152,7 +152,7 @@ func (hpf *HPFile) flush() {
 		}
 		hpf.buffer = hpf.buffer[:0]
 	}
-	hpf.fileMap[hpf.largestID].Sync()
+	_ = hpf.fileMap[hpf.largestID].Sync()
 	//atomic.AddUint64(&TotalSyncTime, gotsc.BenchEnd() - start - tscOverhead)
 }
 

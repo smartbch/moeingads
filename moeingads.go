@@ -78,7 +78,7 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 		mads.tempEntries64[i] = make([]*HotEntry, 0, len(mads.cachedEntries)/8)
 	}
 	if dirNotExists {
-		os.Mkdir(dirName, 0700)
+		_ = os.Mkdir(dirName, 0700)
 	}
 
 	mads.rocksdb, err = indextree.NewRocksDB("rocksdb", dirName)

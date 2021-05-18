@@ -54,8 +54,8 @@ func checkEqual(pp, other *ProofPath) string {
 
 func TestTreeProof(t *testing.T) {
 	dirName := "./DataTree"
-	os.RemoveAll(dirName)
-	os.Mkdir(dirName, 0700)
+	_ = os.RemoveAll(dirName)
+	_ = os.Mkdir(dirName, 0700)
 	deactSNList := make([]int64, 0, 2048+20)
 	for i := 0; i < 2048; i++ {
 		deactSNList = append(deactSNList, int64(i))

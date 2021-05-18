@@ -85,7 +85,7 @@ func (it *MockIndexTree) ReverseIterator(start, end []byte) Iterator {
 	var ok bool
 	iter.enumerator, ok = it.bt.Seek(iter.end)
 	if ok { // [start, end) end is exclusive
-		iter.enumerator.Prev()
+		_, _, _ = iter.enumerator.Prev()
 	}
 	iter.Next() //fill key, value, err
 	return iter

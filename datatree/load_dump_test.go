@@ -31,8 +31,8 @@ func compareTwigs(t *testing.T, twigMapA, twigMapB map[int64]*Twig) {
 
 func TestLoadTree(t *testing.T) {
 	dirName := "./DataTree"
-	os.RemoveAll(dirName)
-	os.Mkdir(dirName, 0700)
+	_ = os.RemoveAll(dirName)
+	_ = os.Mkdir(dirName, 0700)
 	deactSNList := []int64{101, 999, 1002}
 	tree0, _, _ := buildTestTree(dirName, deactSNList, TwigMask, 6)
 	tree0.EndBlock()

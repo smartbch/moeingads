@@ -211,13 +211,13 @@ type Tree struct {
 
 func NewEmptyTree(bufferSize, blockSize int, dirName string) *Tree {
 	dirEntry := filepath.Join(dirName, entriesPath)
-	os.Mkdir(dirEntry, 0700)
+	_ = os.Mkdir(dirEntry, 0700)
 	entryFile, err := NewEntryFile(bufferSize, blockSize, dirEntry)
 	if err != nil {
 		panic(err)
 	}
 	dirTwigMt := filepath.Join(dirName, twigMtPath)
-	os.Mkdir(dirTwigMt, 0700)
+	_ = os.Mkdir(dirTwigMt, 0700)
 	twigMtFile, err := NewTwigMtFile(bufferSize, blockSize, dirTwigMt)
 	if err != nil {
 		panic(err)
@@ -659,8 +659,8 @@ func (tree *Tree) syncMT4YoungestTwig() {
 				continue
 			}
 			h := sha256.New()
-			h.Write(tree.leave4YoungestTwig[myIdx][0])
-			h.Write(tree.leave4YoungestTwig[myIdx][1])
+			_, _ = h.Write(tree.leave4YoungestTwig[myIdx][0])
+			_, _ = h.Write(tree.leave4YoungestTwig[myIdx][1])
 			copy(tree.mtree4YoungestTwig[LeafCountInTwig+myIdx][:], h.Sum(nil))
 			tree.leave4YoungestTwig[myIdx][0] = nil
 		}

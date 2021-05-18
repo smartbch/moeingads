@@ -29,10 +29,10 @@ type Tx struct {
 }
 
 func (tx Tx) UpdateHash64(h hash.Hash64) {
-	h.Write(tx.FromNum[:])
-	h.Write(tx.ToNum[:])
-	h.Write(tx.Amount[:])
-	h.Write(tx.CoinID[:])
+	_, _ = h.Write(tx.FromNum[:])
+	_, _ = h.Write(tx.ToNum[:])
+	_, _ = h.Write(tx.Amount[:])
+	_, _ = h.Write(tx.CoinID[:])
 
 }
 

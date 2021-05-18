@@ -20,8 +20,8 @@ func generateTwig(start uint32) [][32]byte {
 }
 
 func TestTwimMtFile(t *testing.T) {
-	os.RemoveAll("./twig")
-	os.Mkdir("./twig", 0700)
+	_ = os.RemoveAll("./twig")
+	_ = os.Mkdir("./twig", 0700)
 
 	tf, err := NewTwigMtFile(64*1024, 1*1024*1024 /*1MB*/, "./twig")
 	assert.Equal(t, nil, err)

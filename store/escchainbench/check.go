@@ -135,7 +135,7 @@ func ReadOneBlockOfAccounts(f *os.File, n int) (res [NumNewAccountsInBlock]uint3
 	fin := bufio.NewReaderSize(f, 1024*1024*16)
 	for i := range res {
 		var buf [4]byte
-		fin.Read(buf[:])
+		_, _ = fin.Read(buf[:])
 		res[i] = binary.LittleEndian.Uint32(buf[:])
 	}
 	return

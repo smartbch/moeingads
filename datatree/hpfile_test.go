@@ -17,8 +17,8 @@ func newSlice(length int, value byte) []byte {
 }
 
 func TestHPFile(t *testing.T) {
-	os.RemoveAll("./test")
-	os.Mkdir("./test", 0700)
+	_ = os.RemoveAll("./test")
+	_ = os.Mkdir("./test", 0700)
 
 	hpfile, err := NewHPFile(64, 128, "./test")
 	assert.Equal(t, nil, err)
