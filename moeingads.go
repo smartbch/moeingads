@@ -529,7 +529,7 @@ func (mads *MoeingADS) EndWrite() {
 			mads.meta.IncrMaxSerialNum()
 			key := datatree.ExtractKeyFromRawBytes(entryBz)
 			if string(key) == "dummy" {
-				panic(fmt.Sprintf("dummy entry cannot be active %d",sn))
+				panic(fmt.Sprintf("dummy entry cannot be active %d", sn))
 			}
 			pos := mads.datTree.AppendEntryRawBytes(entryBz, sn)
 			//if len(key) != 8 {

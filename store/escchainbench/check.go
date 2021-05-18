@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"os"
 	"runtime"
 	"sync/atomic"
@@ -51,7 +52,7 @@ func CompareAccounts(acc, accRD *Account) {
 		buffer.WriteString(acc.GetInfo())
 		buffer.WriteString(fmt.Sprintf("======== read acc ========\n"))
 		buffer.WriteString(accRD.GetInfo())
-		fmt.Printf(buffer.String())
+		fmt.Print(buffer.String())
 		panic("Different Address!")
 	}
 	if acc.GetCoinCount() != accRD.GetCoinCount() {
@@ -131,7 +132,7 @@ func DumpRandomSNList(snList []uint32) {
 }
 
 func ReadOneBlockOfAccounts(f *os.File, n int) (res [NumNewAccountsInBlock]uint32) {
-	f.Seek(int64(n*NumNewAccountsInBlock), os.SEEK_SET)
+	_, _ = f.Seek(int64(n*NumNewAccountsInBlock), io.SeekStart)
 	fin := bufio.NewReaderSize(f, 1024*1024*16)
 	for i := range res {
 		var buf [4]byte

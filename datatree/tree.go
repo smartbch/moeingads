@@ -56,8 +56,7 @@ var NullMT4Twig [4096][32]byte
 var NullNodeInHigherTree [64][32]byte
 
 func CopyNullTwig() *Twig {
-	var twig Twig
-	twig = NullTwig
+	twig := NullTwig
 	return &twig
 }
 
@@ -343,7 +342,7 @@ func (tree *Tree) appendEntry(bzTwo [2][]byte, sn int64) int64 {
 	position := int(sn & TwigMask)
 	if tree.mtree4YTChangeStart == -1 {
 		tree.mtree4YTChangeStart = position
-	} else if tree.mtree4YTChangeEnd + 1 != position {
+	} else if tree.mtree4YTChangeEnd+1 != position {
 		panic("non-increasing postion!")
 	}
 	tree.mtree4YTChangeEnd = position

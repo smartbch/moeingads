@@ -341,7 +341,7 @@ func (tree *Tree) ScanEntries(oldestActiveTwigID int64, outChan chan types.Entry
 		//!! 	fmt.Printf("Fuck now pos %d %#v len=%d nxt=%d\n", pos, entryBz, len(entryBz), nxt)
 		//!! }
 		key, deactivedSNList, nextPos := tree.entryFile.ReadEntryAndSNList(pos)
-		outChan <- types.EntryX{key, pos, deactivedSNList}
+		outChan <- types.EntryX{Entry: key, Pos: pos, DeactivedSNList: deactivedSNList}
 		pos = nextPos
 	}
 	close(outChan)
