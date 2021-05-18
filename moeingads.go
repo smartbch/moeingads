@@ -105,7 +105,6 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 			mads.meta.IncrMaxSerialNum()
 			entry := datatree.DummyEntry(sn)
 			mads.datTree.AppendEntry(entry)
-			mads.datTree.DeactiviateEntry(sn)
 		}
 		mads.initGuards()
 		mads.rocksdb.CloseOldBatch()
@@ -191,7 +190,11 @@ func (mads *MoeingADS) GetEntry(k []byte) *Entry {
 	if !ok {
 		return nil
 	}
-	return mads.datTree.ReadEntry(int64(pos))
+	e := mads.datTree.ReadEntry(int64(pos))
+	if !mads.datTree.GetActiveBit(e.SerialNum) {
+		panic(fmt.Sprintf("Reading inactive entry %d\n", e.SerialNum))
+	}
+	return e
 }
 
 func isFakeInserted(hotEntry *HotEntry) bool {
@@ -297,7 +300,11 @@ func (mads *MoeingADS) getPrevEntry(k []byte) *Entry {
 	}
 	pos := iter.Value()
 	//fmt.Printf("In getPrevEntry: %#v %d\n", iter.Key(), iter.Value())
-	return mads.datTree.ReadEntry(int64(pos))
+	e := mads.datTree.ReadEntry(int64(pos))
+	if !mads.datTree.GetActiveBit(e.SerialNum) {
+		panic(fmt.Sprintf("Reading inactive entry %d\n", e.SerialNum))
+	}
+	return e
 }
 
 const (
@@ -449,7 +456,6 @@ func (mads *MoeingADS) update() {
 			mads.DeactiviateEntry(ptr.SerialNum)
 		} else if hotEntry.Operation != types.OpNone || hotEntry.IsTouchedByNext {
 			if ptr.SerialNum >= 0 { // if this entry already exists
-				//fmt.Printf("Now we deactive %d for refresh %#v\n", ptr.SerialNum, ptr)
 				mads.DeactiviateEntry(ptr.SerialNum)
 			}
 			ptr.LastHeight = ptr.Height
@@ -523,7 +529,7 @@ func (mads *MoeingADS) EndWrite() {
 			mads.meta.IncrMaxSerialNum()
 			key := datatree.ExtractKeyFromRawBytes(entryBz)
 			if string(key) == "dummy" {
-				continue
+				panic(fmt.Sprintf("dummy entry cannot be active %d",sn))
 			}
 			pos := mads.datTree.AppendEntryRawBytes(entryBz, sn)
 			//if len(key) != 8 {

@@ -3,6 +3,7 @@ package datatree
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
 	"github.com/smartbch/moeingads/types"
 )
@@ -419,8 +420,11 @@ func (ef *EntryFile) GetActiveEntriesInTwig(twig *Twig) chan []byte {
 		for i := 0; i < LeafCountInTwig; i++ {
 			if twig.getBit(i) {
 				entryBz, next := ef.ReadEntryRawBytes(start)
-				//!! fmt.Printf("Why start %d entryBz %#v\n", start, entryBz)
 				start = next
+				sn := ExtractSerialNum(entryBz)
+				if (sn % LeafCountInTwig) != int64(i) {
+					panic(fmt.Sprintf("mismatch! %d %d %d\n", sn, sn%LeafCountInTwig, i))
+				}
 				res <- entryBz
 			} else { // skip an inactive entry
 				length, numberOfSN := ef.readMagicBytesAndLength(start, true)

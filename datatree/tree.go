@@ -276,7 +276,11 @@ func (tree *Tree) ReadEntry(pos int64) (entry *Entry) {
 
 func (tree *Tree) GetActiveBit(sn int64) bool {
 	twigID := sn >> TwigShift
-	return tree.activeTwigs[twigID].getBit(int(sn & TwigMask))
+	twig, ok := tree.activeTwigs[twigID]
+	if !ok {
+		panic(fmt.Sprintf("cannot find twig %d\n", twigID))
+	}
+	return twig.getBit(int(sn & TwigMask))
 }
 
 func (tree *Tree) setEntryActiviation(sn int64, active bool) {
@@ -284,7 +288,11 @@ func (tree *Tree) setEntryActiviation(sn int64, active bool) {
 	if active {
 		tree.activeTwigs[twigID].setBit(int(sn & TwigMask))
 	} else {
-		tree.activeTwigs[twigID].clearBit(int(sn & TwigMask))
+		twig, ok := tree.activeTwigs[twigID]
+		if !ok {
+			fmt.Printf("Cannot find twig %d\n", twigID)
+		}
+		twig.clearBit(int(sn & TwigMask))
 		tree.deactivedSNList = append(tree.deactivedSNList, sn)
 	}
 	tree.touchedPosOf512b[sn/512] = struct{}{}
@@ -310,6 +318,10 @@ func (tree *Tree) AppendEntry(entry *Entry) int64 {
 	// write the entry while flushing deactivedSNList
 	bz := EntryToBytes(*entry, tree.deactivedSNList)
 	tree.deactivedSNList = tree.deactivedSNList[:0] // clear its content
+	// mark this entry as valid
+	if !(len(entry.Key) == 5 && string(entry.Key) == "dummy") {
+		tree.ActiviateEntry(entry.SerialNum)
+	}
 	return tree.appendEntry([2][]byte{bz, nil}, entry.SerialNum)
 }
 
@@ -318,6 +330,8 @@ func (tree *Tree) AppendEntryRawBytes(entryBz []byte, sn int64) int64 {
 	entryBz[0] = byte(len(tree.deactivedSNList)) // change 1b snlist length
 	bz := SNListToBytes(tree.deactivedSNList)
 	tree.deactivedSNList = tree.deactivedSNList[:0] // clear its content
+	// mark this entry as valid
+	tree.ActiviateEntry(sn)
 	return tree.appendEntry([2][]byte{entryBz, bz}, sn)
 }
 
@@ -325,12 +339,12 @@ func (tree *Tree) appendEntry(bzTwo [2][]byte, sn int64) int64 {
 	//update youngestTwigID
 	twigID := sn >> TwigShift
 	tree.youngestTwigID = twigID
-	// mark this entry as valid
-	tree.ActiviateEntry(sn)
 	// record ChangeStart/ChangeEnd for endblock sync
 	position := int(sn & TwigMask)
 	if tree.mtree4YTChangeStart == -1 {
 		tree.mtree4YTChangeStart = position
+	} else if tree.mtree4YTChangeEnd + 1 != position {
+		panic("non-increasing postion!")
 	}
 	tree.mtree4YTChangeEnd = position
 
