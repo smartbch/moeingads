@@ -504,6 +504,7 @@ func (mads *MoeingADS) ActiveCount() int {
 var Phase1n2Time, Phase1Time, Phase2Time, Phase3Time, Phase4Time, Phase0Time, tscOverhead uint64
 
 func (mads *MoeingADS) EndWrite() {
+	//fmt.Printf("EndWrite %d\n", mads.meta.GetCurrHeight())
 	mads.update()
 	//start := gotsc.BenchStart()
 	//if mads.meta.GetActiveEntryCount() != int64(mads.idxTree.ActiveCount()) - 2 {
@@ -520,8 +521,15 @@ func (mads *MoeingADS) EndWrite() {
 			sn = mads.meta.GetMaxSerialNum()
 			datatree.UpdateSerialNum(entryBz, sn)
 			mads.meta.IncrMaxSerialNum()
-			pos := mads.datTree.AppendEntryRawBytes(entryBz, sn)
 			key := datatree.ExtractKeyFromRawBytes(entryBz)
+			if string(key) == "dummy" {
+				continue
+			}
+			pos := mads.datTree.AppendEntryRawBytes(entryBz, sn)
+			//if len(key) != 8 {
+			//	e := datatree.EntryFromRawBytes(entryBz)
+			//	fmt.Printf("key %#v e %#v\n", key, e)
+			//}
 			mads.idxTree.Set(key, pos)
 		}
 		mads.datTree.EvictTwig(twigID)
