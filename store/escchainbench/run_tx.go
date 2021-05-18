@@ -112,11 +112,11 @@ func (epoch Epoch) Run(root *store.RootStore) {
 	}
 }
 
-func getShortKey(n uint64) []byte {
-	var shortKey [rabbit.KeySize]byte
-	binary.LittleEndian.PutUint64(shortKey[:], n)
-	return shortKey[:]
-}
+//func getShortKey(n uint64) []byte {
+//	var shortKey [rabbit.KeySize]byte
+//	binary.LittleEndian.PutUint64(shortKey[:], n)
+//	return shortKey[:]
+//}
 
 func GetCachedValue(root *store.RootStore, key []byte) *rabbit.CachedValue {
 	bz := root.Get(key)

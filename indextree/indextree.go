@@ -110,11 +110,11 @@ the key-position record is up-to-date, i.e., not expired.
 */
 
 type NVTreeMem struct {
-	mtx        sync.RWMutex
-	bt         *b.Tree
-	isWriting  bool
-	rocksdb    *RocksDB
-	batch      types.Batch
+	mtx       sync.RWMutex
+	bt        *b.Tree
+	isWriting bool
+	rocksdb   *RocksDB
+	//batch      types.Batch
 	currHeight [8]byte
 }
 

@@ -187,7 +187,7 @@ func GetRandKV(touchedShortKeys map[[rabbit.KeySize]byte]struct{}, rs randsrc.Ra
 	return
 }
 
-var Phase1Time, Phase2Time, Phase3Time uint64
+var Phase1Time, Phase2Time /*, Phase3Time*/ uint64
 
 func RandomWrite(root *store.RootStore, rs randsrc.RandSrc, count int) {
 	tscOverhead := gotsc.TSCOverhead()

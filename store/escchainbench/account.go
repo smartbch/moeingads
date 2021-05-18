@@ -40,12 +40,13 @@ const (
 	NativeTokenAmountOffset = SequenceOffset + 8
 	ERC20TokenOffset        = NativeTokenAmountOffset + AmountLen
 
-	NumNewAccountsInBlock   = 20000
-	NumWorkersInBlock       = 64
-	NumNewAccountsPerWorker = NumNewAccountsInBlock / NumWorkersInBlock
+	NumNewAccountsInBlock = 20000
+	NumWorkersInBlock     = 64
+	//NumNewAccountsPerWorker = NumNewAccountsInBlock / NumWorkersInBlock
 )
 
-var Phase1Time, Phase2Time, Phase3Time, tscOverhead uint64
+//var Phase1Time, Phase2Time, Phase3Time uint64
+var tscOverhead uint64
 
 // convert coin type as an integer to short id using sha256
 func CoinTypeToCoinID(i int) (res [ShortIDLen]byte) {

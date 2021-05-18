@@ -14,7 +14,7 @@ const MaxEntryBytes int = (1 << 24) - 1
 
 var MagicBytes = [8]byte{255, 254, 253, 252, 252, 253, 254, 255}
 
-var dbg bool
+//var dbg bool
 
 func DummyEntry(sn int64) *Entry {
 	return &Entry{
