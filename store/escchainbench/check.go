@@ -48,9 +48,9 @@ func CheckAccountsInBlock(snList []uint32, root *store.RootStore) {
 func CompareAccounts(acc, accRD *Account) {
 	if !bytes.Equal(acc.Address(), accRD.Address()) {
 		var buffer bytes.Buffer
-		buffer.WriteString(fmt.Sprintf("======== acc with zero coin ========\n"))
+		buffer.WriteString("======== acc with zero coin ========\n")
 		buffer.WriteString(acc.GetInfo())
-		buffer.WriteString(fmt.Sprintf("======== read acc ========\n"))
+		buffer.WriteString("======== read acc ========\n")
 		buffer.WriteString(accRD.GetInfo())
 		fmt.Print(buffer.String())
 		panic("Different Address!")
