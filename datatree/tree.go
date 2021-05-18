@@ -695,4 +695,3 @@ func (tree *Tree) PrintTree() {
 		fmt.Printf("NODE %x %#v\n", key, tree.nodes[NodePos(key)])
 	}
 }
-

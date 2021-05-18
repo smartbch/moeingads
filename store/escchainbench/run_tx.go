@@ -237,8 +237,8 @@ func RunTx(numBlock int, txFile string) {
 		}
 		root.EndWrite()
 		//Phase2Time += gotsc.BenchEnd() - start - tscOverhead
-		if height > 100 && height % 100 == 0 {
-			mads.PruneBeforeHeight(height-100)
+		if height > 100 && height%100 == 0 {
+			mads.PruneBeforeHeight(height - 100)
 		}
 	}
 	//pjob.Stop()

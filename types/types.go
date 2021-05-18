@@ -16,9 +16,9 @@ type EntryX struct {
 }
 
 type KeyAndPos struct {
-	Key        []byte
-	Pos        int64
-	SerialNum  int64
+	Key       []byte
+	Pos       int64
+	SerialNum int64
 }
 
 type OperationOnEntry int32

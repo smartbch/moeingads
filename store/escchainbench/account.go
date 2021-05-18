@@ -28,12 +28,12 @@ var (
 )
 
 const (
-	MaxCoinCount = 8  // maximum count of coin types in an account
+	MaxCoinCount = 8   // maximum count of coin types in an account
 	NumCoinType  = 100 // total coin types in the system
 
 	AddrLen                 = 20
-	ShortIDLen              = 8 // each coin has its own short id
-	AmountLen               = 32 // for 256-bit integers
+	ShortIDLen              = 8                      // each coin has its own short id
+	AmountLen               = 32                     // for 256-bit integers
 	EntryLen                = ShortIDLen + AmountLen // A entry for one type of coin owned by an account
 	AddressOffset           = 0
 	SequenceOffset          = AddressOffset + AddrLen
