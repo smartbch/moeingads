@@ -205,7 +205,7 @@ func FuzzDelete(trMem *it.NVTreeMem, refTree *NVTreeRef, cfg FuzzConfig, rs rand
 		iter.Close()
 		changeMap[string(key[1:])] = -1
 	}
-	return
+	//return
 }
 
 func FuzzInit(rocksdb *it.RocksDB, trMem *it.NVTreeMem, refTree *NVTreeRef, cfg FuzzConfig, rs randsrc.RandSrc, h uint64, changeMap map[string]int64) {

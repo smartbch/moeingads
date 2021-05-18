@@ -27,11 +27,11 @@ func (it *MockIndexTree) Init(repFn func([]byte)) error {
 }
 
 func (it *MockIndexTree) BeginWrite(height int64) {
-	return
+	//return
 }
 
 func (it *MockIndexTree) EndWrite() {
-	return
+	//return
 }
 
 func (it *MockIndexTree) GetAtHeight(k []byte, height uint64) (int64, bool) {

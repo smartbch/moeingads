@@ -30,7 +30,7 @@ func (tf *TwigMtFile) AppendTwig(mtree [][32]byte, firstEntryPos int64) {
 	var buf [8]byte
 	binary.LittleEndian.PutUint64(buf[:], uint64(firstEntryPos))
 	h := meow.New32(0)
-	h.Write(buf[:])
+	_, _ = h.Write(buf[:])
 	_, err := tf.HPFile.Append([][]byte{buf[:], h.Sum(nil)}) // 8+4 bytes
 	if err != nil {
 		panic(err)
@@ -50,7 +50,7 @@ func (tf *TwigMtFile) GetFirstEntryPos(twigID int64) int64 {
 		panic(err)
 	}
 	h := meow.New32(0)
-	h.Write(buf[:8])
+	_, _ = h.Write(buf[:8])
 	if !bytes.Equal(buf[8:], h.Sum(nil)) {
 		panic("Checksum Error!")
 	}
@@ -78,7 +78,7 @@ func (tf *TwigMtFile) Truncate(size int64) {
 	if err != nil {
 		panic(err)
 	}
-	return
+	//return
 }
 func (tf *TwigMtFile) Flush() {
 	tf.HPFile.Flush()
