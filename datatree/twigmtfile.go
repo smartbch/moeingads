@@ -9,7 +9,7 @@ import (
 )
 
 type TwigMtFile struct {
-	HPFile
+	*HPFile
 }
 
 func NewTwigMtFile(bufferSize, blockSize int, dirName string) (res TwigMtFile, err error) {

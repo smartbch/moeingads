@@ -201,6 +201,7 @@ func Test1(t *testing.T) {
 	e = ads.GetEntry([]byte("00432177"))
 	assert.Equal(t, "K:00432177 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x38, 0x30}(8) V:777 H:1 LH:0 SN:25", EntryToStr(e))
 	e = ads.GetEntry([]byte("00432180"))
+	assert.Equal(t, "K:00432180 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x38, 0x38}(8) V:80 H:1 LH:0 SN:26", EntryToStr(e))
 	iter = ads.ReverseIterator([]byte("00432177"), []byte("00432180"))
 	assert.Equal(t, true, iter.Valid())
 	start, _ = iter.Domain()

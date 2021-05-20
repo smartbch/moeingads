@@ -251,7 +251,7 @@ func EntryFromBytes(b []byte, numberOfSN int) (*Entry, []int64) {
 }
 
 type EntryFile struct {
-	HPFile
+	*HPFile
 }
 
 func getPaddingSize(length int) int {

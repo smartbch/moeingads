@@ -129,6 +129,9 @@ func DumpRandomSNList(snList []uint32) {
 		}
 	}
 	err = outWr.Flush()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func ReadOneBlockOfAccounts(f *os.File, n int) (res [NumNewAccountsInBlock]uint32) {

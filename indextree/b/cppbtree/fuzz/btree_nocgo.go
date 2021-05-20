@@ -65,7 +65,7 @@ type (
 		d [2*kd + 1]de
 		n *d
 		p *d
-		dTree
+		//dTree
 	}
 
 	de struct { // d element
@@ -99,7 +99,7 @@ type (
 		last  *d
 		r     interface{}
 		ver   int64
-		treeInst
+		//treeInst
 	}
 
 	xe struct { // x element
@@ -989,11 +989,11 @@ func (e *Enumerator) prev() error {
 	return e.err
 }
 
-type dTree struct {
-}
-
-type treeInst struct {
-}
+//type dTree struct {
+//}
+//
+//type treeInst struct {
+//}
 
 func (t *Tree) didCopy(n int) {
 }

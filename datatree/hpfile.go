@@ -33,8 +33,8 @@ type HPFile struct {
 	preReader      PreReader
 }
 
-func NewHPFile(bufferSize, blockSize int, dirName string) (HPFile, error) {
-	res := HPFile{
+func NewHPFile(bufferSize, blockSize int, dirName string) (*HPFile, error) {
+	res := &HPFile{
 		fileMap:    make(map[int]*os.File),
 		blockSize:  blockSize,
 		dirName:    dirName,
@@ -66,6 +66,9 @@ func NewHPFile(bufferSize, blockSize int, dirName string) (HPFile, error) {
 		}
 		idList = append(idList, int(id))
 		size, err := strconv.ParseInt(twoParts[1], 10, 63)
+		if err != nil {
+			return res, fmt.Errorf("Invalid Filename! %s", fileInfo.Name())
+		}
 		if int64(blockSize) != size {
 			return res, fmt.Errorf("Invalid Size! %d!=%d", size, blockSize)
 		}
@@ -158,7 +161,7 @@ func (hpf *HPFile) flush() {
 
 func (hpf *HPFile) WaitForFlushing() {
 	hpf.mtx.RLock()
-	hpf.mtx.RUnlock()
+	hpf.mtx.RUnlock() //nolint (empty critical section)
 }
 
 func (hpf *HPFile) StartFlushing() {

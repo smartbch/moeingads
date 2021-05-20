@@ -56,7 +56,7 @@ func TestBTree(t *testing.T) {
 	old, ok := bt.PutNewAndGetOld(0xBBed321200, 9)
 	assert.Equal(t, int64(8), old)
 	assert.Equal(t, true, ok)
-	old, ok = bt.PutNewAndGetOld(0xBBed321400, 10)
+	_, ok = bt.PutNewAndGetOld(0xBBed321400, 10)
 	assert.Equal(t, false, ok)
 	assert.Equal(t, int64(10), mustGet(t, bt, 0xBBed321400))
 

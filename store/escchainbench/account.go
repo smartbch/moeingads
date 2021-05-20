@@ -46,7 +46,7 @@ const (
 )
 
 //var Phase1Time, Phase2Time, Phase3Time uint64
-var tscOverhead uint64
+var tscOverhead uint64 //nolint:unused
 
 // convert coin type as an integer to short id using sha256
 func CoinTypeToCoinID(i int) (res [ShortIDLen]byte) {

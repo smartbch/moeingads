@@ -8,7 +8,7 @@ import (
 	"github.com/smartbch/moeingads/store/types"
 )
 
-var PhaseTrunkTime, PhaseEndWriteTime, tscOverhead uint64
+var PhaseTrunkTime, PhaseEndWriteTime, tscOverhead uint64 //nolint:unused
 
 func init() {
 	tscOverhead = gotsc.TSCOverhead()

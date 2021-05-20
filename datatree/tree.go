@@ -70,7 +70,7 @@ type Twig struct {
 	FirstEntryPos  int64
 }
 
-var Phase1Time, Phase2Time, Phase3Time, tscOverhead uint64
+var Phase1Time, Phase2Time, Phase3Time, tscOverhead uint64 //nolint:unused
 
 func init() {
 	tscOverhead = gotsc.TSCOverhead()
