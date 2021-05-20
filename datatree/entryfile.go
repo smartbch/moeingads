@@ -426,7 +426,7 @@ func (ef *EntryFile) getActiveEntriesInTwig(twig *Twig, checkSN bool) chan []byt
 				entryBz, next := ef.ReadEntryRawBytes(start)
 				start = next
 				sn := ExtractSerialNum(entryBz)
-				if checkSN && (sn % LeafCountInTwig) != int64(i) {
+				if checkSN && (sn%LeafCountInTwig) != int64(i) {
 					panic(fmt.Sprintf("mismatch! %d %d %d\n", sn, sn%LeafCountInTwig, i))
 				}
 				res <- entryBz
