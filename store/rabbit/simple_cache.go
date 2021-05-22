@@ -93,6 +93,10 @@ func NewSimpleCacheStore() *SimpleCacheStore {
 	}
 }
 
+func (scs *SimpleCacheStore) Size() int {
+	return len(scs.m)
+}
+
 func (scs *SimpleCacheStore) ScanAllShortKeys(fn func(key [KeySize]byte, dirty bool) bool) {
 	for key, cv := range scs.m {
 		stop := fn(key, cv.isDirty)

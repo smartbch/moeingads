@@ -37,6 +37,10 @@ func NewReadOnlyRabbitStore(parent types.BaseStoreI) (rabbit RabbitStore) {
 	return
 }
 
+func (rabbit *RabbitStore) CachedEntryCount() int {
+	return rabbit.sms.cache.Size()
+}
+
 func (rabbit *RabbitStore) GetBaseStore() types.BaseStoreI {
 	return rabbit.sms.parent
 }
@@ -66,6 +70,14 @@ func (rabbit *RabbitStore) Get(key []byte) []byte {
 		return nil
 	}
 	return cv.value
+}
+
+func (rabbit *RabbitStore) PrepareForUpdate(key []byte) {
+	_, path, status := rabbit.find(key, true)
+	if status != Exists && len(path) == 1 {
+		rabbit.sms.parent.PrepareForUpdate(path[0][:])
+	}
+	return
 }
 
 func (rabbit *RabbitStore) find(key []byte, earlyExit bool) (cv *CachedValue, path [][KeySize]byte, status int) {

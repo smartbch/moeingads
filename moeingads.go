@@ -28,24 +28,27 @@ const (
 )
 
 type MoeingADS struct {
-	meta          types.MetaDB
-	idxTree       types.IndexTree
-	datTree       types.DataTree
-	rocksdb       *indextree.RocksDB
-	k2heMap       *BucketMap // key-to-hot-entry map
-	k2nkMap       *BucketMap // key-to-next-key map
-	tempEntries64 [64][]*HotEntry
-	cachedEntries []*HotEntry
-	startKey      []byte
-	endKey        []byte
+	meta           types.MetaDB
+	idxTree        types.IndexTree
+	datTree        types.DataTree
+	rocksdb        *indextree.RocksDB
+	k2heMap        *BucketMap // key-to-hot-entry map
+	k2nkMap        *BucketMap // key-to-next-key map
+	tempEntries64  [64][]*HotEntry
+	cachedEntries  []*HotEntry
+	startKey       []byte
+	endKey         []byte
+	idxTreeJobChan chan idxTreeJob
+	idxTreeJobWG   sync.WaitGroup
 }
 
 func NewMoeingADS4Mock(startEndKeys [][]byte) *MoeingADS {
 	mads := &MoeingADS{
-		k2heMap:  NewBucketMap(heMapSize),
-		k2nkMap:  NewBucketMap(nkMapSize),
-		startKey: append([]byte{}, startEndKeys[0]...),
-		endKey:   append([]byte{}, startEndKeys[1]...),
+		k2heMap:        NewBucketMap(heMapSize),
+		k2nkMap:        NewBucketMap(nkMapSize),
+		startKey:       append([]byte{}, startEndKeys[0]...),
+		endKey:         append([]byte{}, startEndKeys[1]...),
+		idxTreeJobChan: make(chan idxTreeJob, 100),
 	}
 
 	mads.datTree = datatree.NewMockDataTree()
@@ -68,17 +71,18 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 	_, err := os.Stat(dirName)
 	dirNotExists := os.IsNotExist(err)
 	mads := &MoeingADS{
-		k2heMap:       NewBucketMap(heMapSize),
-		k2nkMap:       NewBucketMap(nkMapSize),
-		cachedEntries: make([]*HotEntry, 0, 2000),
-		startKey:      append([]byte{}, startEndKeys[0]...),
-		endKey:        append([]byte{}, startEndKeys[1]...),
+		k2heMap:        NewBucketMap(heMapSize),
+		k2nkMap:        NewBucketMap(nkMapSize),
+		cachedEntries:  make([]*HotEntry, 0, 2000),
+		startKey:       append([]byte{}, startEndKeys[0]...),
+		endKey:         append([]byte{}, startEndKeys[1]...),
+		idxTreeJobChan: make(chan idxTreeJob, 100),
 	}
 	for i := range mads.tempEntries64 {
 		mads.tempEntries64[i] = make([]*HotEntry, 0, len(mads.cachedEntries)/8)
 	}
 	if dirNotExists {
-		_ = os.Mkdir(dirName, 0700)
+		os.Mkdir(dirName, 0700)
 	}
 
 	mads.rocksdb, err = indextree.NewRocksDB("rocksdb", dirName)
@@ -383,6 +387,29 @@ func getNext(cachedEntries []*HotEntry, i int) int {
 	return j
 }
 
+type idxTreeJob struct {
+	key []byte
+	pos int64
+}
+
+func (mads *MoeingADS) runIdxTreeJobs() {
+	mads.idxTreeJobWG.Add(1)
+	go func() {
+		for {
+			job := <-mads.idxTreeJobChan
+			if job.key == nil {
+				break
+			}
+			if job.pos < 0 {
+				mads.idxTree.Delete(job.key)
+			} else {
+				mads.idxTree.Set(job.key, job.pos)
+			}
+		}
+		mads.idxTreeJobWG.Done()
+	}()
+}
+
 func (mads *MoeingADS) update() {
 	sharedIdx := int64(-1)
 	datatree.ParrallelRun(runtime.NumCPU(), func(workerID int) {
@@ -406,12 +433,10 @@ func (mads *MoeingADS) update() {
 			})
 		}
 	})
-	//@ start := gotsc.BenchStart()
 	mads.cachedEntries = mads.cachedEntries[:0]
 	for _, entries := range mads.tempEntries64 {
 		mads.cachedEntries = append(mads.cachedEntries, entries...)
 	}
-	//@ Phase0Time += gotsc.BenchEnd() - start - tscOverhead
 	// set NextKey to correct values and mark IsModified
 	for i, hotEntry := range mads.cachedEntries {
 		if hotEntry.Operation != types.OpNone && isHintHotEntry(hotEntry) {
@@ -442,8 +467,8 @@ func (mads *MoeingADS) update() {
 			hotEntry.IsModified = true
 		}
 	}
-	start := gotsc.BenchStart()
 	// update stored data
+	mads.runIdxTreeJobs()
 	for _, hotEntry := range mads.cachedEntries {
 		if !(hotEntry.IsModified || hotEntry.IsTouchedByNext) {
 			continue
@@ -452,7 +477,7 @@ func (mads *MoeingADS) update() {
 		if hotEntry.Operation == types.OpDelete && ptr.SerialNum >= 0 {
 			// if ptr.SerialNum==-1, then we are deleting a just-inserted value, so ignore it.
 			//fmt.Printf("Now we deactive %d for deletion %#v\n", ptr.SerialNum, ptr)
-			mads.idxTree.Delete(ptr.Key)
+			mads.idxTreeJobChan <- idxTreeJob{key: ptr.Key, pos: -1} //delete
 			mads.DeactiviateEntry(ptr.SerialNum)
 		} else if hotEntry.Operation != types.OpNone || hotEntry.IsTouchedByNext {
 			if ptr.SerialNum >= 0 { // if this entry already exists
@@ -463,13 +488,12 @@ func (mads *MoeingADS) update() {
 			ptr.SerialNum = mads.meta.GetMaxSerialNum()
 			//fmt.Printf("Now SerialNum = %d for %s(%#v) %#v Entry %#v\n", ptr.SerialNum, string(ptr.Key), ptr.Key, hotEntry, *ptr)
 			mads.meta.IncrMaxSerialNum()
-			//@ start := gotsc.BenchStart()
 			pos := mads.datTree.AppendEntry(ptr)
-			//@ Phase2Time += gotsc.BenchEnd() - start - tscOverhead
-			mads.idxTree.Set(ptr.Key, pos)
+			mads.idxTreeJobChan <- idxTreeJob{key: ptr.Key, pos: pos} //update
 		}
 	}
-	Phase1n2Time += gotsc.BenchEnd() - start - tscOverhead
+	mads.idxTreeJobChan <- idxTreeJob{key: nil, pos: -1} // end of job
+	mads.idxTreeJobWG.Wait()
 }
 
 func (mads *MoeingADS) DeactiviateEntry(sn int64) {
@@ -512,7 +536,6 @@ var Phase1n2Time, Phase1Time, Phase2Time, Phase3Time, Phase4Time, Phase0Time, ts
 func (mads *MoeingADS) EndWrite() {
 	//fmt.Printf("EndWrite %d\n", mads.meta.GetCurrHeight())
 	mads.update()
-	//start := gotsc.BenchStart()
 	//if mads.meta.GetActiveEntryCount() != int64(mads.idxTree.ActiveCount()) - 2 {
 	//	panic(fmt.Sprintf("Fuck meta.GetActiveEntryCount %d mads.idxTree.ActiveCount %d\n", mads.meta.GetActiveEntryCount(), mads.idxTree.ActiveCount()))
 	//}
@@ -529,7 +552,7 @@ func (mads *MoeingADS) EndWrite() {
 			mads.meta.IncrMaxSerialNum()
 			key := datatree.ExtractKeyFromRawBytes(entryBz)
 			if string(key) == "dummy" {
-				panic(fmt.Sprintf("dummy entry cannot be active %d", sn))
+				panic(fmt.Sprintf("dummy entry cannot be active %d",sn))
 			}
 			pos := mads.datTree.AppendEntryRawBytes(entryBz, sn)
 			//if len(key) != 8 {
