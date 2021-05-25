@@ -318,7 +318,9 @@ func (tree *Tree) AppendEntry(entry *Entry) int64 {
 	bz := EntryToBytes(*entry, tree.deactivedSNList)
 	tree.deactivedSNList = tree.deactivedSNList[:0] // clear its content
 	// mark this entry as valid
-	if !(len(entry.Key) == 5 && string(entry.Key) == "dummy") {
+	if len(entry.Key) == 5 && string(entry.Key) == "dummy" {
+		tree.DeactiviateEntry(entry.SerialNum)
+	} else {
 		tree.ActiviateEntry(entry.SerialNum)
 	}
 	return tree.appendEntry([2][]byte{bz, nil}, entry.SerialNum)
@@ -457,8 +459,8 @@ func (tree *Tree) EndBlock() (rootHash [32]byte) {
 		tree.nodes[pos] = &twig.twigRoot
 		//leftRoot := tree.twigMtFile.GetHashNode(twigID, 1)
 		//twigRoot := hash2(11, leftRoot[:], NullTwig.activeBitsMTL3[:])
-		//fmt.Printf("Here delete activeTwig %d-%d twigRoot: %v\n", FirstLevelAboveTwig-1, twigID, twig.twigRoot)
-		//fmt.Printf("calculated twigRoot: %v\n", twigRoot)
+		//fmt.Printf("Here delete activeTwig %d-%d twigRoot: %#v\n", FirstLevelAboveTwig-1, twigID, twig.twigRoot)
+		//fmt.Printf("leftRoot %#v MTL3 %#v calculated twigRoot: %#v\n", leftRoot, NullTwig.activeBitsMTL3[:], twigRoot)
 		delete(tree.activeTwigs, twigID)
 	}
 	tree.twigsToBeDeleted = tree.twigsToBeDeleted[:0] // clear its content

@@ -397,9 +397,6 @@ func (tree *Tree) RecoverUpperNodes(edgeNodes []*EdgeNode, nList []int64) [32]by
 }
 
 func (tree *Tree) RecoverInactiveTwigRoots(lastPrunedTwigID, oldestActiveTwigID int64) (newList []int64) {
-	if lastPrunedTwigID < 0 {
-		return
-	}
 	//fmt.Printf("RecoverInactiveTwigRoots lastPrunedTwigID %d oldestActiveTwigID %d\n", lastPrunedTwigID, oldestActiveTwigID)
 	newList = make([]int64, 0, 1+(oldestActiveTwigID-lastPrunedTwigID)/2)
 	for twigID := lastPrunedTwigID; twigID < oldestActiveTwigID; twigID++ {
@@ -449,6 +446,9 @@ func RecoverTree(bufferSize, blockSize int, dirName string, edgeNodes []*EdgeNod
 	tree.activeTwigs[oldestActiveTwigID] = CopyNullTwig()
 	tree.mtree4YoungestTwig = NullMT4Twig
 	startingInactiveTwigID := lastPrunedTwigID
+	if lastPrunedTwigID == -1 {
+		startingInactiveTwigID = 0
+	}
 	if startingInactiveTwigID%2 == 1 {
 		startingInactiveTwigID--
 	}
