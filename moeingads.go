@@ -156,6 +156,7 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 			}
 		}
 		mads.idxTree.EndWrite()
+		//mads.PrintIdxTree()
 	}
 
 	mads.meta.SetIsRunning(true)
@@ -589,7 +590,10 @@ func (mads *MoeingADS) EndWrite() {
 	mads.meta.SetEntryFileSize(eS)
 	mads.meta.SetTwigMtFileSize(tS)
 	mads.datTree.WaitForFlushing()
-	//fmt.Println("Upper Tree At EndWrite"); mads.datTree.PrintTree()
+	//if mads.meta.GetCurrHeight() == 146 {
+	//	fmt.Println("Upper Tree At EndWrite"); mads.datTree.PrintTree()
+	//	//panic("Stop here")
+	//}
 	mads.meta.Commit()
 	mads.idxTree.EndWrite()
 	mads.rocksdb.CloseOldBatch()

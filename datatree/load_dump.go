@@ -372,6 +372,12 @@ func (tree *Tree) RecoverActiveTwigs(oldestActiveTwigID int64) []int64 {
 	}
 	//fmt.Printf("start %d end %d\n", tree.mtree4YTChangeStart, tree.mtree4YTChangeEnd)
 	tree.syncMT4YoungestTwig()
+	//if tree.youngestTwigID == 0x1ef {
+	//	fmt.Printf("====== RecoverActiveTwigs after syncMT4YoungestTwig 0x1ef =====\n")
+	//	for i, mtNode := range tree.mtree4YoungestTwig {
+	//		fmt.Printf("MT %d %#v\n", i, mtNode)
+	//	}
+	//}
 	//fmt.Printf("leftRoot %#v\n", tree.activeTwigs[tree.youngestTwigID].leftRoot[:])
 	//fmt.Printf("RecoverActiveTwigs touchedPosOf512b %v\n", tree.touchedPosOf512b)
 	//idList := make([]int, 0, len(tree.activeTwigs))

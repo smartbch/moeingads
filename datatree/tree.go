@@ -324,10 +324,14 @@ func (tree *Tree) DeactivedSNListSize() int {
 func (tree *Tree) AppendEntry(entry *Entry) int64 {
 	// write the entry while flushing deactivedSNList
 	bz := EntryToBytes(*entry, tree.deactivedSNList)
+	//x := entry.SerialNum % LeafCountInTwig
+	//if 1904 <= x && x <= 1908 {
+	//	fmt.Printf("HEHE %#v %#v\n", entry, tree.deactivedSNList)
+	//}
 	tree.deactivedSNList = tree.deactivedSNList[:0] // clear its content
-	// mark this entry as valid
+	// mark this entry as touched/valid
 	if len(entry.Key) == 5 && string(entry.Key) == "dummy" {
-		tree.DeactiviateEntry(entry.SerialNum)
+		tree.touchedPosOf512b[entry.SerialNum/512] = struct{}{}
 	} else {
 		tree.ActiviateEntry(entry.SerialNum)
 	}
@@ -368,6 +372,12 @@ func (tree *Tree) appendEntry(bzTwo [2][]byte, sn int64) int64 {
 	} else if position == TwigMask { // when this is the last entry of current twig
 		// write the merkle tree of youngest twig to twigMtFile
 		tree.syncMT4YoungestTwig()
+		//if twigID == 0x1ef {
+		//	fmt.Printf("====== after syncMT4YoungestTwig 0x1ef =====\n")
+		//	for i, mtNode := range tree.mtree4YoungestTwig {
+		//		fmt.Printf("MT %d %#v\n", i, mtNode)
+		//	}
+		//}
 		twig := tree.activeTwigs[twigID]
 		tree.twigMtFile.AppendTwig(tree.mtree4YoungestTwig[1:], twig.FirstEntryPos)
 		// allocate new twig as youngest twig
@@ -483,6 +493,12 @@ func (tree *Tree) WaitForFlushing() {
 // following functions are used for syncing up merkle tree
 func (tree *Tree) syncMT() (rootHash [32]byte) {
 	tree.syncMT4YoungestTwig()
+	//if tree.youngestTwigID == 0x1ef {
+	//	fmt.Printf("====== syncMT after syncMT4YoungestTwig 0x1ef =====\n")
+	//	for i, mtNode := range tree.mtree4YoungestTwig {
+	//		fmt.Printf("MT %d %#v\n", i, mtNode)
+	//	}
+	//}
 	nList := tree.syncMT4ActiveBits()
 	//if Debug {
 	//	fmt.Printf("nList: %v\n", nList)
