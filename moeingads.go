@@ -166,6 +166,15 @@ func (mads *MoeingADS) PrintMetaInfo() {
 	mads.meta.PrintInfo()
 }
 
+func (mads *MoeingADS) PrintIdxTree() {
+	iter := mads.idxTree.Iterator(mads.startKey, mads.endKey)
+	defer iter.Close()
+	for iter.Valid() {
+		fmt.Printf("@ %v %d\n", iter.Key(), iter.Value())
+		iter.Next()
+	}
+}
+
 func (mads *MoeingADS) Close() {
 	mads.meta.SetIsRunning(false)
 	mads.idxTree.Close()

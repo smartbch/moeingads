@@ -202,7 +202,7 @@ type Tree struct {
 	// this variable can be recovered from saved edge nodes and activeTwigs
 	nodes map[NodePos]*[32]byte
 
-	// these three variables can be recovered from entry file
+	// these variables can be recovered from entry file
 	youngestTwigID     int64
 	activeTwigs        map[int64]*Twig
 	mtree4YoungestTwig [4096][32]byte

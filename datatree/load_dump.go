@@ -307,7 +307,9 @@ func (tree *Tree) RecoverEntry(pos int64, entry *Entry, deactivedSNList []int64,
 	twigID := entry.SerialNum >> TwigShift
 	tree.youngestTwigID = twigID
 	// mark this entry as valid
-	tree.ActiviateEntry(entry.SerialNum)
+	if string(entry.Key) != "dummy" {
+		tree.ActiviateEntry(entry.SerialNum)
+	}
 	// record ChangeStart/ChangeEnd for endblock sync
 	position := int(entry.SerialNum & TwigMask)
 	if tree.mtree4YTChangeStart == -1 {
