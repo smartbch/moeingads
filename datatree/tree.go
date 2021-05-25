@@ -180,6 +180,14 @@ func Pos(level int, n int64) NodePos {
 	return NodePos((int64(level) << 56) | n)
 }
 
+func (np NodePos) Level() int64 {
+	return int64(np)>>56
+}
+
+func (np NodePos) Nth() int64 {
+	return (int64(np)<<8)>>8
+}
+
 type EdgeNode struct {
 	Pos   NodePos
 	Value []byte

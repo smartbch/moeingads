@@ -118,7 +118,7 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 		bz := mads.meta.GetEdgeNodes()
 		edgeNodes := datatree.BytesToEdgeNodes(bz)
 		//fmt.Printf("dirName %s oldestActiveTwigID: %d youngestTwigID: %d\n", dirName, oldestActiveTwigID, youngestTwigID)
-		//fmt.Printf("edgeNodes %#v\n", edgeNodes)
+		//fmt.Printf("currHeight %d edgeNodes:\n", mads.meta.GetCurrHeight())
 		var recoveredRoot [32]byte
 		mads.datTree, recoveredRoot = datatree.RecoverTree(datatree.BufferSize, defaultFileSize,
 			dirName, edgeNodes, mads.meta.GetLastPrunedTwig(), oldestActiveTwigID, youngestTwigID,

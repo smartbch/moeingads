@@ -388,7 +388,7 @@ func (tree *Tree) RecoverUpperNodes(edgeNodes []*EdgeNode, nList []int64) [32]by
 		var buf [32]byte
 		copy(buf[:], edgeNode.Value)
 		tree.nodes[edgeNode.Pos] = &buf
-		//fmt.Printf("EdgeNode %d-%d\n", int64(edgeNode.Pos)>>56, (int64(edgeNode.Pos)<<8)>>8)
+		//fmt.Printf("EdgeNode %d-%d\n", edgeNode.Pos.Level(), edgeNode.Pos.Nth())
 	}
 	//fmt.Printf("syncUpperNodes %v\n", nList)
 	//if len(nList) > 0 && nList[0] >= 2438 {Debug = true}
@@ -396,20 +396,15 @@ func (tree *Tree) RecoverUpperNodes(edgeNodes []*EdgeNode, nList []int64) [32]by
 	//Debug = false
 }
 
-func (tree *Tree) RecoverInactiveTwigRoots(lastPrunedTwigID, oldestActiveTwigID int64) (newList []int64) {
+func (tree *Tree) RecoverInactiveTwigRoots(lastPrunedTwigID, oldestActiveTwigID int64) {
 	//fmt.Printf("RecoverInactiveTwigRoots lastPrunedTwigID %d oldestActiveTwigID %d\n", lastPrunedTwigID, oldestActiveTwigID)
-	newList = make([]int64, 0, 1+(oldestActiveTwigID-lastPrunedTwigID)/2)
 	for twigID := lastPrunedTwigID; twigID < oldestActiveTwigID; twigID++ {
 		var twigRoot [32]byte
 		leftRoot := tree.twigMtFile.GetHashNode(twigID, 1)
 		copy(twigRoot[:], hash2(11, leftRoot[:], NullTwig.activeBitsMTL3[:]))
 		pos := Pos(FirstLevelAboveTwig-1, twigID)
 		tree.nodes[pos] = &twigRoot
-		if len(newList) == 0 || newList[len(newList)-1] != twigID/2 {
-			newList = append(newList, twigID/2)
-		}
 	}
-	return
 }
 
 func RecoverTree(bufferSize, blockSize int, dirName string, edgeNodes []*EdgeNode, lastPrunedTwigID, oldestActiveTwigID, youngestTwigID int64, fileSizes []int64) (tree *Tree, rootHash [32]byte) {
@@ -452,8 +447,20 @@ func RecoverTree(bufferSize, blockSize int, dirName string, edgeNodes []*EdgeNod
 	if startingInactiveTwigID%2 == 1 {
 		startingInactiveTwigID--
 	}
-	nList0 := tree.RecoverInactiveTwigRoots(startingInactiveTwigID, oldestActiveTwigID)
-	//fmt.Printf("Here lastPrunedTwigID %d oldestActiveTwigID %d nList0:%v\n", lastPrunedTwigID, oldestActiveTwigID, nList0)
+	tree.RecoverInactiveTwigRoots(startingInactiveTwigID, oldestActiveTwigID)
+	for _, edgeNode := range edgeNodes {
+		if edgeNode.Pos.Level() == int64(FirstLevelAboveTwig - 1) &&
+			startingInactiveTwigID < edgeNode.Pos.Nth() {
+			startingInactiveTwigID = edgeNode.Pos.Nth()
+		}
+	}
+	nList0 := make([]int64, 0, 1+(oldestActiveTwigID-startingInactiveTwigID)/2)
+	for twigID := startingInactiveTwigID; twigID < oldestActiveTwigID; twigID++ {
+		if len(nList0) == 0 || nList0[len(nList0)-1] != twigID/2 {
+			nList0 = append(nList0, twigID/2)
+		}
+	}
+	//fmt.Printf("Here lastPrunedTwigID %d startingInactiveTwigID %d oldestActiveTwigID %d nList0:%v\n", lastPrunedTwigID, startingInactiveTwigID, oldestActiveTwigID, nList0)
 	nList := tree.RecoverActiveTwigs(oldestActiveTwigID)
 	//fmt.Printf("Here nList:%v\n", nList)
 	var newList []int64
@@ -482,7 +489,7 @@ func CompareTreeNodes(treeA, treeB *Tree) {
 	for pos, hashA := range treeA.nodes {
 		hashB := treeB.nodes[pos]
 		if !bytes.Equal(hashA[:], hashB[:]) {
-			fmt.Printf("Different Hash %d-%d", int64(pos)>>56, (int64(pos)<<8)>>8)
+			fmt.Printf("Different Hash %d-%d", pos.Level(), pos.Nth())
 			allSame = false
 		}
 	}
