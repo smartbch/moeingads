@@ -650,7 +650,7 @@ func (mads *MoeingADS) PruneBeforeHeight(height int64) {
 		}
 	}
 	end--
-	if end > start {
+	if end > start + datatree.MinPruneCount {
 		edgeNodesBytes := mads.datTree.PruneTwigs(start, end)
 		mads.meta.SetEdgeNodes(edgeNodesBytes)
 		for i := start; i < end; i++ {
