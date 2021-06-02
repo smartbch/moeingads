@@ -326,7 +326,7 @@ func (pr *PreReader) GetToFill(fileID, start, end int64) []byte {
 }
 
 func (pr *PreReader) TryRead(fileID, start int64, buf []byte) bool {
-	if fileID == pr.fileID && pr.start <= start && start+int64(len(buf)) < pr.end {
+	if fileID == pr.fileID && pr.start <= start && start+int64(len(buf)) <= pr.end {
 		copy(buf, pr.buf[start-pr.start:])
 		return true
 	}
