@@ -173,17 +173,17 @@ func (root *RootStore) addToCache(key, value []byte) {
 	}
 }
 
-func (root *RootStore) GetTrunkStore() interface{} {
+func (root *RootStore) GetTrunkStore(cacheSize int) interface{} {
 	return &TrunkStore{
-		cache:     NewCacheStore(),
+		cache:     NewCacheStore(cacheSize),
 		root:      root,
 		isWriting: 0,
 	}
 }
 
-func (root *RootStore) GetReadOnlyTrunkStore() interface{} {
+func (root *RootStore) GetReadOnlyTrunkStore(cacheSize int) interface{} {
 	return &TrunkStore{
-		cache:      NewCacheStore(),
+		cache:      NewCacheStore(cacheSize),
 		root:       root,
 		isWriting:  0,
 		isReadOnly: true,

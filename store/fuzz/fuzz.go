@@ -314,7 +314,7 @@ func CheckTx(height, epochNum, txNum int, multi rabbit.RabbitStore, tx *Tx, rs r
 
 func ExecuteBlock(height int, root storetypes.RootStoreI, block *Block, rs randsrc.RandSrc, cfg *FuzzConfig, inParallel bool) {
 	root.SetHeight(int64(height))
-	trunk := root.GetTrunkStore().(*store.TrunkStore)
+	trunk := root.GetTrunkStore(1000).(*store.TrunkStore)
 	for i, epoch := range block.EpochList {
 		if DBG {
 			fmt.Printf("Check h:%d (%v) epoch %d of %d\n", height, block.Succeed, i, len(block.EpochList))

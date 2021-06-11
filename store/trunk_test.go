@@ -111,7 +111,7 @@ func TestTrunk(t *testing.T) {
 		return k[0] != byte('0')
 	})
 	root.SetHeight(1)
-	ts := root.GetTrunkStore().(*TrunkStore)
+	ts := root.GetTrunkStore(1000).(*TrunkStore)
 
 	list1 := getListAdd()
 	runList(ts, list1)
@@ -137,7 +137,7 @@ func TestTrunk(t *testing.T) {
 	ts.Close(true)
 
 	root.SetHeight(2)
-	ts = root.GetTrunkStore().(*TrunkStore)
+	ts = root.GetTrunkStore(1000).(*TrunkStore)
 	check1()
 
 	//=========
@@ -155,7 +155,7 @@ func TestTrunk(t *testing.T) {
 	ts.Close(true)
 
 	root.SetHeight(3)
-	ts = root.GetTrunkStore().(*TrunkStore)
+	ts = root.GetTrunkStore(1000).(*TrunkStore)
 	check2()
 
 	ts.Close(false)

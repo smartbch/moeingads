@@ -119,7 +119,7 @@ func main() {
 	fmt.Printf("After Load %f\n", float64(time.Now().UnixNano())/1000000000.0)
 	sampleFilename := os.Args[2]
 	var totalRun int
-	trunk := root.GetTrunkStore().(*store.TrunkStore)
+	trunk := root.GetTrunkStore(1000).(*store.TrunkStore)
 	if os.Args[1] == "rp" {
 		totalRun = ReadSamples(sampleFilename, kvCount, func(batch []KVPair) {
 			checkPar(trunk, batch)
@@ -199,7 +199,7 @@ func RandomWrite(root *store.RootStore, rs randsrc.RandSrc, count int) {
 	numBatch := count / BatchSize
 	for i := 0; i < numBatch; i++ {
 		root.SetHeight(int64(i))
-		trunk := root.GetTrunkStore().(*store.TrunkStore)
+		trunk := root.GetTrunkStore(1000).(*store.TrunkStore)
 		if i%20 == 0 {
 			fmt.Printf("Now %d of %d, %d\n", i, numBatch, root.ActiveCount())
 		}

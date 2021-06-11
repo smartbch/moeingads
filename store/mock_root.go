@@ -20,7 +20,7 @@ var _ types.RootStoreI = &MockRootStore{}
 
 func NewMockRootStore() *MockRootStore {
 	return &MockRootStore{
-		cacheStore:          NewCacheStore(),
+		cacheStore:          NewCacheStore(1000),
 		preparedForUpdate:   &sync.Map{},
 		preparedForDeletion: &sync.Map{},
 	}
@@ -42,9 +42,9 @@ func (rs *MockRootStore) Unlock() {
 	rs.mtx.Unlock()
 }
 
-func (rs *MockRootStore) GetTrunkStore() interface{} {
+func (rs *MockRootStore) GetTrunkStore(cacheSize int) interface{} {
 	return &TrunkStore{
-		cache:     NewCacheStore(),
+		cache:     NewCacheStore(cacheSize),
 		root:      rs,
 		isWriting: 0,
 	}

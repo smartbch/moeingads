@@ -181,11 +181,11 @@ func Pos(level int, n int64) NodePos {
 }
 
 func (np NodePos) Level() int64 {
-	return int64(np)>>56
+	return int64(np) >> 56
 }
 
 func (np NodePos) Nth() int64 {
-	return (int64(np)<<8)>>8
+	return (int64(np) << 8) >> 8
 }
 
 type EdgeNode struct {

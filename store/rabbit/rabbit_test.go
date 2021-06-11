@@ -104,7 +104,7 @@ func RunFuzz(cfg *FuzzConfig, roundCount int, randFilename string) {
 	rs := randsrc.NewRandSrcFromFile(randFilename)
 	refMap := make(map[[KeyLen]byte][]byte, cfg.MaxSize)
 	root := store.NewMockRootStore()
-	trunk := root.GetTrunkStore().(*store.TrunkStore)
+	trunk := root.GetTrunkStore(1000).(*store.TrunkStore)
 	rbt := NewRabbitStore(trunk)
 	for i := 0; i < roundCount; i++ {
 		if i%100 == 0 {
@@ -125,7 +125,7 @@ func RunFuzz(cfg *FuzzConfig, roundCount int, randFilename string) {
 		if i%cfg.WritebackInterval == 0 {
 			rbt.Close()
 			trunk.Close(true)
-			trunk = root.GetTrunkStore().(*store.TrunkStore)
+			trunk = root.GetTrunkStore(1000).(*store.TrunkStore)
 			rbt = NewRabbitStore(trunk)
 		}
 	}

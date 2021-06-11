@@ -260,7 +260,7 @@ func RunGenerateAccounts(numAccounts int, randFilename string, jsonFile string) 
 		if i%10 == 0 {
 			fmt.Printf("Now %d of %d, %d\n", i, numBlocks, root.ActiveCount())
 		}
-		trunk := root.GetTrunkStore().(*store.TrunkStore)
+		trunk := root.GetTrunkStore(1000).(*store.TrunkStore)
 		GenerateAccountsInBlock(int64(i*NumNewAccountsInBlock), trunk, rs, addr2num)
 		//start := gotsc.BenchStart()
 		trunk.Close(true)

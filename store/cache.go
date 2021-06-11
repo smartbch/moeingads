@@ -13,9 +13,9 @@ type CacheStore struct {
 	m map[string]string
 }
 
-func NewCacheStore() *CacheStore {
+func NewCacheStore(size int) *CacheStore {
 	return &CacheStore{
-		m: make(map[string]string),
+		m: make(map[string]string, size),
 	}
 }
 
