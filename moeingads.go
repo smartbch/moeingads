@@ -343,7 +343,7 @@ func (mads *MoeingADS) BeginWrite(height int64) {
 func (mads *MoeingADS) Set(key, value []byte) {
 	hotEntry, ok := mads.k2heMap.Load(string(key))
 	if !ok {
-		panic("Can not find entry in cache")
+		panic(fmt.Sprintf("Can not find entry in cache, key=%#v", key))
 	}
 	if hotEntry == nil {
 		panic("Can not change or insert at a fake entry")

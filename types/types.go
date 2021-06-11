@@ -27,6 +27,8 @@ const (
 	OpNone OperationOnEntry = iota
 	OpDelete
 	OpInsertOrChange
+
+	ShardCount = 8
 )
 
 type HotEntry struct {
@@ -90,31 +92,31 @@ type MetaDB interface {
 	SetCurrHeight(h int64)
 	GetCurrHeight() int64
 
-	SetTwigMtFileSize(size int64)
-	GetTwigMtFileSize() int64
+	SetTwigMtFileSize(shardID uint8, size int64)
+	GetTwigMtFileSize(shardID uint8) int64
 
-	SetEntryFileSize(size int64)
-	GetEntryFileSize() int64
+	SetEntryFileSize(shardID uint8, size int64)
+	GetEntryFileSize(shardID uint8) int64
 
-	GetTwigHeight(twigID int64) int64
-	DeleteTwigHeight(twigID int64)
+	GetTwigHeight(shardID uint8, twigID int64) int64
+	DeleteTwigHeight(shardID uint8, twigID int64)
 
-	SetLastPrunedTwig(twigID int64)
-	GetLastPrunedTwig() int64
+	SetLastPrunedTwig(shardID uint8, twigID int64)
+	GetLastPrunedTwig(shardID uint8) int64
 
-	GetEdgeNodes() []byte
-	SetEdgeNodes(bz []byte)
+	SetEdgeNodes(shardID uint8, bz []byte)
+	GetEdgeNodes(shardID uint8) []byte
 
 	// MaxSerialNum is the maximum serial num among all the entries
-	GetMaxSerialNum() int64
-	IncrMaxSerialNum() // It should call setTwigHeight(twigID int64, height int64)
+	GetMaxSerialNum(shardID uint8) int64
+	IncrMaxSerialNum(shardID uint8) // It should call setTwigHeight(twigID int64, height int64)
 
-	GetRootHash() [32]byte
-	SetRootHash(h [32]byte)
+	SetRootHash(shardID uint8, h [32]byte)
+	GetRootHash(shardID uint8) [32]byte
 
 	// the ID of the oldest active twig, increased by ReapOldestActiveTwig
-	GetOldestActiveTwigID() int64
-	IncrOldestActiveTwigID()
+	GetOldestActiveTwigID(shardID uint8) int64
+	IncrOldestActiveTwigID(shardID uint8)
 
 	GetIsRunning() bool
 	SetIsRunning(isRunning bool)
