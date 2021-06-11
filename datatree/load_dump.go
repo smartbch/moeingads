@@ -459,7 +459,7 @@ func RecoverTree(bufferSize, blockSize int, dirName string, edgeNodes []*EdgeNod
 	}
 	tree.RecoverInactiveTwigRoots(startingInactiveTwigID, oldestActiveTwigID)
 	for _, edgeNode := range edgeNodes {
-		if edgeNode.Pos.Level() == int64(FirstLevelAboveTwig - 1) &&
+		if edgeNode.Pos.Level() == int64(FirstLevelAboveTwig-1) &&
 			startingInactiveTwigID < edgeNode.Pos.Nth() {
 			startingInactiveTwigID = edgeNode.Pos.Nth()
 		}

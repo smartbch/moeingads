@@ -16,7 +16,7 @@ type RefStore struct {
 
 func NewRefStore() *RefStore {
 	return &RefStore{
-		cs: store.NewCacheStore(),
+		cs: store.NewCacheStore(1000),
 	}
 }
 

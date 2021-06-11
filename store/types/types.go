@@ -54,7 +54,7 @@ type BaseStoreI interface {
 type RootStoreI interface {
 	BaseStoreI
 	SetDeleter
-	GetTrunkStore() interface{}
+	GetTrunkStore(cacheSize int) interface{}
 	SetHeight(h int64)
 	BeginWrite()
 	EndWrite()
