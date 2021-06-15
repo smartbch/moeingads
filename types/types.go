@@ -31,12 +31,16 @@ const (
 	ShardCount = 8
 )
 
+func LimitRange(b byte) byte {
+	return (b % 128) + 64 // limit the range to avoid start&end Guard
+}
+
 func GetShardID(b byte) int {
 	if b < 64 {
 		return 0
 	} else if b >= 128 + 64 {
 		return 7
-	} else {
+	} else { // make shards in the limited range
 		return (int(b) - 64) / 16
 	}
 }

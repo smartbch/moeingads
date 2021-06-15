@@ -447,10 +447,11 @@ type idxTreeJob struct {
 func (mads *MoeingADS) runIdxTreeJobs() {
 	mads.idxTreeJobWG.Add(len(mads.idxTreeJobChan))
 	for i := range mads.idxTreeJobChan {
-		go func() {
+		go func(shardID int) {
 			for {
-				job := <-mads.idxTreeJobChan[i]
+				job := <-mads.idxTreeJobChan[shardID]
 				if job.key == nil {
+					fmt.Printf("finish %d\n", shardID)
 					break
 				}
 				if job.pos < 0 {
@@ -460,7 +461,7 @@ func (mads *MoeingADS) runIdxTreeJobs() {
 				}
 			}
 			mads.idxTreeJobWG.Done()
-		}()
+		}(i)
 	}
 }
 

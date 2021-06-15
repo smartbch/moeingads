@@ -255,14 +255,16 @@ func RunGenerateAccounts(numAccounts int, randFilename string, jsonFile string) 
 	}
 	numBlocks := numAccounts / NumNewAccountsInBlock
 	//start := gotsc.BenchStart()
+	lastCacheSize := 1000
 	for i := 0; i < numBlocks; i++ {
 		root.SetHeight(int64(i))
 		if i%10 == 0 {
 			fmt.Printf("Now %d of %d, %d\n", i, numBlocks, root.ActiveCount())
 		}
-		trunk := root.GetTrunkStore(1000).(*store.TrunkStore)
+		trunk := root.GetTrunkStore(lastCacheSize).(*store.TrunkStore)
 		GenerateAccountsInBlock(int64(i*NumNewAccountsInBlock), trunk, rs, addr2num)
 		//start := gotsc.BenchStart()
+		lastCacheSize = trunk.CacheSize()
 		trunk.Close(true)
 		//Phase3Time += gotsc.BenchEnd() - start - tscOverhead
 	}

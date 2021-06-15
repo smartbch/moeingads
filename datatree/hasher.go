@@ -44,7 +44,6 @@ func (job hashJob) run() {
 
 type Hasher struct {
 	jobs []hashJob
-	//wg   sync.WaitGroup
 }
 
 func (h *Hasher) Add(level byte, target, srcA, srcB []byte) {
@@ -57,27 +56,6 @@ func (h *Hasher) Run() {
 			job.run()
 		}
 	}
-	//stripe := MinimumJobsInGoroutine
-	//if stripe*MaximumGoroutines < len(h.jobs) {
-	//	stripe = len(h.jobs) / MaximumGoroutines
-	//	if len(h.jobs)%MaximumGoroutines != 0 {
-	//		stripe++
-	//	}
-	//}
-	//for start := 0; start < len(h.jobs); start += stripe {
-	//	end := start + stripe
-	//	if end > len(h.jobs) {
-	//		end = len(h.jobs)
-	//	}
-	//	h.wg.Add(1)
-	//	go func(start, end int) { //copy start and end to prevent race condition
-	//		for _, job := range h.jobs[start:end] {
-	//			job.run()
-	//		}
-	//		h.wg.Done()
-	//	}(start, end)
-	//}
-	//h.wg.Wait()
 	sharedIdx := int64(-1)
 	ParallelRun(runtime.NumCPU(), func(workerID int) {
 		for {
