@@ -2,13 +2,12 @@ package store
 
 import (
 	"sync/atomic"
-	"runtime"
 
 	"github.com/dterei/gotsc"
 
-	"github.com/smartbch/moeingads"
 	"github.com/smartbch/moeingads/datatree"
 	"github.com/smartbch/moeingads/store/types"
+	adstypes "github.com/smartbch/moeingads/types"
 )
 
 var PhaseTrunkTime, PhaseEndWriteTime, tscOverhead uint64 //nolint:unused
@@ -94,21 +93,14 @@ func (ts *TrunkStore) writeBack() {
 	}
 	ts.root.BeginWrite()
 
-	sharedIdx := int64(-1)
-	datatree.ParallelRun(runtime.NumCPU(), func(_ int) {
-		for {
-			myIdx := atomic.AddInt64(&sharedIdx, 1)
-			if myIdx >= moeingads.BucketCount {
-				break
+	datatree.ParallelRun(adstypes.ShardCount, func(shardID int) {
+		ts.cache.ScanAllEntriesInShard(shardID, func(key, value []byte, isDeleted bool) {
+			if isDeleted {
+				ts.root.Delete(key)
+			} else {
+				ts.root.Set(key, value)
 			}
-			ts.cache.ScanAllEntriesInBucket(int(myIdx), func(key, value []byte, isDeleted bool) {
-				if isDeleted {
-					ts.root.Delete(key)
-				} else {
-					ts.root.Set(key, value)
-				}
-			})
-		}
+		})
 	})
 	//@ PhaseTrunkTime += gotsc.BenchEnd() - start - tscOverhead
 	//@ start = gotsc.BenchStart()

@@ -6,8 +6,8 @@ import (
 
 	sha256 "github.com/minio/sha256-simd"
 
-	adstypes "github.com/smartbch/moeingads/types"
 	"github.com/smartbch/moeingads/store/types"
+	adstypes "github.com/smartbch/moeingads/types"
 )
 
 const (

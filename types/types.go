@@ -38,7 +38,7 @@ func LimitRange(b byte) byte {
 func GetShardID(b byte) int {
 	if b < 64 {
 		return 0
-	} else if b >= 128 + 64 {
+	} else if b >= 128+64 {
 		return 7
 	} else { // make shards in the limited range
 		return (int(b) - 64) / 16

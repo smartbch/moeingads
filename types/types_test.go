@@ -33,4 +33,3 @@ func TestGetShardID(t *testing.T) {
 	assert.Equal(t, 7, GetShardID(254))
 	assert.Equal(t, 7, GetShardID(255))
 }
-

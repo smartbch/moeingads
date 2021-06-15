@@ -24,8 +24,8 @@ const (
 	StartReapThres                  int64 = 1000 * 1000
 	KeptEntriesToActiveEntriesRatio       = 2
 
-	heMapSize = 128
-	nkSetSize = 64
+	heMapSize   = 128
+	nkSetSize   = 64
 	BucketCount = 64
 )
 
@@ -48,10 +48,10 @@ type MoeingADS struct {
 
 func NewMoeingADS4Mock(startEndKeys [][]byte) *MoeingADS {
 	mads := &MoeingADS{
-		k2heMap:        NewBucketMap(repeat64(heMapSize)),
-		nkSet:          NewBucketSet(repeat64(nkSetSize)),
-		startKey:       append([]byte{}, startEndKeys[0]...),
-		endKey:         append([]byte{}, startEndKeys[1]...),
+		k2heMap:  NewBucketMap(repeat64(heMapSize)),
+		nkSet:    NewBucketSet(repeat64(nkSetSize)),
+		startKey: append([]byte{}, startEndKeys[0]...),
+		endKey:   append([]byte{}, startEndKeys[1]...),
 	}
 
 	for i := 0; i < types.ShardCount; i++ {
@@ -72,16 +72,16 @@ func NewMoeingADS4Mock(startEndKeys [][]byte) *MoeingADS {
 	return mads
 }
 
-func NewMoeingADS(dirName string, canQueryHistory bool/*not supported yet*/, startEndKeys [][]byte) (*MoeingADS, error) {
+func NewMoeingADS(dirName string, canQueryHistory bool /*not supported yet*/, startEndKeys [][]byte) (*MoeingADS, error) {
 	//tscOverhead = gotsc.TSCOverhead()
 	_, err := os.Stat(dirName)
 	dirNotExists := os.IsNotExist(err)
 	mads := &MoeingADS{
-		k2heMap:        NewBucketMap(repeat64(heMapSize)),
-		nkSet:          NewBucketSet(repeat64(nkSetSize)),
-		cachedEntries:  make([]*HotEntry, 0, 2000),
-		startKey:       append([]byte{}, startEndKeys[0]...),
-		endKey:         append([]byte{}, startEndKeys[1]...),
+		k2heMap:       NewBucketMap(repeat64(heMapSize)),
+		nkSet:         NewBucketSet(repeat64(nkSetSize)),
+		cachedEntries: make([]*HotEntry, 0, 2000),
+		startKey:      append([]byte{}, startEndKeys[0]...),
+		endKey:        append([]byte{}, startEndKeys[1]...),
 	}
 	for i := 0; i < types.ShardCount; i++ {
 		mads.idxTreeJobChan[i] = make(chan idxTreeJob, 100)
@@ -161,7 +161,7 @@ func (mads *MoeingADS) initGuards() {
 	mads.meta.IncrMaxSerialNum(0)
 	mads.idxTree.Set(mads.startKey, pos)
 
-	lastShard := types.ShardCount-1
+	lastShard := types.ShardCount - 1
 	entry = &Entry{
 		Key:        mads.endKey,
 		Value:      []byte{},
@@ -632,7 +632,7 @@ func (mads *MoeingADS) EndWrite() {
 		mads.meta.SetTwigMtFileSize(i, twigMtFileSize)
 	}
 	mads.k2heMap = NewBucketMap(mads.k2heMap.GetSizes()) // clear content
-	mads.nkSet = NewBucketSet(mads.nkSet.GetSizes()) // clear content
+	mads.nkSet = NewBucketSet(mads.nkSet.GetSizes())     // clear content
 	for i := range mads.tempEntries64 {
 		mads.tempEntries64[i] = mads.tempEntries64[i][:0] // clear content
 	}
@@ -668,7 +668,7 @@ func (mads *MoeingADS) PruneBeforeHeight(height int64) {
 			for twig := start; twig < end; twig++ {
 				mads.meta.DeleteTwigHeight(shardID, twig)
 			}
-			mads.meta.SetLastPrunedTwig(shardID, end - 1)
+			mads.meta.SetLastPrunedTwig(shardID, end-1)
 		}
 	}
 	mads.rocksdb.SetPruneHeight(uint64(height))
@@ -718,7 +718,6 @@ func (bm *BucketMap) Store(key string, value *HotEntry) {
 	bm.maps[idx][key] = value
 }
 
-
 type BucketSet struct {
 	maps [BucketCount]map[string]struct{}
 	mtxs [BucketCount]sync.RWMutex
@@ -744,7 +743,7 @@ func (bs *BucketSet) AverageSize() (sum int) {
 	for _, m := range bs.maps {
 		sum += len(m)
 	}
-	return sum/BucketCount
+	return sum / BucketCount
 }
 
 func (bs *BucketSet) Store(key string) {
@@ -753,4 +752,3 @@ func (bs *BucketSet) Store(key string) {
 	defer bs.mtxs[idx].Unlock()
 	bs.maps[idx][key] = struct{}{}
 }
-

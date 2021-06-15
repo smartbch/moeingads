@@ -2,6 +2,7 @@ package store
 
 import (
 	"github.com/smartbch/moeingads/store/types"
+	adstypes "github.com/smartbch/moeingads/types"
 )
 
 // CacheStore is used in two places: 1. as the temporal cache in TrunkStore,
@@ -33,9 +34,9 @@ func (cs *CacheStore) ScanAllEntries(fn func(k, v []byte, isDeleted bool)) {
 	}
 }
 
-func (cs *CacheStore) ScanAllEntriesInBucket(bucket int, fn func(k, v []byte, isDeleted bool)) {
+func (cs *CacheStore) ScanAllEntriesInShard(shardID int, fn func(k, v []byte, isDeleted bool)) {
 	for key, value := range cs.m {
-		if int(key[0] >> 2) == bucket { // most significant 6 bits as bucket index
+		if adstypes.GetShardID(key[0]) == shardID {
 			fn([]byte(key), []byte(value), len(value) == 0)
 		}
 	}

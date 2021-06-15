@@ -7,6 +7,7 @@ import (
 
 	"github.com/smartbch/moeingads"
 	"github.com/smartbch/moeingads/store/types"
+	adstypes "github.com/smartbch/moeingads/types"
 )
 
 const (
@@ -31,7 +32,7 @@ type RootStore struct {
 	mtx sync.RWMutex
 	wg  sync.WaitGroup
 
-	cache map[string]cacheEntry
+	cache [adstypes.ShardCount]map[string]cacheEntry
 	// controls which KVs can be cached, when this function is nil, all are cached.
 	isCacheableKey func(k []byte) bool
 	mads           *moeingads.MoeingADS
@@ -43,12 +44,15 @@ type RootStore struct {
 var _ types.RootStoreI = &RootStore{}
 
 func NewRootStore(mads *moeingads.MoeingADS, isCacheableKey func(k []byte) bool) *RootStore {
-	return &RootStore{
-		cache:          make(map[string]cacheEntry),
+	result := &RootStore{
 		isCacheableKey: isCacheableKey,
 		mads:           mads,
 		height:         -1,
 	}
+	for i := range result.cache {
+		result.cache[i] = make(map[string]cacheEntry)
+	}
+	return result
 }
 
 // One RootStore can be used by many TrunkStores and RabbitStores
@@ -81,7 +85,8 @@ func (root *RootStore) Get(key []byte) []byte {
 	ok := false
 	var e cacheEntry
 	if root.isCacheableKey == nil || root.isCacheableKey(key) {
-		e, ok = root.cache[string(key)]
+		shardID := adstypes.GetShardID(key[0])
+		e, ok = root.cache[shardID][string(key)]
 	}
 	if ok {
 		return []byte(e.value)
@@ -126,7 +131,8 @@ func (root *RootStore) Set(key, value []byte) {
 
 func (root *RootStore) Delete(key []byte) {
 	root.mads.Delete(key)
-	delete(root.cache, string(key))
+	shardID := adstypes.GetShardID(key[0])
+	delete(root.cache[shardID], string(key))
 }
 
 func (root *RootStore) EndWrite() {
@@ -146,13 +152,14 @@ func (root *RootStore) CheckConsistency() {
 }
 
 func (root *RootStore) addToCache(key, value []byte) {
-	if len(root.cache) > CacheSizeLimit {
+	shardID := adstypes.GetShardID(key[0])
+	if len(root.cache[shardID]) > CacheSizeLimit {
 		var delK string
 		delHeight := int64(math.MaxInt64)
 		dist := 0
 		//Now we find the oldest entry within EvictTryDist steps.
 		//Please note Golang's map-iteration is randomized.
-		for k, e := range root.cache {
+		for k, e := range root.cache[shardID] {
 			if delHeight > e.height {
 				// find the key with minimum height
 				delHeight = e.height
@@ -164,10 +171,10 @@ func (root *RootStore) addToCache(key, value []byte) {
 			}
 		}
 		if len(delK) != 0 {
-			delete(root.cache, delK)
+			delete(root.cache[shardID], delK)
 		}
 	}
-	root.cache[string(key)] = cacheEntry{
+	root.cache[shardID][string(key)] = cacheEntry{
 		height: root.height,
 		value:  string(value),
 	}
@@ -196,7 +203,9 @@ func (root *RootStore) GetRootHash() []byte {
 
 func (root *RootStore) Close() {
 	root.mads.Close()
-	root.cache = nil
+	for i := range root.cache {
+		root.cache[i] = nil
+	}
 }
 
 func (root *RootStore) ActiveCount() int {
