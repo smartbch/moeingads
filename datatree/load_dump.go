@@ -339,11 +339,18 @@ func (tree *Tree) RecoverEntry(pos int64, entry *Entry, deactivedSNList []int64,
 func (tree *Tree) ScanEntries(oldestActiveTwigID int64, outChan chan types.EntryX) {
 	pos := tree.twigMtFile.GetFirstEntryPos(oldestActiveTwigID)
 	size := tree.entryFile.Size()
+	total := size - pos
+	step := total/20
+	lastPos := pos
 	for pos < size {
 		//!! if pos > 108995312 {
 		//!! 	entryBz, nxt := tree.entryFile.ReadEntryRawBytes(pos)
 		//!! 	fmt.Printf("Fuck now pos %d %#v len=%d nxt=%d\n", pos, entryBz, len(entryBz), nxt)
 		//!! }
+		if (pos - size) % step != (lastPos - size) % step {
+			fmt.Printf("ScanEntries %d/%d\n", pos - size, total)
+		}
+		lastPos = pos
 		key, deactivedSNList, nextPos := tree.entryFile.ReadEntryAndSNList(pos)
 		outChan <- types.EntryX{Entry: key, Pos: pos, DeactivedSNList: deactivedSNList}
 		pos = nextPos
@@ -354,7 +361,14 @@ func (tree *Tree) ScanEntries(oldestActiveTwigID int64, outChan chan types.Entry
 func (tree *Tree) ScanEntriesLite(oldestActiveTwigID int64, outChan chan types.KeyAndPos) {
 	pos := tree.twigMtFile.GetFirstEntryPos(oldestActiveTwigID)
 	size := tree.entryFile.Size()
+	total := size - pos
+	step := total/20
+	lastPos := pos
 	for pos < size {
+		if (pos - size) % step != (lastPos - size) % step {
+			fmt.Printf("ScanEntries %d/%d\n", pos - size, total)
+		}
+		lastPos = pos
 		entryBz, next := tree.entryFile.ReadEntryRawBytes(pos)
 		outChan <- types.KeyAndPos{
 			Key:       ExtractKeyFromRawBytes(entryBz),
@@ -417,13 +431,13 @@ func (tree *Tree) RecoverInactiveTwigRoots(lastPrunedTwigID, oldestActiveTwigID 
 	}
 }
 
-func RecoverTree(bufferSize, blockSize int, dirName string, edgeNodes []*EdgeNode, lastPrunedTwigID, oldestActiveTwigID, youngestTwigID int64, fileSizes []int64) (tree *Tree, rootHash [32]byte) {
-	dirEntry := filepath.Join(dirName, entriesPath)
+func RecoverTree(bufferSize, blockSize int, dirName, suffix string, edgeNodes []*EdgeNode, lastPrunedTwigID, oldestActiveTwigID, youngestTwigID int64, fileSizes []int64) (tree *Tree, rootHash [32]byte) {
+	dirEntry := filepath.Join(dirName, entriesPath+suffix)
 	entryFile, err := NewEntryFile(bufferSize, blockSize, dirEntry)
 	if err != nil {
 		panic(err)
 	}
-	dirTwigMt := filepath.Join(dirName, twigMtPath)
+	dirTwigMt := filepath.Join(dirName, twigMtPath+suffix)
 	twigMtFile, err := NewTwigMtFile(bufferSize, blockSize, dirTwigMt)
 	if err != nil {
 		panic(err)

@@ -216,14 +216,14 @@ type Tree struct {
 	deactivedSNList     []int64
 }
 
-func NewEmptyTree(bufferSize, blockSize int, dirName string) *Tree {
-	dirEntry := filepath.Join(dirName, entriesPath)
+func NewEmptyTree(bufferSize, blockSize int, dirName string, suffix string) *Tree {
+	dirEntry := filepath.Join(dirName, entriesPath+suffix)
 	_ = os.Mkdir(dirEntry, 0700)
 	entryFile, err := NewEntryFile(bufferSize, blockSize, dirEntry)
 	if err != nil {
 		panic(err)
 	}
-	dirTwigMt := filepath.Join(dirName, twigMtPath)
+	dirTwigMt := filepath.Join(dirName, twigMtPath+suffix)
 	_ = os.Mkdir(dirTwigMt, 0700)
 	twigMtFile, err := NewTwigMtFile(bufferSize, blockSize, dirTwigMt)
 	if err != nil {
@@ -674,7 +674,7 @@ func (tree *Tree) syncMT4YoungestTwig() {
 	//	tree.leave4YoungestTwig[myIdx] = nil
 	//}
 	sharedIdx := int64(-1)
-	ParrallelRun(runtime.NumCPU(), func(workerID int) {
+	ParallelRun(runtime.NumCPU(), func(workerID int) {
 		for {
 			myIdx := atomic.AddInt64(&sharedIdx, 1)
 			if myIdx >= int64(len(tree.leave4YoungestTwig)) {

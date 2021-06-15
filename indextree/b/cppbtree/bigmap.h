@@ -61,7 +61,7 @@ public:
 	typedef btree::btree_map<key_type, value_type> basic_map;
 private:
 	basic_map* _map_arr[slot_count];
-	atomic_size_t _size;
+	std::atomic_size_t _size;
 	bool debug;
 	// make sure a slot do have a basic_map in it
 	void create_if_null(int idx) {

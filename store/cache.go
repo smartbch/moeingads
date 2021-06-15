@@ -33,6 +33,14 @@ func (cs *CacheStore) ScanAllEntries(fn func(k, v []byte, isDeleted bool)) {
 	}
 }
 
+func (cs *CacheStore) ScanAllEntriesInBucket(bucket int, fn func(k, v []byte, isDeleted bool)) {
+	for key, value := range cs.m {
+		if int(key[0] >> 2) == bucket { // most significant 6 bits as bucket index
+			fn([]byte(key), []byte(value), len(value) == 0)
+		}
+	}
+}
+
 func (cs *CacheStore) Get(key []byte) (res []byte, status types.CacheStatus) {
 	v, ok := cs.m[string(key)]
 	if !ok {

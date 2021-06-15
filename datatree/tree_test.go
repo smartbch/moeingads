@@ -444,7 +444,7 @@ const defaultFileSize = 8 * 4096 * 32
 // build a tree for test: append countBefore entries before applying deactSNList,
 // and append countAfter entries after applying deactSNList
 func buildTestTree(dirName string, deactSNList []int64, countBefore, countAfter int) (*Tree, []int64, int64) {
-	tree := NewEmptyTree(SmallBufferSize, defaultFileSize, dirName)
+	tree := NewEmptyTree(SmallBufferSize, defaultFileSize, dirName, "")
 	entry := &Entry{
 		Key:        []byte("key"),
 		Value:      []byte("value"),

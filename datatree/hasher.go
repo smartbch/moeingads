@@ -79,7 +79,7 @@ func (h *Hasher) Run() {
 	//}
 	//h.wg.Wait()
 	sharedIdx := int64(-1)
-	ParrallelRun(runtime.NumCPU(), func(workerID int) {
+	ParallelRun(runtime.NumCPU(), func(workerID int) {
 		for {
 			myIdx := atomic.AddInt64(&sharedIdx, 1)
 			if myIdx >= int64(len(h.jobs)) {
@@ -91,7 +91,7 @@ func (h *Hasher) Run() {
 	h.jobs = h.jobs[:0]
 }
 
-func ParrallelRun(workerCount int, fn func(workerID int)) {
+func ParallelRun(workerCount int, fn func(workerID int)) {
 	var wg sync.WaitGroup
 	wg.Add(workerCount)
 	for i := 0; i < workerCount; i++ {

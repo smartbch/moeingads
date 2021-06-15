@@ -31,6 +31,16 @@ const (
 	ShardCount = 8
 )
 
+func GetShardID(b byte) int {
+	if b < 64 {
+		return 0
+	} else if b >= 128 + 64 {
+		return 7
+	} else {
+		return (int(b) - 64) / 16
+	}
+}
+
 type HotEntry struct {
 	EntryPtr        *Entry
 	Operation       OperationOnEntry
@@ -92,34 +102,31 @@ type MetaDB interface {
 	SetCurrHeight(h int64)
 	GetCurrHeight() int64
 
-	SetTwigMtFileSize(shardID uint8, size int64)
-	GetTwigMtFileSize(shardID uint8) int64
+	SetTwigMtFileSize(shardID int, size int64)
+	GetTwigMtFileSize(shardID int) int64
 
-	SetEntryFileSize(shardID uint8, size int64)
-	GetEntryFileSize(shardID uint8) int64
+	SetEntryFileSize(shardID int, size int64)
+	GetEntryFileSize(shardID int) int64
 
-	GetTwigHeight(shardID uint8, twigID int64) int64
-	DeleteTwigHeight(shardID uint8, twigID int64)
+	GetTwigHeight(shardID int, twigID int64) int64
+	DeleteTwigHeight(shardID int, twigID int64)
 
-	SetLastPrunedTwig(shardID uint8, twigID int64)
-	GetLastPrunedTwig(shardID uint8) int64
+	SetLastPrunedTwig(shardID int, twigID int64)
+	GetLastPrunedTwig(shardID int) int64
 
-	SetEdgeNodes(shardID uint8, bz []byte)
-	GetEdgeNodes(shardID uint8) []byte
+	SetEdgeNodes(shardID int, bz []byte)
+	GetEdgeNodes(shardID int) []byte
 
 	// MaxSerialNum is the maximum serial num among all the entries
-	GetMaxSerialNum(shardID uint8) int64
-	IncrMaxSerialNum(shardID uint8) // It should call setTwigHeight(twigID int64, height int64)
+	GetMaxSerialNum(shardID int) int64
+	IncrMaxSerialNum(shardID int) // It should call setTwigHeight(twigID int64, height int64)
 
-	SetRootHash(shardID uint8, h [32]byte)
-	GetRootHash(shardID uint8) [32]byte
+	SetRootHash(shardID int, h [32]byte)
+	GetRootHash(shardID int) [32]byte
 
 	// the ID of the oldest active twig, increased by ReapOldestActiveTwig
-	GetOldestActiveTwigID(shardID uint8) int64
-	IncrOldestActiveTwigID(shardID uint8)
-
-	GetIsRunning() bool
-	SetIsRunning(isRunning bool)
+	GetOldestActiveTwigID(shardID int) int64
+	IncrOldestActiveTwigID(shardID int)
 
 	Init()
 	Close()

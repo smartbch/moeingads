@@ -310,7 +310,7 @@ func GenerateAccountsInBlock(startSN int64, trunk *store.TrunkStore, rs randsrc.
 	sharedIdx := int64(-1)
 	var rbtList [NumWorkersInBlock]rabbit.RabbitStore
 	// Parallel execution
-	datatree.ParrallelRun(NumWorkersInBlock, func(workerID int) {
+	datatree.ParallelRun(NumWorkersInBlock, func(workerID int) {
 		rbt := rabbit.NewRabbitStore(trunk)
 		rbtList[workerID] = rbt
 		for {

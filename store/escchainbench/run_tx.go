@@ -96,7 +96,7 @@ func (epoch Epoch) Run(root *store.RootStore) {
 		wg.Done()
 	}()
 	sharedIdx := int64(-1)
-	datatree.ParrallelRun(NumWorkersInBlock, func(jobID int) {
+	datatree.ParallelRun(NumWorkersInBlock, func(jobID int) {
 		for {
 			myIdx := atomic.AddInt64(&sharedIdx, 1)
 			if myIdx >= int64(len(epoch.txList)) {

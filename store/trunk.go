@@ -2,9 +2,12 @@ package store
 
 import (
 	"sync/atomic"
+	"runtime"
 
 	"github.com/dterei/gotsc"
 
+	"github.com/smartbch/moeingads"
+	"github.com/smartbch/moeingads/datatree"
 	"github.com/smartbch/moeingads/store/types"
 )
 
@@ -90,11 +93,21 @@ func (ts *TrunkStore) writeBack() {
 		panic("Conflict During Writing")
 	}
 	ts.root.BeginWrite()
-	ts.cache.ScanAllEntries(func(key, value []byte, isDeleted bool) {
-		if isDeleted {
-			ts.root.Delete(key)
-		} else {
-			ts.root.Set(key, value)
+
+	sharedIdx := int64(-1)
+	datatree.ParallelRun(runtime.NumCPU(), func(_ int) {
+		for {
+			myIdx := atomic.AddInt64(&sharedIdx, 1)
+			if myIdx >= moeingads.BucketCount {
+				break
+			}
+			ts.cache.ScanAllEntriesInBucket(int(myIdx), func(key, value []byte, isDeleted bool) {
+				if isDeleted {
+					ts.root.Delete(key)
+				} else {
+					ts.root.Set(key, value)
+				}
+			})
 		}
 	})
 	//@ PhaseTrunkTime += gotsc.BenchEnd() - start - tscOverhead
