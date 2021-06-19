@@ -33,7 +33,7 @@ type MoeingADS struct {
 	datTree        types.DataTree
 	rocksdb        *indextree.RocksDB
 	k2heMap        *BucketMap // key-to-hot-entry map
-	k2nkMap        *BucketMap // key-to-next-key map
+	nkSet          *BucketSet // key-to-next-key map
 	tempEntries64  [64][]*HotEntry
 	cachedEntries  []*HotEntry
 	startKey       []byte
@@ -45,7 +45,7 @@ type MoeingADS struct {
 func NewMoeingADS4Mock(startEndKeys [][]byte) *MoeingADS {
 	mads := &MoeingADS{
 		k2heMap:        NewBucketMap(heMapSize),
-		k2nkMap:        NewBucketMap(nkMapSize),
+		nkSet:          NewBucketSet(nkMapSize),
 		startKey:       append([]byte{}, startEndKeys[0]...),
 		endKey:         append([]byte{}, startEndKeys[1]...),
 		idxTreeJobChan: make(chan idxTreeJob, 100),
@@ -72,7 +72,7 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 	dirNotExists := os.IsNotExist(err)
 	mads := &MoeingADS{
 		k2heMap:        NewBucketMap(heMapSize),
-		k2nkMap:        NewBucketMap(nkMapSize),
+		nkSet:          NewBucketSet(nkMapSize),
 		cachedEntries:  make([]*HotEntry, 0, 2000),
 		startKey:       append([]byte{}, startEndKeys[0]...),
 		endKey:         append([]byte{}, startEndKeys[1]...),
@@ -188,7 +188,7 @@ func (mads *MoeingADS) Close() {
 	mads.datTree = nil
 	mads.meta = nil
 	mads.k2heMap = nil
-	mads.k2nkMap = nil
+	mads.nkSet = nil
 }
 
 type Entry = types.Entry
@@ -260,7 +260,7 @@ func (mads *MoeingADS) PrepareForUpdate(k []byte) {
 		Operation: types.OpNone,
 	})
 
-	mads.k2nkMap.Store(string(prevEntry.NextKey), nil)
+	mads.nkSet.Add(string(prevEntry.NextKey))
 }
 
 func (mads *MoeingADS) PrepareForDeletion(k []byte) (findIt bool) {
@@ -284,7 +284,7 @@ func (mads *MoeingADS) PrepareForDeletion(k []byte) (findIt bool) {
 		Operation: types.OpNone,
 	})
 
-	mads.k2nkMap.Store(string(entry.NextKey), nil) // we do not need next entry's value, so here we store nil
+	mads.nkSet.Add(string(entry.NextKey)) // we do not need next entry's value, so here we store nil
 	return
 }
 
@@ -431,7 +431,7 @@ func (mads *MoeingADS) update() {
 			for _, e := range mads.k2heMap.maps[myIdx] {
 				mads.tempEntries64[myIdx] = append(mads.tempEntries64[myIdx], e)
 			}
-			for k := range mads.k2nkMap.maps[myIdx] {
+			for k := range mads.nkSet.maps[myIdx] {
 				if _, ok := mads.k2heMap.maps[myIdx][k]; ok {
 					continue
 				}
@@ -581,7 +581,7 @@ func (mads *MoeingADS) EndWrite() {
 	rootHash := mads.datTree.EndBlock()
 	mads.meta.SetRootHash(rootHash)
 	mads.k2heMap = NewBucketMap(heMapSize) // clear content
-	mads.k2nkMap = NewBucketMap(nkMapSize) // clear content
+	mads.nkSet = NewBucketSet(nkMapSize) // clear content
 	for i := range mads.tempEntries64 {
 		mads.tempEntries64[i] = mads.tempEntries64[i][:0] // clear content
 	}
@@ -689,41 +689,24 @@ func (bm *BucketMap) Store(key string, value *HotEntry) {
 	bm.maps[idx][key] = value
 }
 
-type Iterator struct {
-	mads *MoeingADS
-	iter types.IteratorUI64
+
+type BucketSet struct {
+	maps [64]map[string]struct{}
+	mtxs [64]sync.RWMutex
 }
 
-var _ types.Iterator = (*Iterator)(nil)
-
-func (iter *Iterator) Domain() (start []byte, end []byte) {
-	return iter.iter.Domain()
-}
-func (iter *Iterator) Valid() bool {
-	return iter.iter.Valid()
-}
-func (iter *Iterator) Next() {
-	iter.iter.Next()
-}
-func (iter *Iterator) Key() []byte {
-	return iter.iter.Key()
-}
-func (iter *Iterator) Value() []byte {
-	if !iter.Valid() {
-		return nil
+func NewBucketSet(size int) *BucketSet {
+	res := &BucketSet{}
+	for i := range res.maps {
+		res.maps[i] = make(map[string]struct{}, size)
 	}
-	pos := iter.iter.Value()
-	//fmt.Printf("pos = %d %#v\n", pos, iter.mads.datTree.ReadEntry(int64(pos)))
-	return iter.mads.datTree.ReadEntry(int64(pos)).Value
-}
-func (iter *Iterator) Close() {
-	iter.iter.Close()
+	return res
 }
 
-func (mads *MoeingADS) Iterator(start, end []byte) types.Iterator {
-	return &Iterator{mads: mads, iter: mads.idxTree.Iterator(start, end)}
+func (bm *BucketSet) Add(key string) {
+	idx := int(key[0] >> 2) // most significant 6 bits as index
+	bm.mtxs[idx].Lock()
+	defer bm.mtxs[idx].Unlock()
+	bm.maps[idx][key] = struct{}{}
 }
 
-func (mads *MoeingADS) ReverseIterator(start, end []byte) types.Iterator {
-	return &Iterator{mads: mads, iter: mads.idxTree.ReverseIterator(start, end)}
-}
