@@ -553,6 +553,7 @@ func (mads *MoeingADS) EndWrite() {
 	for mads.numOfKeptEntries() > int64(mads.idxTree.ActiveCount())*KeptEntriesToActiveEntriesRatio &&
 		int64(mads.idxTree.ActiveCount()) > StartReapThres {
 		twigID := mads.meta.GetOldestActiveTwigID()
+		mads.runIdxTreeJobs()
 		entryBzChan := mads.datTree.GetActiveEntriesInTwig(twigID)
 		for entryBz := range entryBzChan {
 			sn := datatree.ExtractSerialNum(entryBz)
@@ -569,10 +570,12 @@ func (mads *MoeingADS) EndWrite() {
 			//	e := datatree.EntryFromRawBytes(entryBz)
 			//	fmt.Printf("key %#v e %#v\n", key, e)
 			//}
-			mads.idxTree.Set(key, pos)
+			mads.idxTreeJobChan <- idxTreeJob{key: key, pos: pos} //update
 		}
+		mads.idxTreeJobChan <- idxTreeJob{key: nil, pos: -1} // end of job
 		mads.datTree.EvictTwig(twigID)
 		mads.meta.IncrOldestActiveTwigID()
+		mads.idxTreeJobWG.Wait()
 	}
 	//fmt.Printf("end numOfKeptEntries %d ActiveCount %d x2 %d\n", mads.numOfKeptEntries(), mads.idxTree.ActiveCount(), mads.idxTree.ActiveCount()*2)
 	if mads.datTree.DeactivedSNListSize() != 0 {
