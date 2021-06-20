@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	NumTxInEpoch    = 1024
+	NumTxInEpoch    = 4096
 	NumWorkers      = 128
 	NumTxPerWorker  = NumTxInEpoch / NumWorkers
 	NumEpochInBlock = 32
@@ -235,11 +235,11 @@ func RunTx(numBlock int, txFile string) {
 				}
 			}
 		}
-		root.EndWrite()
 		//Phase2Time += gotsc.BenchEnd() - start - tscOverhead
 		if height > 100 && height%100 == 0 {
 			mads.PruneBeforeHeight(height - 100)
 		}
+		root.EndWrite()
 	}
 	//pjob.Stop()
 	fmt.Printf("Finished %f\n", float64(time.Now().UnixNano())/1e9)

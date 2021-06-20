@@ -341,14 +341,15 @@ func (tree *Tree) ScanEntries(oldestActiveTwigID int64, outChan chan types.Entry
 	size := tree.entryFile.Size()
 	total := size - pos
 	step := total / 20
+	startPos := pos
 	lastPos := pos
 	for pos < size {
 		//!! if pos > 108995312 {
 		//!! 	entryBz, nxt := tree.entryFile.ReadEntryRawBytes(pos)
 		//!! 	fmt.Printf("Fuck now pos %d %#v len=%d nxt=%d\n", pos, entryBz, len(entryBz), nxt)
 		//!! }
-		if (pos-size)%step != (lastPos-size)%step {
-			fmt.Printf("ScanEntries %d/%d\n", pos-size, total)
+		if (pos-startPos)/step != (lastPos-startPos)/step {
+			fmt.Printf("ScanEntries %1.2f %d/%d\n", float64(pos-startPos)/float64(total), pos-startPos, total)
 		}
 		lastPos = pos
 		key, deactivedSNList, nextPos := tree.entryFile.ReadEntryAndSNList(pos)
@@ -363,10 +364,11 @@ func (tree *Tree) ScanEntriesLite(oldestActiveTwigID int64, outChan chan types.K
 	size := tree.entryFile.Size()
 	total := size - pos
 	step := total / 20
+	startPos := pos
 	lastPos := pos
 	for pos < size {
-		if (pos-size)%step != (lastPos-size)%step {
-			fmt.Printf("ScanEntries %d/%d\n", pos-size, total)
+		if (pos-startPos)/step != (lastPos-startPos)/step {
+			fmt.Printf("ScanEntriesLite %1.2f %d/%d\n", float64(pos-startPos)/float64(total), pos-startPos, total)
 		}
 		lastPos = pos
 		entryBz, next := tree.entryFile.ReadEntryRawBytes(pos)

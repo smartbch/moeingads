@@ -36,6 +36,20 @@ func LimitRange(b byte) byte {
 }
 
 func GetShardID(b byte) int {
+	//if b < 64 + 32 {
+	//	return 0
+	//} else if b < 64 + 64 {
+	//	return 1
+	//} else if b < 64 + 96 {
+	//	return 2
+	//}
+	//return 3
+
+	//if b < 128 {
+	//	return 0
+	//}
+	//return 1
+
 	if b < 64 {
 		return 0
 	} else if b >= 128+64 {

@@ -451,7 +451,6 @@ func (mads *MoeingADS) runIdxTreeJobs() {
 			for {
 				job := <-mads.idxTreeJobChan[shardID]
 				if job.key == nil {
-					fmt.Printf("finish %d\n", shardID)
 					break
 				}
 				if job.pos < 0 {
