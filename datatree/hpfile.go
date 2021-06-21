@@ -133,7 +133,12 @@ func (hpf *HPFile) Truncate(size int64) error {
 		return err
 	}
 	hpf.latestFileSize = size
-	return hpf.fileMap[hpf.largestID].Truncate(size)
+	err = hpf.fileMap[hpf.largestID].Truncate(size)
+	if err != nil {
+		return err
+	}
+	_, err = hpf.fileMap[hpf.largestID].Seek(0, os.SEEK_END)
+	return err
 }
 
 func (hpf *HPFile) Flush() {
