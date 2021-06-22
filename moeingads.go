@@ -127,22 +127,20 @@ func NewMoeingADS(dirName string, canQueryHistory bool /*not supported yet*/, st
 	} else {
 		mads.recoverDataTrees(dirName)
 		mads.idxTree.BeginWrite(0) // we set height=0 here, but this value will not be used
+		mads.runIdxTreeJobs()
 		datatree.ParallelRun(types.ShardCount, func(shardID int) {
 			oldestActiveTwigID := mads.meta.GetOldestActiveTwigID(shardID)
 			keyAndPosChan := make(chan types.KeyAndPos, JobChanSize)
 			go mads.datTree[shardID].ScanEntriesLite(oldestActiveTwigID, keyAndPosChan)
 			for e := range keyAndPosChan {
-				if string(e.Key) == "dummy" {
-					continue
-				}
 				if mads.datTree[shardID].GetActiveBit(e.SerialNum) {
-					//bigmap's "set" operation is thread-safe
-					mads.idxTree.Set(e.Key, e.Pos)
+					chanID := types.GetIndexChanID(e.Key[0])
+					mads.idxTreeJobChan[chanID] <- idxTreeJob{key: e.Key, pos: e.Pos}
 				}
 			}
 		})
+		mads.flushIdxTreeJobs()
 		mads.idxTree.EndWrite()
-		//mads.PrintIdxTree()
 	}
 
 	return mads, nil
