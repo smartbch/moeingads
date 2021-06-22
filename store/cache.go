@@ -36,7 +36,7 @@ func (cs *CacheStore) ScanAllEntries(fn func(k, v []byte, isDeleted bool)) {
 
 func (cs *CacheStore) ScanAllEntriesInShard(shardID int, fn func(k, v []byte, isDeleted bool)) {
 	for key, value := range cs.m {
-		if adstypes.GetShardID(key[0]) == shardID {
+		if adstypes.GetShardID([]byte(key)) == shardID {
 			fn([]byte(key), []byte(value), len(value) == 0)
 		}
 	}

@@ -27,6 +27,7 @@ const (
 	heMapSize   = 128
 	nkSetSize   = 64
 	BucketCount = 64
+	JobChanSize = 256
 )
 
 var Phase1n2Time, Phase1Time, Phase2Time, Phase3Time, Phase4Time, Phase0Time, tscOverhead uint64
@@ -42,7 +43,7 @@ type MoeingADS struct {
 	cachedEntries  []*HotEntry
 	startKey       []byte
 	endKey         []byte
-	idxTreeJobChan [types.ShardCount]chan idxTreeJob
+	idxTreeJobChan [types.IndexChanCount]chan idxTreeJob
 	idxTreeJobWG   sync.WaitGroup
 }
 
@@ -56,7 +57,9 @@ func NewMoeingADS4Mock(startEndKeys [][]byte) *MoeingADS {
 
 	for i := 0; i < types.ShardCount; i++ {
 		mads.datTree[i] = datatree.NewMockDataTree()
-		mads.idxTreeJobChan[i] = make(chan idxTreeJob, 100)
+	}
+	for i := 0; i < types.IndexChanCount; i++ {
+		mads.idxTreeJobChan[i] = make(chan idxTreeJob, JobChanSize)
 	}
 	mads.idxTree = indextree.NewMockIndexTree()
 
@@ -83,8 +86,8 @@ func NewMoeingADS(dirName string, canQueryHistory bool /*not supported yet*/, st
 		startKey:      append([]byte{}, startEndKeys[0]...),
 		endKey:        append([]byte{}, startEndKeys[1]...),
 	}
-	for i := 0; i < types.ShardCount; i++ {
-		mads.idxTreeJobChan[i] = make(chan idxTreeJob, 100)
+	for i := 0; i < types.IndexChanCount; i++ {
+		mads.idxTreeJobChan[i] = make(chan idxTreeJob, JobChanSize)
 	}
 	for i := range mads.tempEntries64 {
 		mads.tempEntries64[i] = make([]*HotEntry, 0, len(mads.cachedEntries)/8)
@@ -126,7 +129,7 @@ func NewMoeingADS(dirName string, canQueryHistory bool /*not supported yet*/, st
 		mads.idxTree.BeginWrite(0) // we set height=0 here, but this value will not be used
 		datatree.ParallelRun(types.ShardCount, func(shardID int) {
 			oldestActiveTwigID := mads.meta.GetOldestActiveTwigID(shardID)
-			keyAndPosChan := make(chan types.KeyAndPos, 100)
+			keyAndPosChan := make(chan types.KeyAndPos, JobChanSize)
 			go mads.datTree[shardID].ScanEntriesLite(oldestActiveTwigID, keyAndPosChan)
 			for e := range keyAndPosChan {
 				if string(e.Key) == "dummy" {
@@ -190,15 +193,12 @@ func (mads *MoeingADS) recoverDataTrees(dirName string) {
 		youngestTwigID := mads.meta.GetMaxSerialNum(shardID) >> datatree.TwigShift
 		bz := mads.meta.GetEdgeNodes(shardID)
 		edgeNodes := datatree.BytesToEdgeNodes(bz)
-		//fmt.Printf("dirName %s oldestActiveTwigID: %d youngestTwigID: %d\n", dirName, oldestActiveTwigID, youngestTwigID)
-		//fmt.Printf("currHeight %d edgeNodes:\n", mads.meta.GetCurrHeight())
 		var recoveredRoot [32]byte
 		suffix := fmt.Sprintf(".%d", shardID)
 		mads.datTree[shardID], recoveredRoot = datatree.RecoverTree(datatree.BufferSize, defaultFileSize,
 			dirName, suffix, edgeNodes, mads.meta.GetLastPrunedTwig(shardID),
 			oldestActiveTwigID, youngestTwigID,
 			[]int64{mads.meta.GetEntryFileSize(shardID), mads.meta.GetTwigMtFileSize(shardID)})
-		//fmt.Println("Upper Tree At Recover"); mads.datTree.PrintTree()
 		recordedRoot := mads.meta.GetRootHash(shardID)
 		if recordedRoot != recoveredRoot {
 			fmt.Printf("%#v %#v\n", recordedRoot, recoveredRoot)
@@ -261,7 +261,7 @@ func (mads *MoeingADS) GetEntry(k []byte) *Entry {
 	if !ok {
 		return nil
 	}
-	shardID := types.GetShardID(k[0])
+	shardID := types.GetShardID(k)
 	e := mads.datTree[shardID].ReadEntry(int64(pos))
 	if !mads.datTree[shardID].GetActiveBit(e.SerialNum) {
 		panic(fmt.Sprintf("Reading inactive entry %d\n", e.SerialNum))
@@ -285,7 +285,7 @@ func isModified(hotEntry *HotEntry) bool {
 func (mads *MoeingADS) PrepareForUpdate(k []byte) {
 	pos, findIt := mads.idxTree.Get(k)
 	if findIt { // The case of Change
-		shardID := types.GetShardID(k[0])
+		shardID := types.GetShardID(k)
 		entry := mads.datTree[shardID].ReadEntry(int64(pos))
 		mads.k2heMap.Store(string(k), &HotEntry{
 			EntryPtr:  entry,
@@ -322,7 +322,7 @@ func (mads *MoeingADS) PrepareForDeletion(k []byte) (findIt bool) {
 		return
 	}
 
-	shardID := types.GetShardID(k[0])
+	shardID := types.GetShardID(k)
 	entry := mads.datTree[shardID].ReadEntry(int64(pos))
 	prevEntry := mads.getPrevEntry(k)
 
@@ -363,7 +363,7 @@ func (mads *MoeingADS) getPrevEntry(k []byte) *Entry {
 	}
 	pos := iter.Value()
 	prevKey := iter.Key()
-	shardID := types.GetShardID(prevKey[0])
+	shardID := types.GetShardID(prevKey)
 	e := mads.datTree[shardID].ReadEntry(int64(pos))
 	if !mads.datTree[shardID].GetActiveBit(e.SerialNum) {
 		panic(fmt.Sprintf("Reading inactive entry %d\n", e.SerialNum))
@@ -447,9 +447,9 @@ type idxTreeJob struct {
 func (mads *MoeingADS) runIdxTreeJobs() {
 	mads.idxTreeJobWG.Add(len(mads.idxTreeJobChan))
 	for i := range mads.idxTreeJobChan {
-		go func(shardID int) {
+		go func(chanID int) {
 			for {
-				job := <-mads.idxTreeJobChan[shardID]
+				job := <-mads.idxTreeJobChan[chanID]
 				if job.key == nil {
 					break
 				}
@@ -462,6 +462,13 @@ func (mads *MoeingADS) runIdxTreeJobs() {
 			mads.idxTreeJobWG.Done()
 		}(i)
 	}
+}
+
+func (mads *MoeingADS) flushIdxTreeJobs() {
+	for i := range mads.idxTreeJobChan {
+		mads.idxTreeJobChan[i] <- idxTreeJob{key: nil} // end of job
+	}
+	mads.idxTreeJobWG.Wait()
 }
 
 func (mads *MoeingADS) update() {
@@ -519,7 +526,7 @@ func (mads *MoeingADS) update() {
 	datatree.ParallelRun(types.ShardCount, func(shardID int) {
 		for _, hotEntry := range mads.cachedEntries {
 			ptr := hotEntry.EntryPtr
-			id := types.GetShardID(ptr.Key[0])
+			id := types.GetShardID(ptr.Key)
 			if id != shardID {
 				continue
 			} else if id > shardID {
@@ -528,10 +535,11 @@ func (mads *MoeingADS) update() {
 			if !(hotEntry.IsModified || hotEntry.IsTouchedByNext) {
 				continue
 			}
+			chanID := types.GetIndexChanID(ptr.Key[0])
 			if hotEntry.Operation == types.OpDelete && ptr.SerialNum >= 0 {
 				// if ptr.SerialNum==-1, then we are deleting a just-inserted value, so ignore it.
-				mads.idxTreeJobChan[shardID] <- idxTreeJob{key: ptr.Key, pos: -1} //delete
 				mads.DeactiviateEntry(shardID, ptr.SerialNum)
+				mads.idxTreeJobChan[chanID] <- idxTreeJob{key: ptr.Key, pos: -1} //delete
 			} else if hotEntry.Operation != types.OpNone || hotEntry.IsTouchedByNext {
 				if ptr.SerialNum >= 0 { // if this entry already exists
 					mads.DeactiviateEntry(shardID, ptr.SerialNum)
@@ -541,12 +549,11 @@ func (mads *MoeingADS) update() {
 				ptr.SerialNum = mads.meta.GetMaxSerialNum(shardID)
 				mads.meta.IncrMaxSerialNum(shardID)
 				pos := mads.datTree[shardID].AppendEntry(ptr)
-				mads.idxTreeJobChan[shardID] <- idxTreeJob{key: ptr.Key, pos: pos} //update
+				mads.idxTreeJobChan[chanID] <- idxTreeJob{key: ptr.Key, pos: pos} //update
 			}
 		}
-		mads.idxTreeJobChan[shardID] <- idxTreeJob{key: nil, pos: -1} // end of job
 	})
-	mads.idxTreeJobWG.Wait()
+	mads.flushIdxTreeJobs()
 }
 
 func (mads *MoeingADS) DeactiviateEntry(shardID int, sn int64) {
@@ -571,7 +578,7 @@ func (mads *MoeingADS) CheckConsistency() {
 	for iter.Valid() && !bytes.Equal(iter.Key(), mads.startKey) {
 		pos := iter.Value()
 		key := iter.Key()
-		shardID := types.GetShardID(key[0])
+		shardID := types.GetShardID(key)
 		entry := mads.datTree[shardID].ReadEntry(int64(pos))
 		if !bytes.Equal(entry.NextKey, nextKey) {
 			panic(fmt.Sprintf("Invalid NextKey for %#v, datTree %#v, idxTree %#v\n",
@@ -600,7 +607,8 @@ func (mads *MoeingADS) compactForShard(shardID int) {
 			panic(fmt.Sprintf("dummy entry cannot be active %d", sn))
 		}
 		pos := mads.datTree[shardID].AppendEntryRawBytes(entryBz, sn)
-		mads.idxTree.Set(key, pos)
+		chanID := types.GetIndexChanID(key[0])
+		mads.idxTreeJobChan[chanID] <- idxTreeJob{key: key, pos: pos} //update
 	}
 	mads.datTree[shardID].EvictTwig(twigID)
 	mads.meta.IncrOldestActiveTwigID(shardID)
@@ -616,9 +624,11 @@ func (mads *MoeingADS) EndWrite() {
 		if mads.numOfKeptEntries() < activeCount*KeptEntriesToActiveEntriesRatio {
 			break
 		}
+		mads.runIdxTreeJobs()
 		datatree.ParallelRun(types.ShardCount, func(shardID int) {
 			mads.compactForShard(shardID)
 		})
+		mads.flushIdxTreeJobs()
 	}
 	for i := 0; i < types.ShardCount; i++ {
 		if mads.datTree[i].DeactivedSNListSize() != 0 {

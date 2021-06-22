@@ -29,33 +29,27 @@ const (
 	OpInsertOrChange
 
 	ShardCount = 8
+	IndexChanCount = 10
 )
 
 func LimitRange(b byte) byte {
-	return (b % 128) + 64 // limit the range to avoid start&end Guard
+	return (b % 128) + 64 // limit the range to avoid conflicting with start&end Guard
 }
 
-func GetShardID(b byte) int {
-	//if b < 64 + 32 {
-	//	return 0
-	//} else if b < 64 + 64 {
-	//	return 1
-	//} else if b < 64 + 96 {
-	//	return 2
-	//}
-	//return 3
-
-	//if b < 128 {
-	//	return 0
-	//}
-	//return 1
-
-	if b < 64 {
+func GetShardID(bz []byte) int {
+	if len(bz) != 8 {
 		return 0
+	}
+	return int(bz[7]) / (256/ShardCount)
+}
+
+func GetIndexChanID(b byte) int {
+	if b < 64 {
+		return 0 // for the x-standy-queue
 	} else if b >= 128+64 {
-		return 7
-	} else { // make shards in the limited range
-		return (int(b) - 64) / 16
+		return 9 // for the standy-queue
+	} else {
+		return 1 + (int(b) - 64) / 16
 	}
 }
 

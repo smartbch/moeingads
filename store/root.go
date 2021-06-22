@@ -84,8 +84,8 @@ func (root *RootStore) SetHeight(h int64) {
 func (root *RootStore) Get(key []byte) []byte {
 	ok := false
 	var e cacheEntry
-	if root.isCacheableKey == nil || root.isCacheableKey(key) {
-		shardID := adstypes.GetShardID(key[0])
+	if root.isCacheableKey != nil && root.isCacheableKey(key) {
+		shardID := adstypes.GetShardID(key)
 		e, ok = root.cache[shardID][string(key)]
 	}
 	if ok {
@@ -124,14 +124,14 @@ func (root *RootStore) BeginWrite() {
 
 func (root *RootStore) Set(key, value []byte) {
 	root.mads.Set(key, value)
-	if root.isCacheableKey == nil || root.isCacheableKey(key) {
+	if root.isCacheableKey != nil && root.isCacheableKey(key) {
 		root.addToCache([]byte(key), value)
 	}
 }
 
 func (root *RootStore) Delete(key []byte) {
 	root.mads.Delete(key)
-	shardID := adstypes.GetShardID(key[0])
+	shardID := adstypes.GetShardID(key)
 	delete(root.cache[shardID], string(key))
 }
 
@@ -152,7 +152,7 @@ func (root *RootStore) CheckConsistency() {
 }
 
 func (root *RootStore) addToCache(key, value []byte) {
-	shardID := adstypes.GetShardID(key[0])
+	shardID := adstypes.GetShardID(key)
 	if len(root.cache[shardID]) > CacheSizeLimit {
 		var delK string
 		delHeight := int64(math.MaxInt64)

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	//"runtime/pprof"
 	"sort"
 	"sync/atomic"
 	"time"
@@ -278,6 +279,10 @@ func RunGenerateAccounts(numAccounts int, randFilename string, jsonFile string) 
 	_, _ = out.Write(b)
 	_ = out.Close()
 	fmt.Printf("Finish Creating Accounts %f\n", float64(time.Now().UnixNano())/1000000000.0)
+
+	//heapProfile, _ := os.Create("./heap.out")
+	//pprof.WriteHeapProfile(heapProfile)
+	//heapProfile.Close()
 
 	//fmt.Printf("total tsc time %d\n", gotsc.BenchEnd()-start)
 	//fmt.Printf("phase1 time %d\n", Phase1Time)
