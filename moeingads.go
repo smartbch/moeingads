@@ -667,6 +667,7 @@ func (mads *MoeingADS) PruneBeforeHeight(height int64) {
 		end--
 		starts[shardID], ends[shardID] = start, end
 	})
+	mads.rocksdb.OpenNewBatch()
 	for shardID := 0; shardID < types.ShardCount; shardID++ {
 		start, end := starts[shardID], ends[shardID]
 		if end > start+datatree.MinPruneCount {
@@ -678,6 +679,7 @@ func (mads *MoeingADS) PruneBeforeHeight(height int64) {
 			mads.meta.SetLastPrunedTwig(shardID, end-1)
 		}
 	}
+	mads.rocksdb.CloseOldBatch()
 	mads.rocksdb.SetPruneHeight(uint64(height))
 }
 

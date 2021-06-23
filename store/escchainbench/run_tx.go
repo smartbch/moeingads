@@ -236,10 +236,10 @@ func RunTx(numBlock int, txFile string) {
 			}
 		}
 		//Phase2Time += gotsc.BenchEnd() - start - tscOverhead
+		root.EndWrite()
 		if height > 100 && height%100 == 0 {
 			mads.PruneBeforeHeight(height - 100)
 		}
-		root.EndWrite()
 	}
 	//pjob.Stop()
 	fmt.Printf("Finished %f\n", float64(time.Now().UnixNano())/1e9)
