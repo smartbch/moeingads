@@ -188,6 +188,7 @@ func Test1(t *testing.T) {
 	e = ads.GetEntry([]byte("00432180"))
 	assert.Equal(t, "K:00432180 nK:[]byte{0x30, 0x30, 0x34, 0x33, 0x32, 0x31, 0x38, 0x38}(8) V:80 H:1 LH:0 SN:23", EntryToStr(e))
 
+
 	ads.Close()
 	os.RemoveAll("./rocksdb.db")
 }
