@@ -3,6 +3,7 @@ package metadb
 import (
 	"encoding/binary"
 	"fmt"
+	"sync"
 
 	"github.com/smartbch/moeingads/datatree"
 	"github.com/smartbch/moeingads/indextree"
@@ -18,215 +19,222 @@ const (
 	ByteEdgeNodes          = byte(0x15)
 	ByteMaxSerialNum       = byte(0x16)
 	ByteOldestActiveTwigID = byte(0x17)
-	ByteIsRunning          = byte(0x18)
+	ByteIsRunning          = byte(0x18) //Not Used
 	ByteRootHash           = byte(0x19)
 )
 
-type MetaDBWithTMDB struct {
-	kvdb *indextree.RocksDB
-
+type MetaDB struct {
+	kvdb               *indextree.RocksDB
 	currHeight         int64
-	lastPrunedTwig     int64
-	maxSerialNum       int64
-	oldestActiveTwigID int64
-	rootHash           [32]byte
+	lastPrunedTwig     [types.ShardCount]int64
+	maxSerialNum       [types.ShardCount]int64
+	oldestActiveTwigID [types.ShardCount]int64
+	rootHash           [types.ShardCount][32]byte
+	mtx                sync.Mutex
 }
 
-var _ types.MetaDB = (*MetaDBWithTMDB)(nil)
+var _ types.MetaDB = (*MetaDB)(nil)
 
-func NewMetaDB(kvdb *indextree.RocksDB) *MetaDBWithTMDB {
-	return &MetaDBWithTMDB{kvdb: kvdb}
+func NewMetaDB(kvdb *indextree.RocksDB) *MetaDB {
+	return &MetaDB{kvdb: kvdb}
 }
 
-func (db *MetaDBWithTMDB) Close() {
+func (db *MetaDB) Close() {
 	db.kvdb = nil
 }
 
-func (db *MetaDBWithTMDB) ReloadFromKVDB() {
+func (db *MetaDB) ReloadFromKVDB() {
 	db.currHeight = 0
-	db.lastPrunedTwig = 0
-	db.maxSerialNum = 0
-	db.oldestActiveTwigID = 0
+	for i := 0; i < types.ShardCount; i++ {
+		db.lastPrunedTwig[i] = 0
+		db.maxSerialNum[i] = 0
+		db.oldestActiveTwigID[i] = 0
+	}
 
 	bz := db.kvdb.Get([]byte{ByteCurrHeight})
 	if bz != nil {
 		db.currHeight = int64(binary.LittleEndian.Uint64(bz))
 	}
 
-	bz = db.kvdb.Get([]byte{ByteLastPrunedTwig})
-	if bz != nil {
-		db.lastPrunedTwig = int64(binary.LittleEndian.Uint64(bz))
-	}
+	for i := 0; i < types.ShardCount; i++ {
+		bz = db.kvdb.Get([]byte{ByteLastPrunedTwig, byte(i)})
+		if bz != nil {
+			db.lastPrunedTwig[i] = int64(binary.LittleEndian.Uint64(bz))
+		}
 
-	bz = db.kvdb.Get([]byte{ByteMaxSerialNum})
-	if bz != nil {
-		db.maxSerialNum = int64(binary.LittleEndian.Uint64(bz))
-	}
+		bz = db.kvdb.Get([]byte{ByteMaxSerialNum, byte(i)})
+		if bz != nil {
+			db.maxSerialNum[i] = int64(binary.LittleEndian.Uint64(bz))
+		}
 
-	bz = db.kvdb.Get([]byte{ByteOldestActiveTwigID})
-	if bz != nil {
-		db.oldestActiveTwigID = int64(binary.LittleEndian.Uint64(bz))
-	}
+		bz = db.kvdb.Get([]byte{ByteOldestActiveTwigID, byte(i)})
+		if bz != nil {
+			db.oldestActiveTwigID[i] = int64(binary.LittleEndian.Uint64(bz))
+		}
 
-	bz = db.kvdb.Get([]byte{ByteRootHash})
-	if bz != nil {
-		copy(db.rootHash[:], bz)
+		bz = db.kvdb.Get([]byte{ByteRootHash, byte(i)})
+		if bz != nil {
+			copy(db.rootHash[i][:], bz)
+		}
 	}
 }
 
-func (db *MetaDBWithTMDB) Commit() {
+func (db *MetaDB) Commit() {
+	db.mtx.Lock()
+	defer db.mtx.Unlock()
 	var buf [8]byte
 	binary.LittleEndian.PutUint64(buf[:], uint64(db.currHeight))
 	db.kvdb.CurrBatch().Set([]byte{ByteCurrHeight}, buf[:])
 
-	binary.LittleEndian.PutUint64(buf[:], uint64(db.lastPrunedTwig))
-	db.kvdb.CurrBatch().Set([]byte{ByteLastPrunedTwig}, buf[:])
+	for i := 0; i < types.ShardCount; i++ {
+		binary.LittleEndian.PutUint64(buf[:], uint64(db.lastPrunedTwig[i]))
+		db.kvdb.CurrBatch().Set([]byte{ByteLastPrunedTwig, byte(i)}, buf[:])
 
-	binary.LittleEndian.PutUint64(buf[:], uint64(db.maxSerialNum))
-	db.kvdb.CurrBatch().Set([]byte{ByteMaxSerialNum}, buf[:])
+		binary.LittleEndian.PutUint64(buf[:], uint64(db.maxSerialNum[i]))
+		db.kvdb.CurrBatch().Set([]byte{ByteMaxSerialNum, byte(i)}, buf[:])
 
-	binary.LittleEndian.PutUint64(buf[:], uint64(db.oldestActiveTwigID))
-	db.kvdb.CurrBatch().Set([]byte{ByteOldestActiveTwigID}, buf[:])
+		binary.LittleEndian.PutUint64(buf[:], uint64(db.oldestActiveTwigID[i]))
+		db.kvdb.CurrBatch().Set([]byte{ByteOldestActiveTwigID, byte(i)}, buf[:])
 
-	db.kvdb.CurrBatch().Set([]byte{ByteRootHash}, db.rootHash[:])
+		db.kvdb.CurrBatch().Set([]byte{ByteRootHash, byte(i)}, db.rootHash[i][:])
+	}
 }
 
-func (db *MetaDBWithTMDB) SetCurrHeight(h int64) {
+func (db *MetaDB) SetCurrHeight(h int64) {
 	db.currHeight = h
 }
 
-func (db *MetaDBWithTMDB) GetCurrHeight() int64 {
+func (db *MetaDB) GetCurrHeight() int64 {
 	return db.currHeight
 }
 
-func (db *MetaDBWithTMDB) SetTwigMtFileSize(size int64) {
+func (db *MetaDB) SetTwigMtFileSize(shardID int, size int64) {
+	db.mtx.Lock()
+	defer db.mtx.Unlock()
 	var buf [8]byte
 	binary.LittleEndian.PutUint64(buf[:], uint64(size))
-	db.kvdb.CurrBatch().Set([]byte{ByteTwigMtFileSize}, buf[:])
+	db.kvdb.CurrBatch().Set([]byte{ByteTwigMtFileSize, byte(shardID)}, buf[:])
 }
 
-func (db *MetaDBWithTMDB) GetTwigMtFileSize() int64 {
-	bz := db.kvdb.Get([]byte{ByteTwigMtFileSize})
+func (db *MetaDB) GetTwigMtFileSize(shardID int) int64 {
+	bz := db.kvdb.Get([]byte{ByteTwigMtFileSize, byte(shardID)})
 	if bz != nil {
 		return int64(binary.LittleEndian.Uint64(bz))
 	}
 	return 0
 }
 
-func (db *MetaDBWithTMDB) SetEntryFileSize(size int64) {
+func (db *MetaDB) SetEntryFileSize(shardID int, size int64) {
+	db.mtx.Lock()
+	defer db.mtx.Unlock()
 	var buf [8]byte
 	binary.LittleEndian.PutUint64(buf[:], uint64(size))
-	db.kvdb.CurrBatch().Set([]byte{ByteEntryFileSize}, buf[:])
+	db.kvdb.CurrBatch().Set([]byte{ByteEntryFileSize, byte(shardID)}, buf[:])
 }
 
-func (db *MetaDBWithTMDB) GetEntryFileSize() int64 {
-	bz := db.kvdb.Get([]byte{ByteEntryFileSize})
+func (db *MetaDB) GetEntryFileSize(shardID int) int64 {
+	bz := db.kvdb.Get([]byte{ByteEntryFileSize, byte(shardID)})
 	if bz != nil {
 		return int64(binary.LittleEndian.Uint64(bz))
 	}
 	return 0
 }
 
-func (db *MetaDBWithTMDB) setTwigHeight(twigID int64, height int64) {
+func (db *MetaDB) setTwigHeight(shardID int, twigID int64, height int64) {
+	db.mtx.Lock()
+	defer db.mtx.Unlock()
 	var buf [8]byte
 	binary.LittleEndian.PutUint64(buf[:], uint64(twigID))
-	key := append([]byte{ByteTwigHeight}, buf[:]...)
+	key := append([]byte{ByteTwigHeight, byte(shardID)}, buf[:]...)
 	binary.LittleEndian.PutUint64(buf[:], uint64(height))
 	db.kvdb.CurrBatch().Set(key, buf[:])
 }
 
-func (db *MetaDBWithTMDB) GetTwigHeight(twigID int64) int64 {
+func (db *MetaDB) GetTwigHeight(shardID int, twigID int64) int64 {
 	var buf [8]byte
 	binary.LittleEndian.PutUint64(buf[:], uint64(twigID))
-	bz := db.kvdb.Get(append([]byte{ByteTwigHeight}, buf[:]...))
+	bz := db.kvdb.Get(append([]byte{ByteTwigHeight, byte(shardID)}, buf[:]...))
 	if len(bz) == 0 {
 		return -1
 	}
 	return int64(binary.LittleEndian.Uint64(bz))
 }
 
-func (db *MetaDBWithTMDB) DeleteTwigHeight(twigID int64) {
+func (db *MetaDB) DeleteTwigHeight(shardID int, twigID int64) {
+	db.mtx.Lock()
+	defer db.mtx.Unlock()
 	var buf [8]byte
 	binary.LittleEndian.PutUint64(buf[:], uint64(twigID))
-	db.kvdb.Delete(append([]byte{ByteTwigHeight}, buf[:]...))
+	db.kvdb.CurrBatch().Delete(append([]byte{ByteTwigHeight, byte(shardID)}, buf[:]...))
 }
 
-func (db *MetaDBWithTMDB) SetLastPrunedTwig(twigID int64) {
-	db.lastPrunedTwig = twigID
+func (db *MetaDB) SetLastPrunedTwig(shardID int, twigID int64) {
+	db.lastPrunedTwig[shardID] = twigID
 }
 
-func (db *MetaDBWithTMDB) GetLastPrunedTwig() int64 {
-	return db.lastPrunedTwig
+func (db *MetaDB) GetLastPrunedTwig(shardID int) int64 {
+	return db.lastPrunedTwig[shardID]
 }
 
-func (db *MetaDBWithTMDB) GetEdgeNodes() []byte {
-	return db.kvdb.Get([]byte{ByteEdgeNodes})
+func (db *MetaDB) GetEdgeNodes(shardID int) []byte {
+	return db.kvdb.Get([]byte{ByteEdgeNodes, byte(shardID)})
 }
 
-func (db *MetaDBWithTMDB) SetEdgeNodes(bz []byte) {
-	db.kvdb.Set([]byte{ByteEdgeNodes}, bz)
+func (db *MetaDB) SetEdgeNodes(shardID int, bz []byte) {
+	db.mtx.Lock()
+	defer db.mtx.Unlock()
+	db.kvdb.CurrBatch().Set([]byte{ByteEdgeNodes, byte(shardID)}, bz)
 }
 
-func (db *MetaDBWithTMDB) GetMaxSerialNum() int64 {
-	return db.maxSerialNum
+func (db *MetaDB) GetMaxSerialNum(shardID int) int64 {
+	return db.maxSerialNum[shardID]
 }
 
-func (db *MetaDBWithTMDB) IncrMaxSerialNum() {
-	db.maxSerialNum++
-	if db.maxSerialNum%datatree.LeafCountInTwig == 0 {
-		twigID := db.maxSerialNum / datatree.LeafCountInTwig
-		db.setTwigHeight(twigID, db.currHeight)
+func (db *MetaDB) IncrMaxSerialNum(shardID int) {
+	db.maxSerialNum[shardID]++
+	if db.maxSerialNum[shardID]%datatree.LeafCountInTwig == 0 {
+		twigID := db.maxSerialNum[shardID] / datatree.LeafCountInTwig
+		db.setTwigHeight(shardID, twigID, db.currHeight)
 	}
 }
 
-func (db *MetaDBWithTMDB) GetRootHash() [32]byte {
-	return db.rootHash
+func (db *MetaDB) GetRootHash(shardID int) [32]byte {
+	return db.rootHash[shardID]
 }
 
-func (db *MetaDBWithTMDB) SetRootHash(h [32]byte) {
-	db.rootHash = h
+func (db *MetaDB) SetRootHash(shardID int, h [32]byte) {
+	db.rootHash[shardID] = h
 }
 
-func (db *MetaDBWithTMDB) GetOldestActiveTwigID() int64 {
-	return db.oldestActiveTwigID
+func (db *MetaDB) GetOldestActiveTwigID(shardID int) int64 {
+	return db.oldestActiveTwigID[shardID]
 }
 
-func (db *MetaDBWithTMDB) IncrOldestActiveTwigID() {
-	db.oldestActiveTwigID++
+func (db *MetaDB) IncrOldestActiveTwigID(shardID int) {
+	db.oldestActiveTwigID[shardID]++
 }
 
-func (db *MetaDBWithTMDB) GetIsRunning() bool {
-	bz := db.kvdb.Get([]byte{ByteIsRunning})
-	return len(bz) == 0 || bz[0] != 0
-}
-
-func (db *MetaDBWithTMDB) SetIsRunning(isRunning bool) {
-	if isRunning {
-		db.kvdb.SetSync([]byte{ByteIsRunning}, []byte{1})
-	} else {
-		db.kvdb.SetSync([]byte{ByteIsRunning}, []byte{0})
-	}
-}
-
-func (db *MetaDBWithTMDB) Init() {
-	db.SetIsRunning(false)
+func (db *MetaDB) Init() {
 	db.currHeight = 0
-	db.lastPrunedTwig = -1
-	db.maxSerialNum = 0
-	db.oldestActiveTwigID = 0
-	db.SetTwigMtFileSize(0)
-	db.SetEntryFileSize(0)
+	for i := 0; i < types.ShardCount; i++ {
+		db.lastPrunedTwig[i] = -1
+		db.maxSerialNum[i] = 0
+		db.oldestActiveTwigID[i] = 0
+		db.SetTwigMtFileSize(i, 0)
+		db.SetEntryFileSize(i, 0)
+	}
 	db.Commit()
 }
 
-func (db *MetaDBWithTMDB) PrintInfo() {
+func (db *MetaDB) PrintInfo() {
 	fmt.Printf("CurrHeight         %v\n", db.GetCurrHeight())
-	fmt.Printf("TwigMtFileSize     %v\n", db.GetTwigMtFileSize())
-	fmt.Printf("EntryFileSize      %v\n", db.GetEntryFileSize())
-	fmt.Printf("LastPrunedTwig     %v\n", db.GetLastPrunedTwig())
-	fmt.Printf("EdgeNodes          %v\n", db.GetEdgeNodes())
-	fmt.Printf("MaxSerialNum       %v\n", db.GetMaxSerialNum())
-	fmt.Printf("OldestActiveTwigID %v\n", db.GetOldestActiveTwigID())
-	fmt.Printf("IsRunning          %v\n", db.GetIsRunning())
-	fmt.Printf("RootHash           %#v\n", db.GetRootHash())
+	for i := 0; i < types.ShardCount; i++ {
+		fmt.Printf("TwigMtFileSize     %d %v\n", i, db.GetTwigMtFileSize(i))
+		fmt.Printf("EntryFileSize      %d %v\n", i, db.GetEntryFileSize(i))
+		fmt.Printf("LastPrunedTwig     %d %v\n", i, db.GetLastPrunedTwig(i))
+		fmt.Printf("EdgeNodes          %d %v\n", i, db.GetEdgeNodes(i))
+		fmt.Printf("MaxSerialNum       %d %v\n", i, db.GetMaxSerialNum(i))
+		fmt.Printf("OldestActiveTwigID %d %v\n", i, db.GetOldestActiveTwigID(i))
+		fmt.Printf("RootHash           %d %#v\n", i, db.GetRootHash(i))
+	}
 }

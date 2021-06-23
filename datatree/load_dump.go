@@ -433,13 +433,13 @@ func (tree *Tree) RecoverInactiveTwigRoots(lastPrunedTwigID, oldestActiveTwigID 
 	}
 }
 
-func RecoverTree(bufferSize, blockSize int, dirName string, edgeNodes []*EdgeNode, lastPrunedTwigID, oldestActiveTwigID, youngestTwigID int64, fileSizes []int64) (tree *Tree, rootHash [32]byte) {
-	dirEntry := filepath.Join(dirName, entriesPath)
+func RecoverTree(bufferSize, blockSize int, dirName, suffix string, edgeNodes []*EdgeNode, lastPrunedTwigID, oldestActiveTwigID, youngestTwigID int64, fileSizes []int64) (tree *Tree, rootHash [32]byte) {
+	dirEntry := filepath.Join(dirName, entriesPath+suffix)
 	entryFile, err := NewEntryFile(bufferSize, blockSize, dirEntry)
 	if err != nil {
 		panic(err)
 	}
-	dirTwigMt := filepath.Join(dirName, twigMtPath)
+	dirTwigMt := filepath.Join(dirName, twigMtPath+suffix)
 	twigMtFile, err := NewTwigMtFile(bufferSize, blockSize, dirTwigMt)
 	if err != nil {
 		panic(err)

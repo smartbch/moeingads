@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	NumTxInEpoch    = 1024
+	NumTxInEpoch    = 4096
 	NumWorkers      = 128
 	NumTxPerWorker  = NumTxInEpoch / NumWorkers
 	NumEpochInBlock = 32
@@ -96,7 +96,7 @@ func (epoch Epoch) Run(root *store.RootStore) {
 		wg.Done()
 	}()
 	sharedIdx := int64(-1)
-	datatree.ParrallelRun(NumWorkersInBlock, func(jobID int) {
+	datatree.ParallelRun(NumWorkersInBlock, func(jobID int) {
 		for {
 			myIdx := atomic.AddInt64(&sharedIdx, 1)
 			if myIdx >= int64(len(epoch.txList)) {
@@ -235,8 +235,8 @@ func RunTx(numBlock int, txFile string) {
 				}
 			}
 		}
-		root.EndWrite()
 		//Phase2Time += gotsc.BenchEnd() - start - tscOverhead
+		root.EndWrite()
 		if height > 100 && height%100 == 0 {
 			mads.PruneBeforeHeight(height - 100)
 		}

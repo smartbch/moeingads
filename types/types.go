@@ -27,7 +27,31 @@ const (
 	OpNone OperationOnEntry = iota
 	OpDelete
 	OpInsertOrChange
+
+	ShardCount = 8
+	IndexChanCount = 10
 )
+
+func LimitRange(b byte) byte {
+	return (b % 128) + 64 // limit the range to avoid conflicting with start&end Guard
+}
+
+func GetShardID(bz []byte) int {
+	if len(bz) != 8 {
+		return 0
+	}
+	return int(bz[7]) / (256/ShardCount)
+}
+
+func GetIndexChanID(b byte) int {
+	if b < 64 {
+		return 0 // for the x-standy-queue
+	} else if b >= 128+64 {
+		return 9 // for the standy-queue
+	} else {
+		return 1 + (int(b) - 64) / 16
+	}
+}
 
 type HotEntry struct {
 	EntryPtr        *Entry
@@ -90,34 +114,31 @@ type MetaDB interface {
 	SetCurrHeight(h int64)
 	GetCurrHeight() int64
 
-	SetTwigMtFileSize(size int64)
-	GetTwigMtFileSize() int64
+	SetTwigMtFileSize(shardID int, size int64)
+	GetTwigMtFileSize(shardID int) int64
 
-	SetEntryFileSize(size int64)
-	GetEntryFileSize() int64
+	SetEntryFileSize(shardID int, size int64)
+	GetEntryFileSize(shardID int) int64
 
-	GetTwigHeight(twigID int64) int64
-	DeleteTwigHeight(twigID int64)
+	GetTwigHeight(shardID int, twigID int64) int64
+	DeleteTwigHeight(shardID int, twigID int64)
 
-	SetLastPrunedTwig(twigID int64)
-	GetLastPrunedTwig() int64
+	SetLastPrunedTwig(shardID int, twigID int64)
+	GetLastPrunedTwig(shardID int) int64
 
-	GetEdgeNodes() []byte
-	SetEdgeNodes(bz []byte)
+	SetEdgeNodes(shardID int, bz []byte)
+	GetEdgeNodes(shardID int) []byte
 
 	// MaxSerialNum is the maximum serial num among all the entries
-	GetMaxSerialNum() int64
-	IncrMaxSerialNum() // It should call setTwigHeight(twigID int64, height int64)
+	GetMaxSerialNum(shardID int) int64
+	IncrMaxSerialNum(shardID int) // It should call setTwigHeight(twigID int64, height int64)
 
-	GetRootHash() [32]byte
-	SetRootHash(h [32]byte)
+	SetRootHash(shardID int, h [32]byte)
+	GetRootHash(shardID int) [32]byte
 
 	// the ID of the oldest active twig, increased by ReapOldestActiveTwig
-	GetOldestActiveTwigID() int64
-	IncrOldestActiveTwigID()
-
-	GetIsRunning() bool
-	SetIsRunning(isRunning bool)
+	GetOldestActiveTwigID(shardID int) int64
+	IncrOldestActiveTwigID(shardID int)
 
 	Init()
 	Close()

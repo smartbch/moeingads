@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	//"runtime/pprof"
 	"sort"
 	"sync/atomic"
 	"time"
@@ -255,14 +256,16 @@ func RunGenerateAccounts(numAccounts int, randFilename string, jsonFile string) 
 	}
 	numBlocks := numAccounts / NumNewAccountsInBlock
 	//start := gotsc.BenchStart()
+	lastCacheSize := 1000
 	for i := 0; i < numBlocks; i++ {
 		root.SetHeight(int64(i))
 		if i%10 == 0 {
 			fmt.Printf("Now %d of %d, %d\n", i, numBlocks, root.ActiveCount())
 		}
-		trunk := root.GetTrunkStore(1000).(*store.TrunkStore)
+		trunk := root.GetTrunkStore(lastCacheSize).(*store.TrunkStore)
 		GenerateAccountsInBlock(int64(i*NumNewAccountsInBlock), trunk, rs, addr2num)
 		//start := gotsc.BenchStart()
+		lastCacheSize = trunk.CacheSize()
 		trunk.Close(true)
 		//Phase3Time += gotsc.BenchEnd() - start - tscOverhead
 	}
@@ -276,6 +279,10 @@ func RunGenerateAccounts(numAccounts int, randFilename string, jsonFile string) 
 	_, _ = out.Write(b)
 	_ = out.Close()
 	fmt.Printf("Finish Creating Accounts %f\n", float64(time.Now().UnixNano())/1000000000.0)
+
+	//heapProfile, _ := os.Create("./heap.out")
+	//pprof.WriteHeapProfile(heapProfile)
+	//heapProfile.Close()
 
 	//fmt.Printf("total tsc time %d\n", gotsc.BenchEnd()-start)
 	//fmt.Printf("phase1 time %d\n", Phase1Time)
@@ -310,7 +317,7 @@ func GenerateAccountsInBlock(startSN int64, trunk *store.TrunkStore, rs randsrc.
 	sharedIdx := int64(-1)
 	var rbtList [NumWorkersInBlock]rabbit.RabbitStore
 	// Parallel execution
-	datatree.ParrallelRun(NumWorkersInBlock, func(workerID int) {
+	datatree.ParallelRun(NumWorkersInBlock, func(workerID int) {
 		rbt := rabbit.NewRabbitStore(trunk)
 		rbtList[workerID] = rbt
 		for {

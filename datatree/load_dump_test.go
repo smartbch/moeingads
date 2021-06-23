@@ -50,7 +50,7 @@ func TestLoadTree(t *testing.T) {
 	assert.Equal(t, tree1.mtree4YoungestTwig, mtree4YoungestTwig0)
 	tree1.Close()
 
-	tree2, _ := RecoverTree(SmallBufferSize, defaultFileSize, dirName, nil, 0, 0, 1, nil)
+	tree2, _ := RecoverTree(SmallBufferSize, defaultFileSize, dirName, "", nil, 0, 0, 1, nil)
 	fmt.Printf("Recover finished\n")
 	assert.Equal(t, tree2.mtree4YoungestTwig, mtree4YoungestTwig0)
 	compareTwigs(t, tree2.activeTwigs, activeTwigs0)

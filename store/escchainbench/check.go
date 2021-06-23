@@ -28,7 +28,7 @@ const (
 func CheckAccountsInBlock(snList []uint32, root *store.RootStore) {
 	trunk := root.GetTrunkStore(1000).(*store.TrunkStore)
 	sharedIdx := int64(-1)
-	datatree.ParrallelRun(NumWorkersInBlock, func(workerID int) {
+	datatree.ParallelRun(NumWorkersInBlock, func(workerID int) {
 		rbt := rabbit.NewRabbitStore(trunk)
 		for {
 			myIdx := atomic.AddInt64(&sharedIdx, 1)
