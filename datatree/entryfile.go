@@ -277,7 +277,7 @@ func (ef *EntryFile) readMagicBytesAndLength(off int64, withBuf bool) (length in
 		//	panic(err)
 		//}
 		//fmt.Printf("%#v\n", buf[:])
-		panic("Invalid MagicBytes")
+		panic(fmt.Sprintf("Invalid MagicBytes at %d", off))
 	}
 	length = int64(GetUint24(buf[9:12]))
 	if int(length) >= MaxEntryBytes {

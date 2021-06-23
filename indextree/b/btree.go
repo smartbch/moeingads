@@ -1,5 +1,3 @@
-// +build cppbtree
-
 package b
 
 import (
