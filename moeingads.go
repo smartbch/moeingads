@@ -176,11 +176,11 @@ func (mads *MoeingADS) initGuards() {
 	mads.idxTree.Set(mads.endKey, pos)
 
 	mads.idxTree.EndWrite()
-	rootHash := mads.datTree[0].EndBlock()
-	mads.meta.SetRootHash(0, rootHash)
-	rootHash = mads.datTree[lastShard].EndBlock()
-	mads.meta.SetRootHash(lastShard, rootHash)
+	mads.allShardEndBlock()
 	mads.meta.Commit()
+	for i := 0; i < types.ShardCount; i++ {
+		mads.datTree[i].WaitForFlushing()
+	}
 	mads.rocksdb.CloseOldBatch()
 	mads.rocksdb.OpenNewBatch()
 }
@@ -625,6 +625,19 @@ func (mads *MoeingADS) compactForShard(shardID int) {
 	mads.meta.IncrOldestActiveTwigID(shardID)
 }
 
+func (mads *MoeingADS) allShardEndBlock() {
+	for i := 0; i < types.ShardCount; i++ {
+		if mads.datTree[i].DeactivedSNListSize() != 0 {
+			mads.flushDeactivedSNList(i)
+		}
+		rootHash := mads.datTree[i].EndBlock()
+		mads.meta.SetRootHash(i, rootHash)
+		entryFileSize, twigMtFileSize := mads.datTree[i].GetFileSizes()
+		mads.meta.SetEntryFileSize(i, entryFileSize)
+		mads.meta.SetTwigMtFileSize(i, twigMtFileSize)
+	}
+}
+
 func (mads *MoeingADS) EndWrite() {
 	mads.update()
 	for {
@@ -641,16 +654,7 @@ func (mads *MoeingADS) EndWrite() {
 		})
 		mads.flushIdxTreeJobs()
 	}
-	for i := 0; i < types.ShardCount; i++ {
-		if mads.datTree[i].DeactivedSNListSize() != 0 {
-			mads.flushDeactivedSNList(i)
-		}
-		rootHash := mads.datTree[i].EndBlock()
-		mads.meta.SetRootHash(i, rootHash)
-		entryFileSize, twigMtFileSize := mads.datTree[i].GetFileSizes()
-		mads.meta.SetEntryFileSize(i, entryFileSize)
-		mads.meta.SetTwigMtFileSize(i, twigMtFileSize)
-	}
+	mads.allShardEndBlock()
 	mads.k2heMap = NewBucketMap(mads.k2heMap.GetSizes()) // clear content
 	mads.nkSet = NewBucketSet(mads.nkSet.GetSizes())     // clear content
 	for i := range mads.tempEntries64 {
