@@ -587,6 +587,19 @@ func (mads *MoeingADS) CheckConsistency() {
 	}
 }
 
+func (mads *MoeingADS) ScanAll(fn func(key, value []byte)) {
+	iter := mads.idxTree.ReverseIterator(mads.startKey, mads.endKey)
+	defer iter.Close()
+	for iter.Valid() && !bytes.Equal(iter.Key(), mads.startKey) {
+		pos := iter.Value()
+		key := iter.Key()
+		shardID := types.GetShardID(key)
+		entry := mads.datTree[shardID].ReadEntry(int64(pos))
+		fn(key, entry.Value)
+		iter.Next()
+	}
+}
+
 func (mads *MoeingADS) ActiveCount() int {
 	return mads.idxTree.ActiveCount()
 }
