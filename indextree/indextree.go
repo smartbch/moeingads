@@ -14,6 +14,7 @@ import (
 
 const (
 	MaxKeyLength = 8192
+	RecentBlockCount = 128
 )
 
 type Iterator = types.IteratorUI64
@@ -110,11 +111,10 @@ the key-position record is up-to-date, i.e., not expired.
 */
 
 type NVTreeMem struct {
-	mtx       sync.RWMutex
-	bt        *b.Tree
-	isWriting bool
-	rocksdb   *RocksDB
-	//batch      types.Batch
+	mtx        sync.RWMutex
+	bt         *b.Tree
+	isWriting  bool
+	rocksdb    *RocksDB
 	currHeight [8]byte
 }
 
@@ -123,8 +123,8 @@ var _ types.IndexTree = (*NVTreeMem)(nil)
 func NewNVTreeMem(rocksdb *RocksDB) *NVTreeMem {
 	btree := b.TreeNew()
 	return &NVTreeMem{
-		bt:      btree,
-		rocksdb: rocksdb,
+		bt:         btree,
+		rocksdb:    rocksdb,
 	}
 }
 
