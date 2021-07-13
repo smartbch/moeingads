@@ -30,7 +30,6 @@ type cacheEntry struct {
 // are written to them, no read operation is permitted.
 type RootStore struct {
 	mtx sync.RWMutex
-	wg  sync.WaitGroup
 
 	cache [adstypes.ShardCount]map[string]cacheEntry
 	// controls which KVs can be cached, when this function is nil, all are cached.
@@ -55,20 +54,16 @@ func NewRootStore(mads *moeingads.MoeingADS, isCacheableKey func(k []byte) bool)
 	return result
 }
 
-// One RootStore can be used by many TrunkStores and RabbitStores
-// These stores must use flowing four lock-related functions properly
-// to co-operate.
+// One RootStore can be used by many TrunkStores and RabbitStores. There can be only one writter and many
+// readers. RootStore is written in TruckStore's WriteBack, which protect the writing process with the write-lock,
+// and is read during the life time of RabbitStores. So RabbitStores acquire read-lock at creation and release
+// read-lock when closing.
+// Writer won't starve: https://stackoverflow.com/questions/46786900/the-implementions-of-rwmutex-lock-in-golang
 func (root *RootStore) RLock() {
-	root.wg.Wait() // if someone is waiting for write lock, stop requiring read lock
 	root.mtx.RLock()
 }
 func (root *RootStore) Lock() {
-	//fmt.Printf("Now in a write lock\n")
-	//panic("Fuck")
-
-	root.wg.Add(1) // indicating we are waiting for a write lock
 	root.mtx.Lock()
-	root.wg.Done() // now we've got the write lock
 }
 func (root *RootStore) RUnlock() {
 	root.mtx.RUnlock()
