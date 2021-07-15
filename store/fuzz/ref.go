@@ -1,78 +1,91 @@
 package fuzz
 
-import (
-	"github.com/smartbch/moeingads/store"
-	storetypes "github.com/smartbch/moeingads/store/types"
-)
-
-type UndoOp struct {
-	oldStatus  storetypes.CacheStatus
-	key, value []byte
+type RefL1 struct {
+	cache map[string]string
+	base  map[string]string
 }
 
-type RefStore struct {
-	cs *store.CacheStore
-}
-
-func NewRefStore() *RefStore {
-	return &RefStore{
-		cs: store.NewCacheStore(1000),
+func NewRefL1() *RefL1 {
+	return &RefL1{
+		cache: make(map[string]string),
+		base:  make(map[string]string),
 	}
 }
 
-func (rs *RefStore) Size() int {
-	return rs.cs.Size()
+func (r *RefL1) Get(key []byte) []byte {
+	if k, ok := r.cache[string(key)]; ok {
+		return []byte(k)
+	}
+	if k, ok := r.base[string(key)]; ok {
+		return []byte(k)
+	}
+	return nil
 }
 
-func (rs *RefStore) Clone() *RefStore {
-	newStore := NewRefStore()
-	rs.cs.ScanAllEntries(func(key, value []byte, isDeleted bool) {
-		if isDeleted {
-			return
+func (r *RefL1) Set(key, value []byte) {
+	r.cache[string(key)] = string(value)
+}
+
+func (r *RefL1) Delete(key []byte) {
+	r.cache[string(key)] = ""
+}
+
+func (r *RefL1) Size() int {
+	return len(r.base)
+}
+
+func (r *RefL1) FlushCache() {
+	for k, v := range r.cache {
+		if len(v) == 0 {
+			delete(r.base, k)
+		} else {
+			r.base[k] = v
 		}
-		newStore.cs.Set(key, value)
-	})
-	return newStore
+	}
+	r.cache = make(map[string]string)
 }
 
-func (rs *RefStore) Close() {
-	rs.cs.Close()
+func (r *RefL1) ClearCache() {
+	r.cache = make(map[string]string)
 }
 
-func (rs *RefStore) Get(key []byte) []byte {
-	v, _ := rs.cs.Get(key)
-	return v
+type RefL2 struct {
+	cache map[string]string
+	refL1 *RefL1
 }
 
-func (rs *RefStore) Has(key []byte) bool {
-	_, status := rs.cs.Get(key)
-	return status != storetypes.Missed
-}
-
-func (rs *RefStore) RealSet(key, value []byte) {
-	rs.cs.Set(key, value)
-}
-
-func (rs *RefStore) Set(key, value []byte) UndoOp {
-	v, status := rs.cs.Get(key)
-	rs.cs.Set(key, value)
-	return UndoOp{
-		oldStatus: status,
-		key:       key,
-		value:     v,
+func NewRefL2(r *RefL1) *RefL2 {
+	return &RefL2{
+		cache: make(map[string]string),
+		refL1: r,
 	}
 }
 
-func (rs *RefStore) RealDelete(key []byte) {
-	rs.cs.RealDelete(key)
+func (r *RefL2) Get(key []byte) []byte {
+	if k, ok := r.cache[string(key)]; ok {
+		return []byte(k)
+	}
+	return r.refL1.Get(key)
 }
 
-func (rs *RefStore) Delete(key []byte) UndoOp {
-	v, status := rs.cs.Get(key)
-	rs.cs.Delete(key)
-	return UndoOp{
-		oldStatus: status,
-		key:       key,
-		value:     v,
-	}
+func (r *RefL2) Set(key, value []byte) {
+	r.cache[string(key)] = string(value)
 }
+
+func (r *RefL2) Delete(key []byte) {
+	r.cache[string(key)] = ""
+}
+
+func (r *RefL2) Close(writeBack bool) {
+	if writeBack {
+		for k, v := range r.cache {
+			if len(v) == 0 {
+				r.refL1.Delete([]byte(k))
+			} else {
+				r.refL1.Set([]byte(k), []byte(v))
+			}
+		}
+	}
+	r.cache, r.refL1 = nil, nil
+}
+

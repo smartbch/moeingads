@@ -58,7 +58,6 @@ type RootStoreI interface {
 	SetHeight(h int64)
 	BeginWrite()
 	EndWrite()
-	CheckConsistency()
 	Close()
 	Lock()
 	Unlock()

@@ -3,6 +3,7 @@ package datatree
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 )
 
@@ -157,16 +158,41 @@ func (pp *ProofPath) Check(complete bool) error {
 
 // ===================================================================
 
+func CheckProof(path *ProofPath) ([]byte, error) {
+	err := path.Check(false)
+	if err != nil {
+		return nil, err
+	}
+	bz := path.ToBytes()
+	path2, err := BytesToProofPath(bz)
+	if err != nil {
+		return nil, err
+	}
+	err = path2.Check(true)
+	if err != nil {
+		return nil, err
+	}
+	return bz, nil
+}
+
+func (tree *Tree) GetProofBytes(sn int64) ([]byte, error) {
+	proof := tree.GetProof(sn)
+	if proof == nil {
+		return nil, errors.New("No such serial number")
+	}
+	return CheckProof(proof)
+}
+
 func (tree *Tree) GetProof(sn int64) *ProofPath {
 	twigID := sn >> TwigShift
 	path := &ProofPath{}
 	path.SerialNum = sn
 	if twigID > tree.youngestTwigID || twigID < 0 {
-		panic(fmt.Sprintf("Invalid sn: %d", sn))
+		return nil
 	}
 	path.UpperPath, path.Root = tree.getUpperPathAndRoot(twigID)
 	if path.UpperPath == nil {
-		return nil
+		panic("Cannot find uppper path")
 	}
 	if twigID == tree.youngestTwigID {
 		path.LeftOfTwig = getLeftPathInMem(tree.mtree4YoungestTwig, sn)

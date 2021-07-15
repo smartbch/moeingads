@@ -251,11 +251,9 @@ func (hpf *HPFile) Append(bufList [][]byte) (int64, error) {
 		}
 		hpf.latestFileSize += int64(len(buf))
 		extraBytes := len(hpf.buffer) + len(buf) - hpf.bufferSize
-		if extraBytes > 0 {
+		if extraBytes > 0 { // flush the content in hpf.buffer to disk
 			hpf.buffer = append(hpf.buffer, buf[:len(buf)-extraBytes]...)
 			buf = buf[len(buf)-extraBytes:]
-			//pos, _ := f.Seek(0, os.SEEK_END)
-			//fmt.Printf("Haha startPos %x: %x + %x > %x; real pos %x\n", startPos, len(hpf.buffer), len(buf), hpf.bufferSize, pos)
 			_, err := f.Write(hpf.buffer)
 			if err != nil {
 				return 0, err

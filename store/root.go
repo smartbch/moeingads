@@ -142,10 +142,6 @@ func (root *RootStore) Update(updater func(db types.SetDeleter)) {
 	root.Unlock()
 }
 
-func (root *RootStore) CheckConsistency() {
-	root.mads.CheckConsistency()
-}
-
 func (root *RootStore) addToCache(key, value []byte) {
 	shardID := adstypes.GetShardID(key)
 	if len(root.cache[shardID]) > CacheSizeLimit {

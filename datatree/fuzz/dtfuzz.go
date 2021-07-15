@@ -199,18 +199,8 @@ func (ctx *Context) endBlock() {
 		}
 		//fmt.Printf("oldestInactiveSN %d lastPrunedTwigID %d oldestActiveTwigID %d serialNum %d sn %d\n",
 		//	ctx.oldestInactiveSN(), ctx.lastPrunedTwigID, ctx.oldestActiveTwigID, ctx.serialNum, sn)
-		path := ctx.tree.GetProof(sn)
-		err := path.Check(false)
-		if err != nil {
-			panic(err)
-		}
-		bz := path.ToBytes()
-		path2, err := datatree.BytesToProofPath(bz)
-		if err != nil {
-			panic(err)
-		}
-		err = path2.Check(true)
-		if err != nil {
+
+		if _, err := datatree.CheckProof(ctx.tree.GetProof(sn)); err != nil {
 			panic(err)
 		}
 	}

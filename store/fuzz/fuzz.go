@@ -11,6 +11,7 @@ import (
 	"github.com/coinexchain/randsrc"
 
 	"github.com/smartbch/moeingads"
+	"github.com/smartbch/moeingads/datatree"
 	"github.com/smartbch/moeingads/store"
 	"github.com/smartbch/moeingads/store/rabbit"
 	storetypes "github.com/smartbch/moeingads/store/types"
@@ -27,6 +28,25 @@ var (
 
 var DBG bool
 
+type FuzzConfig struct {
+	MaxReadCountInTx       uint32
+	MaxCheckProofCountInTx uint32
+	MaxWriteCountInTx      uint32
+	MaxDeleteCountInTx     uint32
+	MaxTxCountInEpoch      uint32
+	MaxEpochCountInBlock   uint32
+	EffectiveBits          uint64
+	MaxActiveCount         int
+	TxSucceedRatio         float32
+	BlockSucceedRatio      float32
+	BlockPanicRatio        float32
+	RootType               string //MockRoot MockDataTree Real
+	ConsistencyEveryNBlock int
+	PruneEveryNBlock       int
+	KeepRecentNBlock       int
+	ReloadEveryNBlock      int
+}
+
 func runTest(cfg *FuzzConfig) {
 	DBG = false
 	randFilename := os.Getenv("RANDFILE")
@@ -41,6 +61,17 @@ func runTest(cfg *FuzzConfig) {
 
 	rs := randsrc.NewRandSrcFromFileWithSeed(randFilename, []byte{0})
 	var root storetypes.RootStoreI
+	var mads *moeingads.MoeingADS
+	initRootAndMads := func() {
+		var err error
+		mads, err = moeingads.NewMoeingADS("./moeingads4test", false, [][]byte{GuardStart, GuardEnd})
+		if err != nil {
+			panic(err)
+		}
+		root = store.NewRootStore(mads, func(k []byte) bool {
+			return (k[0] & FirstByteOfCacheableKey) == FirstByteOfCacheableKey
+		})
+	}
 	if cfg.RootType == "MockRoot" {
 		root = store.NewMockRootStore()
 	} else if cfg.RootType == "MockDataTree" {
@@ -51,26 +82,39 @@ func runTest(cfg *FuzzConfig) {
 		})
 	} else if cfg.RootType == "Real" {
 		os.RemoveAll("./moeingads4test")
-		mads, err := moeingads.NewMoeingADS("./moeingads4test", false, [][]byte{GuardStart, GuardEnd})
-		if err != nil {
-			panic(err)
-		}
-		root = store.NewRootStore(mads, func(k []byte) bool {
-			return (k[0] & FirstByteOfCacheableKey) == FirstByteOfCacheableKey
-		})
+		initRootAndMads()
 	} else {
 		panic("Invalid RootType " + cfg.RootType)
 	}
-	ref := NewRefStore()
+	ref := NewRefL1()
 	fmt.Printf("Initialized\n")
 
-	for i := 0; i < roundCount; i++ {
-		//if i > 66 {DBG = true}
-		fmt.Printf("Block %d\n", i)
-		root.CheckConsistency()
-		block := GenerateRandBlock(i, ref, rs, cfg)
-		//ExecuteBlock(i, root, &block, rs, cfg, false) //not in parallel
-		ExecuteBlock(i, root, &block, rs, cfg, true) //in parallel
+	block := GenerateRandBlock(0, ref, rs, cfg)
+	madsHeight := 0
+	for height := 0; height < roundCount; height++ {
+		//if height > 66 {DBG = true}
+		fmt.Printf("Block %d success %v\n", height, block.Succeed)
+		//retry := ExecuteBlock(height, mads, root, block, cfg, false) //not in parallel
+		retry := ExecuteBlock(height, mads, root, block, cfg, true) //in parallel
+		if retry {
+			initRootAndMads()
+			if int64(madsHeight) != mads.GetCurrHeight() {
+				panic(fmt.Sprintf("Height mismatch %d %d", madsHeight, mads.GetCurrHeight()))
+			}
+			height--
+			continue // retry with the same height and same block
+		}
+		if block.Succeed && !retry {
+			madsHeight = height
+		}
+		if block.Succeed && int64(height) != mads.GetCurrHeight() {
+			panic(fmt.Sprintf("Height mismatch %d %d", height, mads.GetCurrHeight()))
+		}
+		if (height+1)%cfg.ReloadEveryNBlock == 0 {
+			mads.Close()
+			initRootAndMads()
+		}
+		block = GenerateRandBlock(height, ref, rs, cfg)
 	}
 	root.Close()
 	if cfg.RootType == "MockDataTree" {
@@ -80,54 +124,16 @@ func runTest(cfg *FuzzConfig) {
 	}
 }
 
-const (
-	OpRead   = 8
-	OpWrite  = 1
-	OpDelete = 0
-)
-
-type Coord struct {
-	x, y uint32
-}
-
-func (coord *Coord) ToBytes() []byte {
-	var buf [8]byte
-	binary.LittleEndian.PutUint32(buf[:4], coord.x)
-	binary.LittleEndian.PutUint32(buf[4:], coord.y)
-	return buf[:]
-}
-
-func (coord *Coord) FromBytes(buf []byte) {
-	if len(buf) != 8 {
-		panic(fmt.Sprintf("length is not 8: %#v", buf))
-	}
-	coord.x = binary.LittleEndian.Uint32(buf[:4])
-	coord.y = binary.LittleEndian.Uint32(buf[4:])
-}
-
-func (coord *Coord) DeepCopy() interface{} {
-	return &Coord{
-		x: coord.x,
-		y: coord.y,
-	}
-}
-
-type FuzzConfig struct {
-	MaxReadCountInTx     uint32
-	MaxWriteCountInTx    uint32
-	MaxDeleteCountInTx   uint32
-	MaxTxCountInEpoch    uint32
-	MaxEpochCountInBlock uint32
-	EffectiveBits        uint32
-	MaxActiveCount       int
-	TxSucceedRatio       float32
-	BlockSucceedRatio    float32
-	RootType             string //MockRoot MockDataTree Real
-}
-
 type Pair struct {
 	Key, Value []byte
 }
+
+const (
+	OpRead       = 8
+	OpCheckProof = 4
+	OpWrite      = 1
+	OpDelete     = 0
+)
 
 type Operation struct {
 	opType int
@@ -145,21 +151,19 @@ type Epoch struct {
 }
 
 type Block struct {
-	EpochList []Epoch
-	Succeed   bool
+	EpochList   []Epoch
+	Succeed     bool
+	PanicNumber int
 }
 
 func getRand8Bytes(rs randsrc.RandSrc, cfg *FuzzConfig, touchedKeys map[uint64]struct{}) (res [8]byte) {
-	sh := 62 - cfg.EffectiveBits
 	if touchedKeys == nil {
-		i := rs.GetUint64()
-		i = ((i << sh) >> sh) | 3
+		i := rs.GetUint64() & cfg.EffectiveBits
 		binary.LittleEndian.PutUint64(res[:], i)
 		return
 	}
 	for {
-		i := rs.GetUint64()
-		i = ((i << sh) >> sh) | 3
+		i := rs.GetUint64() & cfg.EffectiveBits
 		if _, ok := touchedKeys[i]; ok {
 			continue
 		} else {
@@ -170,21 +174,19 @@ func getRand8Bytes(rs randsrc.RandSrc, cfg *FuzzConfig, touchedKeys map[uint64]s
 	return
 }
 
-func GenerateRandTx(ref *RefStore, rs randsrc.RandSrc, cfg *FuzzConfig, touchedKeys map[uint64]struct{}) *Tx {
-	readCount, writeCount, deleteCount := uint32(0), uint32(0), uint32(0)
+func GenerateRandTx(ref *RefL1, rs randsrc.RandSrc, cfg *FuzzConfig, touchedKeys map[uint64]struct{}) *Tx {
+	ref2 := NewRefL2(ref)
+	var readCount, checkProofCount, writeCount, deleteCount uint32
 	maxReadCount := rs.GetUint32() % (cfg.MaxReadCountInTx + 1)
+	maxCheckProofCount := rs.GetUint32() % (cfg.MaxCheckProofCountInTx + 1)
 	maxWriteCount := rs.GetUint32() % (cfg.MaxWriteCountInTx + 1)
 	if cfg.MaxActiveCount > 0 && ref.Size() > cfg.MaxActiveCount {
-		maxWriteCount = 0
+		maxWriteCount = 0 //if we have too many active entries in ref store, stop writting
 	}
 	maxDeleteCount := rs.GetUint32() % (cfg.MaxDeleteCountInTx + 1)
 	tx := Tx{
 		OpList:  make([]Operation, 0, maxReadCount+maxWriteCount+maxDeleteCount),
 		Succeed: float32(rs.GetUint32()%0x10000)/float32(0x10000) < cfg.TxSucceedRatio,
-	}
-	var undoList []UndoOp
-	if !tx.Succeed {
-		undoList = make([]UndoOp, 0, maxWriteCount+maxDeleteCount)
 	}
 	for readCount != maxReadCount || writeCount != maxWriteCount || deleteCount != maxDeleteCount {
 		if rs.GetUint32()%4 == 0 && readCount < maxReadCount {
@@ -192,9 +194,17 @@ func GenerateRandTx(ref *RefStore, rs randsrc.RandSrc, cfg *FuzzConfig, touchedK
 			tx.OpList = append(tx.OpList, Operation{
 				opType: OpRead,
 				key:    key,
-				value:  ref.Get(key[:]),
+				value:  ref2.Get(key[:]),
 			})
 			readCount++
+		}
+		if rs.GetUint32()%4 == 0 && checkProofCount < maxCheckProofCount {
+			key := getRand8Bytes(rs, cfg, touchedKeys)
+			tx.OpList = append(tx.OpList, Operation{
+				opType: OpCheckProof,
+				key:    key,
+			})
+			checkProofCount++
 		}
 		if rs.GetUint32()%4 == 0 && writeCount < maxWriteCount {
 			v := getRand8Bytes(rs, cfg, nil)
@@ -203,10 +213,7 @@ func GenerateRandTx(ref *RefStore, rs randsrc.RandSrc, cfg *FuzzConfig, touchedK
 				key:    getRand8Bytes(rs, cfg, touchedKeys),
 				value:  v[:],
 			}
-			undo := ref.Set(op.key[:], op.value[:])
-			if !tx.Succeed {
-				undoList = append(undoList, undo)
-			}
+			ref2.Set(op.key[:], op.value[:])
 			tx.OpList = append(tx.OpList, op)
 			writeCount++
 		}
@@ -215,10 +222,7 @@ func GenerateRandTx(ref *RefStore, rs randsrc.RandSrc, cfg *FuzzConfig, touchedK
 				opType: OpDelete,
 				key:    getRand8Bytes(rs, cfg, touchedKeys),
 			}
-			undo := ref.Delete(op.key[:])
-			if !tx.Succeed {
-				undoList = append(undoList, undo)
-			}
+			ref2.Delete(op.key[:])
 			tx.OpList = append(tx.OpList, op)
 			deleteCount++
 		}
@@ -229,28 +233,19 @@ func GenerateRandTx(ref *RefStore, rs randsrc.RandSrc, cfg *FuzzConfig, touchedK
 				touchedKeys[binary.LittleEndian.Uint64(op.key[:])] = struct{}{}
 			}
 		}
-	} else { // to recover old state
-		for i := len(undoList) - 1; i >= 0; i-- {
-			undoOp := undoList[i]
-			if undoOp.oldStatus == storetypes.Missed {
-				ref.RealDelete(undoOp.key)
-			} else if undoOp.oldStatus == storetypes.JustDeleted {
-				ref.Delete(undoOp.key)
-			} else {
-				ref.RealSet(undoOp.key, undoOp.value)
-			}
-		}
 	}
+	ref2.Close(tx.Succeed)
 	return &tx
 }
 
-func GenerateRandEpoch(height, epochNum int, ref *RefStore, rs randsrc.RandSrc, cfg *FuzzConfig, blkSuc bool) Epoch {
+func GenerateRandEpoch(height, epochNum int, ref *RefL1, rs randsrc.RandSrc, cfg *FuzzConfig, blkSuc bool) Epoch {
 	keyCountEstimated := cfg.MaxTxCountInEpoch * (cfg.MaxReadCountInTx +
 		cfg.MaxWriteCountInTx + cfg.MaxDeleteCountInTx) / 2
 	touchedKeys := make(map[uint64]struct{}, keyCountEstimated)
 	txCount := rs.GetUint32() % (cfg.MaxTxCountInEpoch + 1)
 	epoch := Epoch{TxList: make([]*Tx, int(txCount))}
 	for i := range epoch.TxList {
+		// Transactions in an epoch must be independent to each other. We use touchedKeys to ensure this
 		tx := GenerateRandTx(ref, rs, cfg, touchedKeys)
 		if DBG {
 			fmt.Printf("FinishGeneration h:%d (%v) epoch %d tx %d (%v) of %d\n", height, blkSuc, epochNum, i, tx.Succeed, txCount)
@@ -265,24 +260,27 @@ func GenerateRandEpoch(height, epochNum int, ref *RefStore, rs randsrc.RandSrc, 
 	return epoch
 }
 
-func GenerateRandBlock(height int, ref *RefStore, rs randsrc.RandSrc, cfg *FuzzConfig) Block {
+func GenerateRandBlock(height int, ref *RefL1, rs randsrc.RandSrc, cfg *FuzzConfig) *Block {
 	epochCount := rs.GetUint32() % (cfg.MaxEpochCountInBlock + 1)
-	block := Block{EpochList: make([]Epoch, epochCount)}
+	block := &Block{EpochList: make([]Epoch, epochCount)}
 	block.Succeed = float32(rs.GetUint32()%0x10000)/float32(0x10000) < cfg.BlockSucceedRatio
-	refUsed := ref
-	if !block.Succeed {
-		refUsed = ref.Clone()
+	withPanic := float32(rs.GetUint32()%0x10000)/float32(0x10000) < cfg.BlockPanicRatio
+	if block.Succeed && withPanic {
+		block.PanicNumber = int(1 + rs.GetUint32()%4)
 	}
 	for i := range block.EpochList {
 		if DBG {
 			fmt.Printf("Generating h:%d epoch %d of %d\n", height, i, epochCount)
 		}
-		block.EpochList[i] = GenerateRandEpoch(height, i, refUsed, rs, cfg, block.Succeed)
+		block.EpochList[i] = GenerateRandEpoch(height, i, ref, rs, cfg, block.Succeed)
 	}
+	if block.Succeed {
+		ref.FlushCache()
+	}
+	ref.ClearCache()
 	return block
 }
 
-// TODO
 func MyGet(multi rabbit.RabbitStore, key []byte) []byte {
 	res := multi.Get(key)
 	if multi.Has(key) != (len(res) > 0) {
@@ -291,28 +289,38 @@ func MyGet(multi rabbit.RabbitStore, key []byte) []byte {
 	return res
 }
 
-func CheckTx(height, epochNum, txNum int, multi rabbit.RabbitStore, tx *Tx, rs randsrc.RandSrc, cfg *FuzzConfig, blkSuc bool) {
+func CheckTx(height, epochNum, txNum int, mads *moeingads.MoeingADS, rbt rabbit.RabbitStore, tx *Tx, cfg *FuzzConfig, blkSuc bool) {
 	for i, op := range tx.OpList {
 		if DBG {
 			fmt.Printf("Check %d-%d (%v) tx %d (%v) operation %d of %d\n", height, epochNum, blkSuc, txNum, tx.Succeed, i, len(tx.OpList))
 			fmt.Printf("%#v\n", op)
 		}
 		if op.opType == OpRead {
-			bz := MyGet(multi, op.key[:])
+			bz := MyGet(rbt, op.key[:])
 			if !bytes.Equal(op.value[:], bz) {
 				panic(fmt.Sprintf("Error in Get %#v real %#v expected %#v", op.key[:], bz, op.value[:]))
 			}
-		}
-		if op.opType == OpWrite {
-			multi.Set(op.key[:], op.value[:])
-		}
-		if op.opType == OpDelete {
-			multi.Delete(op.key[:])
+		} else if op.opType == OpCheckProof {
+			_, proofBz, _ := mads.GetProof(op.key[:])
+			if len(proofBz) != 0 {
+				path, err := datatree.BytesToProofPath(proofBz)
+				if err != nil {
+					panic(err)
+				}
+				err = path.Check(true)
+				if err != nil {
+					panic(err)
+				}
+			}
+		} else if op.opType == OpWrite {
+			rbt.Set(op.key[:], op.value[:])
+		} else if op.opType == OpDelete {
+			rbt.Delete(op.key[:])
 		}
 	}
 }
 
-func ExecuteBlock(height int, root storetypes.RootStoreI, block *Block, rs randsrc.RandSrc, cfg *FuzzConfig, inParallel bool) {
+func ExecuteBlock(height int, mads *moeingads.MoeingADS, root storetypes.RootStoreI, block *Block, cfg *FuzzConfig, inParallel bool) (retry bool) {
 	root.SetHeight(int64(height))
 	trunk := root.GetTrunkStore(1000).(*store.TrunkStore)
 	for i, epoch := range block.EpochList {
@@ -329,11 +337,11 @@ func ExecuteBlock(height int, root storetypes.RootStoreI, block *Block, rs rands
 			if inParallel {
 				wg.Add(1)
 				go func(tx *Tx, j int) {
-					CheckTx(height, i, j, dbList[j], tx, rs, cfg, block.Succeed)
+					CheckTx(height, i, j, mads, dbList[j], tx, cfg, block.Succeed)
 					wg.Done()
 				}(tx, j)
 			} else {
-				CheckTx(height, i, j, dbList[j], tx, rs, cfg, block.Succeed)
+				CheckTx(height, i, j, mads, dbList[j], tx, cfg, block.Succeed)
 			}
 
 		}
@@ -350,5 +358,26 @@ func ExecuteBlock(height int, root storetypes.RootStoreI, block *Block, rs rands
 			}
 		}
 	}
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Printf("RECOVER %#v\n", err)
+			moeingads.DebugPanicNumber = 0
+			root.Close()
+			retry = true
+		}
+	}()
+	if block.PanicNumber != 0 {
+		moeingads.DebugPanicNumber = block.PanicNumber
+		block.PanicNumber = 0
+	}
 	trunk.Close(block.Succeed)
+	if (height+1)%cfg.ConsistencyEveryNBlock == 0 {
+		fmt.Printf("Now Check Consistency\n")
+		mads.CheckConsistency()
+		mads.CheckHashConsistency()
+	}
+	if (height+1)%cfg.PruneEveryNBlock == 0 && height > cfg.KeepRecentNBlock {
+		mads.PruneBeforeHeight(int64(height - cfg.KeepRecentNBlock))
+	}
+	return false
 }

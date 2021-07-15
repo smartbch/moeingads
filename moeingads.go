@@ -3,6 +3,7 @@ package moeingads
 import (
 	"bytes"
 	"fmt"
+	"errors"
 	"math"
 	"os"
 	"runtime"
@@ -20,8 +21,6 @@ import (
 )
 
 const (
-	defaultFileSize                       = 1024 * 1024 * 1024
-	StartReapThres                  int64 = 1000 * 1000
 	KeptEntriesToActiveEntriesRatio       = 2
 
 	heMapSize   = 128
@@ -252,6 +251,16 @@ func (mads *MoeingADS) GetRootHash() []byte {
 	n2[1] = sha256.Sum256(append(n4[2][:], n4[3][:]...))
 	n1 := sha256.Sum256(append(n2[0][:], n2[1][:]...))
 	return n1[:]
+}
+
+func (mads *MoeingADS) GetProof(k []byte) (*Entry, []byte, error) {
+	e := mads.GetEntry(k)
+	if e != nil {
+		shardID := types.GetShardID(k)
+		bz, err := mads.datTree[shardID].GetProofBytes(e.SerialNum)
+		return e, bz, err
+	}
+	return nil, nil, errors.New("Cannot find entry")
 }
 
 func (mads *MoeingADS) GetEntry(k []byte) *Entry {
@@ -519,6 +528,7 @@ func (mads *MoeingADS) update() {
 			hotEntry.IsModified = true
 		}
 	}
+	debugPanic(2)
 	// update stored data
 	mads.runIdxTreeJobs()
 	datatree.ParallelRun(types.ShardCount, func(shardID int) {
@@ -639,7 +649,9 @@ func (mads *MoeingADS) allShardEndBlock() {
 }
 
 func (mads *MoeingADS) EndWrite() {
+	debugPanic(1)
 	mads.update()
+	debugPanic(3)
 	for {
 		activeCount := int64(mads.idxTree.ActiveCount())
 		if activeCount < StartReapThres {
@@ -664,6 +676,7 @@ func (mads *MoeingADS) EndWrite() {
 	for i := 0; i < types.ShardCount; i++ {
 		mads.datTree[i].WaitForFlushing()
 	}
+	debugPanic(4)
 	mads.meta.Commit()
 	mads.idxTree.EndWrite()
 	mads.rocksdb.CloseOldBatch()
@@ -698,6 +711,15 @@ func (mads *MoeingADS) PruneBeforeHeight(height int64) {
 	}
 	mads.rocksdb.CloseOldBatch()
 	mads.rocksdb.SetPruneHeight(uint64(height))
+}
+
+func (mads *MoeingADS) CheckHashConsistency() {
+	for i := range mads.datTree {
+		tree, ok := mads.datTree[i].(*datatree.Tree)
+		if ok {
+			datatree.CheckHashConsistency(tree)
+		}
+	}
 }
 
 func repeat64(v int) []int {
@@ -763,13 +785,6 @@ func (bs *BucketSet) GetSizes() []int {
 		buf[i] = len(m)
 	}
 	return buf[:]
-}
-
-func (bs *BucketSet) AverageSize() (sum int) {
-	for _, m := range bs.maps {
-		sum += len(m)
-	}
-	return sum / BucketCount
 }
 
 func (bs *BucketSet) Store(key string) {

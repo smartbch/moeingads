@@ -85,6 +85,20 @@ type IndexTree interface {
 
 type EntryHandler func(pos int64, entry *Entry, deactivedSNList []int64)
 
+type ProofNode struct {
+	SelfHash   [32]byte
+	PeerHash   [32]byte
+	PeerAtLeft bool
+}
+
+type ProofPath struct {
+	LeftOfTwig  [11]ProofNode
+	RightOfTwig [3]ProofNode
+	UpperPath   []ProofNode
+	SerialNum   int64
+	Root        [32]byte
+}
+
 type DataTree interface {
 	DeactiviateEntry(sn int64) int
 	AppendEntry(entry *Entry) int64
@@ -102,6 +116,7 @@ type DataTree interface {
 	WaitForFlushing()
 	DeactivedSNListSize() int
 	PrintTree()
+	GetProofBytes(sn int64) ([]byte, error)
 	Flush()
 	Close()
 }
