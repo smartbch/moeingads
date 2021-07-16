@@ -1,7 +1,7 @@
 package cppbtree
 
 /*
-#cgo CXXFLAGS: -O3 -std=c++11 
+#cgo CXXFLAGS: -O3 -std=c++11
 #cgo LDFLAGS: -lstdc++
 #include "cppbtree.h"
 */
@@ -18,7 +18,7 @@ type Enumerator struct {
 }
 
 type Tree struct {
-	ptr   C.size_t
+	ptr C.size_t
 }
 
 func TreeNew() *Tree {
@@ -32,7 +32,7 @@ func (tree *Tree) Len() int {
 }
 
 func (tree *Tree) Close() {
-	C.cppbtree_delete(tree.ptr);
+	C.cppbtree_delete(tree.ptr)
 }
 
 func (tree *Tree) PutNewAndGetOld(key uint64, newV int64) (int64, bool) {
@@ -118,5 +118,3 @@ func (e *Enumerator) Prev() (k uint64, v int64, err error) {
 func (tree *Tree) SetDebug(debug bool) {
 	C.cppbtree_set_debug_mode(tree.ptr, C.bool(debug))
 }
-
-

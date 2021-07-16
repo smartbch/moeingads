@@ -92,18 +92,6 @@ func ExtractKeyFromRawBytes(b []byte) []byte {
 	return append([]byte{}, bb[4:4+length]...)
 }
 
-func EntryFromRawBytes(b []byte) *Entry {
-	bb := b[4:]
-	if (bb[0] & bb[1] & bb[2] & bb[3]) == 0xFF { // No MagicBytes to recover
-		e, _ := EntryFromBytes(bb[4:], 0)
-		return e
-	}
-	bb = append([]byte{}, b[4:]...)
-	n := recoverMagicBytes(bb)
-	e, _ := EntryFromBytes(bb[n+4:], 0)
-	return e
-}
-
 func ExtractSerialNum(entryBz []byte) int64 {
 	return int64(binary.LittleEndian.Uint64(entryBz[len(entryBz)-8:]))
 }

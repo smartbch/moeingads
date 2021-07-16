@@ -34,6 +34,18 @@ func (dt *MockDataTree) DeactivedSNListSize() int {
 	return 0
 }
 
+func EntryFromRawBytes(b []byte) *Entry {
+	bb := b[4:]
+	if (bb[0] & bb[1] & bb[2] & bb[3]) == 0xFF { // No MagicBytes to recover
+		e, _ := EntryFromBytes(bb[4:], 0)
+		return e
+	}
+	bb = append([]byte{}, b[4:]...)
+	n := recoverMagicBytes(bb)
+	e, _ := EntryFromBytes(bb[n+4:], 0)
+	return e
+}
+
 func (dt *MockDataTree) AppendEntryRawBytes(entryBz []byte, sn int64) int64 {
 	e := EntryFromRawBytes(entryBz)
 	return dt.AppendEntry(e)
@@ -118,7 +130,7 @@ func (dt *MockDataTree) WaitForFlushing() {
 func (dt *MockDataTree) Close() {
 }
 
-func (dt *MockDataTree) Flush() {
+func (dt *MockDataTree) SaveMemToDisk() {
 }
 
 func (dt *MockDataTree) PrintTree() {

@@ -234,7 +234,7 @@ func (hpf *HPFile) readAtWithBuf(buf []byte, off int64) (err error) {
 	}
 	ok = hpf.preReader.TryRead(fileID, pos, buf)
 	if !ok {
-		panic("Cannot read data just fetched")
+		panic(fmt.Sprintf("Cannot read data just fetched in %s fileID %d", hpf.dirName, fileID))
 	}
 	return nil
 }

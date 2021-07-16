@@ -28,7 +28,7 @@ const (
 	OpDelete
 	OpInsertOrChange
 
-	ShardCount = 8
+	ShardCount     = 8
 	IndexChanCount = 10
 )
 
@@ -40,7 +40,7 @@ func GetShardID(bz []byte) int {
 	if len(bz) != 8 {
 		return 0
 	}
-	return int(bz[7]) / (256/ShardCount)
+	return int(bz[7]) / (256 / ShardCount)
 }
 
 func GetIndexChanID(b byte) int {
@@ -49,7 +49,7 @@ func GetIndexChanID(b byte) int {
 	} else if b >= 128+64 {
 		return 9 // for the standy-queue
 	} else {
-		return 1 + (int(b) - 64) / 16
+		return 1 + (int(b)-64)/16
 	}
 }
 
@@ -117,7 +117,7 @@ type DataTree interface {
 	DeactivedSNListSize() int
 	PrintTree()
 	GetProofBytes(sn int64) ([]byte, error)
-	Flush()
+	SaveMemToDisk()
 	Close()
 }
 
@@ -147,6 +147,7 @@ type MetaDB interface {
 	// MaxSerialNum is the maximum serial num among all the entries
 	GetMaxSerialNum(shardID int) int64
 	IncrMaxSerialNum(shardID int) // It should call setTwigHeight(twigID int64, height int64)
+	GetYoungestTwigID(shardID int) int64
 
 	SetRootHash(shardID int, h [32]byte)
 	GetRootHash(shardID int) [32]byte

@@ -190,6 +190,10 @@ func (db *MetaDB) GetMaxSerialNum(shardID int) int64 {
 	return db.maxSerialNum[shardID]
 }
 
+func (db *MetaDB) GetYoungestTwigID(shardID int) int64 {
+	return db.maxSerialNum[shardID] >> datatree.TwigShift
+}
+
 func (db *MetaDB) IncrMaxSerialNum(shardID int) {
 	db.maxSerialNum[shardID]++
 	if db.maxSerialNum[shardID]%datatree.LeafCountInTwig == 0 {

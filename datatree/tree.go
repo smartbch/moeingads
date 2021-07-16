@@ -310,9 +310,6 @@ func (tree *Tree) ActiviateEntry(sn int64) {
 }
 
 func (tree *Tree) DeactiviateEntry(sn int64) int {
-	//if sn >> TwigShift == 50 {
-	//	fmt.Printf("DeactiviateEntry sn %d twig %d\n", sn, sn >> TwigShift)
-	//}
 	tree.setEntryActiviation(sn, false)
 	return len(tree.deactivedSNList)
 }
@@ -324,10 +321,6 @@ func (tree *Tree) DeactivedSNListSize() int {
 func (tree *Tree) AppendEntry(entry *Entry) int64 {
 	// write the entry while flushing deactivedSNList
 	bz := EntryToBytes(*entry, tree.deactivedSNList)
-	//x := entry.SerialNum % LeafCountInTwig
-	//if 1904 <= x && x <= 1908 {
-	//	fmt.Printf("HEHE %#v %#v\n", entry, tree.deactivedSNList)
-	//}
 	tree.deactivedSNList = tree.deactivedSNList[:0] // clear its content
 	// mark this entry as touched/valid
 	if len(entry.Key) == 5 && string(entry.Key) == "dummy" {
@@ -367,17 +360,10 @@ func (tree *Tree) appendEntry(bzTwo [2][]byte, sn int64) int64 {
 	tree.leave4YoungestTwig[position] = bzTwo
 
 	if position == 0 { // when this is the first entry of current twig
-		//fmt.Printf("Here FirstEntryPos of %d : %d\n", twigID, pos)
 		tree.activeTwigs[twigID].FirstEntryPos = pos
 	} else if position == TwigMask { // when this is the last entry of current twig
 		// write the merkle tree of youngest twig to twigMtFile
 		tree.syncMT4YoungestTwig()
-		//if twigID == 0x1ef {
-		//	fmt.Printf("====== after syncMT4YoungestTwig 0x1ef =====\n")
-		//	for i, mtNode := range tree.mtree4YoungestTwig {
-		//		fmt.Printf("MT %d %#v\n", i, mtNode)
-		//	}
-		//}
 		twig := tree.activeTwigs[twigID]
 		tree.twigMtFile.AppendTwig(tree.mtree4YoungestTwig[1:], twig.FirstEntryPos)
 		// allocate new twig as youngest twig
@@ -388,11 +374,6 @@ func (tree *Tree) appendEntry(bzTwo [2][]byte, sn int64) int64 {
 	}
 	return pos
 }
-
-//!! func (tree *Tree) GetActiveEntriesInTwigOld(twigID int64) chan *Entry {
-//!! 	twig := tree.activeTwigs[twigID]
-//!! 	return tree.entryFile.GetActiveEntriesInTwigOld(twig)
-//!! }
 
 func (tree *Tree) GetActiveEntriesInTwig(twigID int64) chan []byte {
 	twig := tree.activeTwigs[twigID]
@@ -475,10 +456,6 @@ func (tree *Tree) EndBlock() (rootHash [32]byte) {
 		pos := Pos(FirstLevelAboveTwig-1, twigID)
 		twig := tree.activeTwigs[twigID]
 		tree.nodes[pos] = &twig.twigRoot
-		//leftRoot := tree.twigMtFile.GetHashNode(twigID, 1)
-		//twigRoot := hash2(11, leftRoot[:], NullTwig.activeBitsMTL3[:])
-		//fmt.Printf("Here delete activeTwig %d-%d twigRoot: %#v\n", FirstLevelAboveTwig-1, twigID, twig.twigRoot)
-		//fmt.Printf("leftRoot %#v MTL3 %#v calculated twigRoot: %#v\n", leftRoot, NullTwig.activeBitsMTL3[:], twigRoot)
 		delete(tree.activeTwigs, twigID)
 	}
 	tree.twigsToBeDeleted = tree.twigsToBeDeleted[:0] // clear its content
@@ -493,12 +470,6 @@ func (tree *Tree) WaitForFlushing() {
 // following functions are used for syncing up merkle tree
 func (tree *Tree) syncMT() (rootHash [32]byte) {
 	tree.syncMT4YoungestTwig()
-	//if tree.youngestTwigID == 0x1ef {
-	//	fmt.Printf("====== syncMT after syncMT4YoungestTwig 0x1ef =====\n")
-	//	for i, mtNode := range tree.mtree4YoungestTwig {
-	//		fmt.Printf("MT %d %#v\n", i, mtNode)
-	//	}
-	//}
 	nList := tree.syncMT4ActiveBits()
 	//if Debug {
 	//	fmt.Printf("nList: %v\n", nList)
@@ -578,9 +549,7 @@ func (tree *Tree) syncNodesByLevel(level int, nList []int64) []int64 {
 				//if Debug {fmt.Printf("Here we create a node %d-%d\n", level-1, 2*i+1)}
 				tree.nodes[nodePosR] = &h
 				if 2*i != maxN && 2*i+1 != maxN {
-					s := fmt.Sprintf("Not at the right edge, bug here. %d vs %d", 2*i, maxN)
-					fmt.Println(s)
-					panic(s)
+					panic(fmt.Sprintf("Not at the right edge, bug here. %d vs %d", 2*i, maxN))
 				}
 			}
 			parentNode := tree.nodes[nodePos]
@@ -663,16 +632,6 @@ func (tree *Tree) syncMT4YoungestTwig() {
 	if tree.mtree4YTChangeStart == -1 { // nothing changed
 		return
 	}
-	//for i := 0; i < LeafCountInTwig; i++ {
-	//	if tree.leave4YoungestTwig[i] != nil {
-	//		copy(tree.mtree4YoungestTwig[LeafCountInTwig+i][:], hash(tree.leave4YoungestTwig[i]))
-	//		tree.leave4YoungestTwig[i] = nil
-	//	}
-	//}
-	//for myIdx := tree.mtree4YTChangeStart; myIdx <= tree.mtree4YTChangeEnd; myIdx++ {
-	//	copy(tree.mtree4YoungestTwig[myIdx][:], hash(tree.leave4YoungestTwig[myIdx]))
-	//	tree.leave4YoungestTwig[myIdx] = nil
-	//}
 	sharedIdx := int64(-1)
 	ParallelRun(runtime.NumCPU(), func(workerID int) {
 		for {
@@ -690,9 +649,15 @@ func (tree *Tree) syncMT4YoungestTwig() {
 			tree.leave4YoungestTwig[myIdx][0] = nil
 		}
 	})
-	var h Hasher
+	syncMTree(tree.mtree4YoungestTwig[:], tree.mtree4YTChangeStart, tree.mtree4YTChangeEnd)
+	tree.mtree4YTChangeStart = -1 // reset its value
+	tree.mtree4YTChangeEnd = 0
+	copy(tree.activeTwigs[tree.youngestTwigID].leftRoot[:], tree.mtree4YoungestTwig[1][:])
+}
+
+func syncMTree(mtree [][32]byte, start, end int) {
 	level := byte(0)
-	start, end := tree.mtree4YTChangeStart, tree.mtree4YTChangeEnd
+	var h Hasher
 	for base := LeafCountInTwig; base >= 2; base >>= 1 {
 		//fmt.Printf("base: %d\n", base)
 		endRound := end
@@ -701,36 +666,12 @@ func (tree *Tree) syncMT4YoungestTwig() {
 		}
 		for j := (start &^ 1); j <= endRound && j+1 < base; j += 2 {
 			i := base + j
-			h.Add(level, tree.mtree4YoungestTwig[i/2][:], tree.mtree4YoungestTwig[i][:], tree.mtree4YoungestTwig[i+1][:])
+			h.Add(level, mtree[i/2][:], mtree[i][:], mtree[i+1][:])
 			//fmt.Printf("Now job: %d-%d(%d) %d(%d) %d(%d)\n", level, j/2, i/2, j, i, j+1, i+1)
 		}
 		h.Run()
 		start >>= 1
 		end >>= 1
 		level++
-	}
-	tree.mtree4YTChangeStart = -1 // reset its value
-	tree.mtree4YTChangeEnd = 0
-	copy(tree.activeTwigs[tree.youngestTwigID].leftRoot[:], tree.mtree4YoungestTwig[1][:])
-}
-
-func (tree *Tree) PrintTree() {
-	keys := make([]int64, 0, len(tree.activeTwigs))
-	for key := range tree.activeTwigs {
-		keys = append(keys, key)
-	}
-	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
-	for _, key := range keys {
-		twig := tree.activeTwigs[key]
-		fmt.Printf("TWIG %x %#v %#v\n", key, twig.leftRoot, twig.activeBits)
-	}
-
-	keys = make([]int64, 0, len(tree.nodes))
-	for key := range tree.nodes {
-		keys = append(keys, int64(key))
-	}
-	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
-	for _, key := range keys {
-		fmt.Printf("NODE %x %#v\n", key, tree.nodes[NodePos(key)])
 	}
 }

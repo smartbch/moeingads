@@ -36,6 +36,7 @@ type FuzzConfig struct {
 	MaxTxCountInEpoch      uint32
 	MaxEpochCountInBlock   uint32
 	EffectiveBits          uint64
+	MaxValueLength         int
 	MaxActiveCount         int
 	TxSucceedRatio         float32
 	BlockSucceedRatio      float32
@@ -156,6 +157,22 @@ type Block struct {
 	PanicNumber int
 }
 
+func getRandValue(rs randsrc.RandSrc, cfg *FuzzConfig) []byte {
+	length := 1 + int(rs.GetUint32())%(cfg.MaxValueLength-1) //no zero-length value
+	bz := rs.GetBytes(length)
+	if len(bz) < 16 {
+		return bz
+	}
+	for i := 0; i < 3; i++ {
+		if float32(rs.GetUint32()%0x10000)/float32(0x10000) < 0.1 {
+			continue
+		}
+		pos := int(rs.GetUint32()) % (length - 8)
+		copy(bz[pos:], datatree.MagicBytes[:])
+	}
+	return bz
+}
+
 func getRand8Bytes(rs randsrc.RandSrc, cfg *FuzzConfig, touchedKeys map[uint64]struct{}) (res [8]byte) {
 	if touchedKeys == nil {
 		i := rs.GetUint64() & cfg.EffectiveBits
@@ -207,11 +224,10 @@ func GenerateRandTx(ref *RefL1, rs randsrc.RandSrc, cfg *FuzzConfig, touchedKeys
 			checkProofCount++
 		}
 		if rs.GetUint32()%4 == 0 && writeCount < maxWriteCount {
-			v := getRand8Bytes(rs, cfg, nil)
 			op := Operation{
 				opType: OpWrite,
 				key:    getRand8Bytes(rs, cfg, touchedKeys),
-				value:  v[:],
+				value:  getRandValue(rs, cfg),
 			}
 			ref2.Set(op.key[:], op.value[:])
 			tx.OpList = append(tx.OpList, op)
@@ -281,10 +297,10 @@ func GenerateRandBlock(height int, ref *RefL1, rs randsrc.RandSrc, cfg *FuzzConf
 	return block
 }
 
-func MyGet(multi rabbit.RabbitStore, key []byte) []byte {
-	res := multi.Get(key)
-	if multi.Has(key) != (len(res) > 0) {
-		panic("Bug in Has")
+func MyGet(rbt rabbit.RabbitStore, key []byte) []byte {
+	res := rbt.Get(key)
+	if findIt := rbt.Has(key); findIt != (len(res) > 0) {
+		panic(fmt.Sprintf("Bug in Has: %v %#v", findIt, res))
 	}
 	return res
 }

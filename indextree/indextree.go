@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	MaxKeyLength = 8192
+	MaxKeyLength     = 8192
 	RecentBlockCount = 128
 )
 
@@ -123,8 +123,8 @@ var _ types.IndexTree = (*NVTreeMem)(nil)
 func NewNVTreeMem(rocksdb *RocksDB) *NVTreeMem {
 	btree := b.TreeNew()
 	return &NVTreeMem{
-		bt:         btree,
-		rocksdb:    rocksdb,
+		bt:      btree,
+		rocksdb: rocksdb,
 	}
 }
 

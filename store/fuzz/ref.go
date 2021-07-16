@@ -88,4 +88,3 @@ func (r *RefL2) Close(writeBack bool) {
 	}
 	r.cache, r.refL1 = nil, nil
 }
-

@@ -5,7 +5,7 @@ import (
 )
 
 type Cache struct {
-	maps  [types.IndexChanCount]map[uint64]int64
+	maps [types.IndexChanCount]map[uint64]int64
 }
 
 func NewCache() *Cache {
@@ -63,4 +63,3 @@ func (rc *RecentCache) FindFirstChangeBefore(height int64, k uint64) (v int64, f
 	}
 	return
 }
-

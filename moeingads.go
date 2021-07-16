@@ -2,8 +2,8 @@ package moeingads
 
 import (
 	"bytes"
-	"fmt"
 	"errors"
+	"fmt"
 	"math"
 	"os"
 	"runtime"
@@ -21,12 +21,15 @@ import (
 )
 
 const (
-	KeptEntriesToActiveEntriesRatio       = 2
+	KeptEntriesToActiveEntriesRatio = 2
 
 	heMapSize   = 128
 	nkSetSize   = 64
 	BucketCount = 64
 	JobChanSize = 256
+
+	MinDeactiveEntries = 100 //minimum deactived entry count in each round of compaction
+	MinKeptTwigs       = 10  //minimum kept twig count in each shard
 )
 
 var Phase1n2Time, Phase1Time, Phase2Time, Phase3Time, Phase4Time, Phase0Time, tscOverhead uint64
@@ -187,7 +190,8 @@ func (mads *MoeingADS) initGuards() {
 func (mads *MoeingADS) recoverDataTrees(dirName string) {
 	datatree.ParallelRun(types.ShardCount, func(shardID int) {
 		oldestActiveTwigID := mads.meta.GetOldestActiveTwigID(shardID)
-		youngestTwigID := mads.meta.GetMaxSerialNum(shardID) >> datatree.TwigShift
+		youngestTwigID := mads.meta.GetYoungestTwigID(shardID)
+		mads.meta.GetYoungestTwigID(shardID)
 		bz := mads.meta.GetEdgeNodes(shardID)
 		edgeNodes := datatree.BytesToEdgeNodes(bz)
 		var recoveredRoot [32]byte
@@ -221,7 +225,6 @@ func (mads *MoeingADS) Close() {
 	mads.idxTree.Close()
 	mads.rocksdb.Close()
 	for i := 0; i < types.ShardCount; i++ {
-		mads.datTree[i].Flush()
 		mads.datTree[i].Close()
 		mads.datTree[i] = nil
 	}
@@ -616,6 +619,9 @@ func (mads *MoeingADS) ActiveCount() int {
 
 func (mads *MoeingADS) compactForShard(shardID int) {
 	twigID := mads.meta.GetOldestActiveTwigID(shardID)
+	if twigID+MinKeptTwigs > mads.meta.GetYoungestTwigID(shardID) {
+		return
+	}
 	entryBzChan := mads.datTree[shardID].GetActiveEntriesInTwig(twigID)
 	for entryBz := range entryBzChan {
 		sn := datatree.ExtractSerialNum(entryBz)
@@ -652,8 +658,8 @@ func (mads *MoeingADS) EndWrite() {
 	debugPanic(1)
 	mads.update()
 	debugPanic(3)
+	activeCount := int64(mads.idxTree.ActiveCount())
 	for {
-		activeCount := int64(mads.idxTree.ActiveCount())
 		if activeCount < StartReapThres {
 			break
 		}
@@ -665,6 +671,11 @@ func (mads *MoeingADS) EndWrite() {
 			mads.compactForShard(shardID)
 		})
 		mads.flushIdxTreeJobs()
+		newActiveCount := int64(mads.idxTree.ActiveCount())
+		if newActiveCount > activeCount-MinDeactiveEntries {
+			break
+		}
+		activeCount = newActiveCount
 	}
 	mads.allShardEndBlock()
 	mads.k2heMap = NewBucketMap(mads.k2heMap.GetSizes()) // clear content

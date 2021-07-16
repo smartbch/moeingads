@@ -110,7 +110,6 @@ func (pp *ProofPath) Check(complete bool) error {
 			copy(pp.RightOfTwig[i+1].SelfHash[:], res)
 		} else {
 			if !bytes.Equal(res, pp.RightOfTwig[i+1].SelfHash[:]) {
-				fmt.Printf("here %#v\n", pp.RightOfTwig[i])
 				return fmt.Errorf("Mismatch at right path, level: %d", i)
 			}
 		}
@@ -278,8 +277,13 @@ func getLeftPathInMem(mt4twig [4096][32]byte, sn int64) (left [11]ProofNode) {
 }
 
 func getLeftPathOnDisk(tf *TwigMtFile, twigID int64, sn int64) (left [11]ProofNode) {
+	cache := make(map[int][]byte, 16)
 	return getLeftPath(sn, func(i int) (res [32]byte) {
-		copy(res[:], tf.GetHashNode(twigID, i))
+		if bz, ok := cache[i]; ok {
+			copy(res[:], bz)
+		} else { //cache miss: fetch it from twigMtFile and fill cache with neighbor nodes
+			copy(res[:], tf.GetHashNode(twigID, i, cache))
+		}
 		return
 	})
 }
