@@ -72,6 +72,10 @@ func (dt *MockDataTree) ReadEntry(pos int64) *Entry {
 	return &entry
 }
 
+func (dt *MockDataTree) ReadEntryBytesForProof(pos int64) []byte {
+	return nil
+}
+
 func (dt *MockDataTree) GetActiveBit(sn int64) bool {
 	twigID := sn >> TwigShift
 	return dt.twigs[twigID].activeBits[sn&TwigMask]
@@ -116,7 +120,7 @@ func (dt *MockDataTree) GetFileSizes() (int64, int64) {
 	return 0, 0
 }
 
-func (dt *MockDataTree) GetProofBytes(sn int64) ([]byte, error) {
+func (dt *MockDataTree) GetProofBytesAndCheck(sn int64, entryBz []byte) ([]byte, error) {
 	return nil, nil
 }
 

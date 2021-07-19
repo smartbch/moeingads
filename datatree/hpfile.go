@@ -9,7 +9,6 @@ import (
 	"strings"
 	"sync"
 	//"sync/atomic"
-	//"github.com/dterei/gotsc"
 )
 
 var TotalWriteTime, TotalReadTime, TotalSyncTime uint64
@@ -79,7 +78,7 @@ func NewHPFile(bufferSize, blockSize int, dirName string) (*HPFile, error) {
 		if id == res.largestID { // will write to this latest file
 			res.fileMap[id], err = os.OpenFile(fname, os.O_RDWR, 0700)
 			if err == nil {
-				res.latestFileSize, err = res.fileMap[id].Seek(0, os.SEEK_END)
+				res.latestFileSize, err = res.fileMap[id].Seek(0, io.SeekEnd)
 			}
 		} else {
 			res.fileMap[id], err = os.Open(fname)
@@ -137,12 +136,11 @@ func (hpf *HPFile) Truncate(size int64) error {
 	if err != nil {
 		return err
 	}
-	_, err = hpf.fileMap[hpf.largestID].Seek(0, os.SEEK_END)
+	_, err = hpf.fileMap[hpf.largestID].Seek(0, io.SeekEnd)
 	return err
 }
 
 func (hpf *HPFile) Flush() {
-	//start := gotsc.BenchStart()
 	hpf.mtx.Lock()
 	defer hpf.mtx.Unlock()
 	hpf.flush()
@@ -150,7 +148,7 @@ func (hpf *HPFile) Flush() {
 
 func (hpf *HPFile) flush() {
 	if len(hpf.buffer) != 0 {
-		_, err := hpf.fileMap[hpf.largestID].Seek(0, os.SEEK_END)
+		_, err := hpf.fileMap[hpf.largestID].Seek(0, io.SeekEnd)
 		if err != nil {
 			panic(err)
 		}
@@ -161,7 +159,6 @@ func (hpf *HPFile) flush() {
 		hpf.buffer = hpf.buffer[:0]
 	}
 	_ = hpf.fileMap[hpf.largestID].Sync()
-	//atomic.AddUint64(&TotalSyncTime, gotsc.BenchEnd() - start - tscOverhead)
 }
 
 func (hpf *HPFile) WaitForFlushing() {
@@ -195,7 +192,6 @@ func (hpf *HPFile) ReadAt(buf []byte, off int64, withBuf bool) (err error) {
 	if withBuf {
 		return hpf.readAtWithBuf(buf, off)
 	}
-	//start := gotsc.BenchStart()
 	fileID := off / int64(hpf.blockSize)
 	pos := off % int64(hpf.blockSize)
 	f, ok := hpf.fileMap[int(fileID)]
@@ -203,7 +199,6 @@ func (hpf *HPFile) ReadAt(buf []byte, off int64, withBuf bool) (err error) {
 		return fmt.Errorf("Can not find the file with id=%d (%d/%d)", fileID, off, hpf.blockSize)
 	}
 	_, err = f.ReadAt(buf, pos)
-	//atomic.AddUint64(&TotalReadTime, gotsc.BenchEnd() - start - tscOverhead)
 	return
 }
 
@@ -240,7 +235,6 @@ func (hpf *HPFile) readAtWithBuf(buf []byte, off int64) (err error) {
 }
 
 func (hpf *HPFile) Append(bufList [][]byte) (int64, error) {
-	//start := gotsc.BenchStart()
 	hpf.mtx.Lock()
 	defer hpf.mtx.Unlock()
 	f := hpf.fileMap[hpf.largestID]
@@ -280,7 +274,6 @@ func (hpf *HPFile) Append(bufList [][]byte) (int64, error) {
 		hpf.fileMap[hpf.largestID] = f
 		hpf.latestFileSize = overflowByteCount
 	}
-	//atomic.AddUint64(&TotalWriteTime, gotsc.BenchEnd() - start - tscOverhead)
 	return startPos, nil
 }
 

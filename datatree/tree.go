@@ -203,10 +203,10 @@ type Tree struct {
 	nodes map[NodePos]*[32]byte
 
 	// these variables can be recovered from entry file
-	youngestTwigID     int64
-	activeTwigs        map[int64]*Twig
-	mtree4YoungestTwig [4096][32]byte
-	leave4YoungestTwig [2048][2][]byte
+	youngestTwigID      int64
+	activeTwigs         map[int64]*Twig
+	mtree4YoungestTwig  [4096][32]byte
+	leaves4YoungestTwig [2048][2][]byte
 
 	// The following variables are only used during the execution of one block
 	mtree4YTChangeStart int
@@ -277,8 +277,12 @@ func (tree *Tree) TruncateFiles(entryFileSize, twigMtFileSize int64) {
 }
 
 func (tree *Tree) ReadEntry(pos int64) (entry *Entry) {
-	entry, _ = tree.entryFile.ReadEntry(pos)
+	entry = tree.entryFile.ReadEntry(pos)
 	return
+}
+
+func (tree *Tree) ReadEntryBytesForProof(pos int64) (entryBz []byte) {
+	return tree.entryFile.ReadEntryBytesForProof(pos)
 }
 
 func (tree *Tree) GetActiveBit(sn int64) bool {
@@ -357,7 +361,7 @@ func (tree *Tree) appendEntry(bzTwo [2][]byte, sn int64) int64 {
 	pos := tree.entryFile.Append(bzTwo)
 	// update the corresponding leaf of merkle tree
 	//copy(tree.mtree4YoungestTwig[LeafCountInTwig+position][:], hash(bz))
-	tree.leave4YoungestTwig[position] = bzTwo
+	tree.leaves4YoungestTwig[position] = bzTwo
 
 	if position == 0 { // when this is the first entry of current twig
 		tree.activeTwigs[twigID].FirstEntryPos = pos
@@ -628,6 +632,7 @@ func (tree *Tree) syncMT4ActiveBits() []int64 {
 8  9 a b    c   d  e  f
 */
 // Sync up the merkle tree, between ChangeStart and ChangeEnd
+
 func (tree *Tree) syncMT4YoungestTwig() {
 	if tree.mtree4YTChangeStart == -1 { // nothing changed
 		return
@@ -636,17 +641,18 @@ func (tree *Tree) syncMT4YoungestTwig() {
 	ParallelRun(runtime.NumCPU(), func(workerID int) {
 		for {
 			myIdx := atomic.AddInt64(&sharedIdx, 1)
-			if myIdx >= int64(len(tree.leave4YoungestTwig)) {
+			if myIdx >= int64(len(tree.leaves4YoungestTwig)) {
 				break
 			}
-			if tree.leave4YoungestTwig[myIdx][0] == nil {
+			if tree.leaves4YoungestTwig[myIdx][0] == nil {
 				continue
 			}
 			h := sha256.New()
-			_, _ = h.Write(tree.leave4YoungestTwig[myIdx][0])
-			_, _ = h.Write(tree.leave4YoungestTwig[myIdx][1])
-			copy(tree.mtree4YoungestTwig[LeafCountInTwig+myIdx][:], h.Sum(nil))
-			tree.leave4YoungestTwig[myIdx][0] = nil
+			_, _ = h.Write(tree.leaves4YoungestTwig[myIdx][0])
+			_, _ = h.Write(tree.leaves4YoungestTwig[myIdx][1])
+			hash := h.Sum(nil)
+			copy(tree.mtree4YoungestTwig[LeafCountInTwig+myIdx][:], hash)
+			tree.leaves4YoungestTwig[myIdx][0] = nil
 		}
 	})
 	syncMTree(tree.mtree4YoungestTwig[:], tree.mtree4YTChangeStart, tree.mtree4YTChangeEnd)

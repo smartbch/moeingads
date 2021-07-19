@@ -5,6 +5,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+
+	sha256 "github.com/minio/sha256-simd"
 )
 
 type ProofNode struct {
@@ -174,10 +176,17 @@ func CheckProof(path *ProofPath) ([]byte, error) {
 	return bz, nil
 }
 
-func (tree *Tree) GetProofBytes(sn int64) ([]byte, error) {
+func (tree *Tree) GetProofBytesAndCheck(sn int64, entryBz []byte) ([]byte, error) {
 	proof := tree.GetProof(sn)
 	if proof == nil {
 		return nil, errors.New("No such serial number")
+	}
+	if len(entryBz) != 0 {
+		hash := sha256.Sum256(entryBz)
+		if proof.LeftOfTwig[0].SelfHash != hash {
+			//fmt.Printf("SelfHash %#v hash %#v entryBz %#v\n", proof.LeftOfTwig[0].SelfHash, hash, entryBz)
+			return nil, errors.New("Not matched with entry bytes")
+		}
 	}
 	return CheckProof(proof)
 }

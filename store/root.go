@@ -94,9 +94,7 @@ func (root *RootStore) get(key []byte) []byte {
 	if e == nil {
 		return nil
 	}
-	ret := make([]byte, len(e.Value))
-	copy(ret, e.Value)
-	return ret
+	return e.Value
 }
 
 func (root *RootStore) PrepareForUpdate(key []byte) {

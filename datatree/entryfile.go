@@ -256,19 +256,24 @@ func getNextPos(off, length int64) int64 {
 }
 
 func (ef *EntryFile) ReadEntryAndSNList(off int64) (entry *Entry, deactivedSerialNumList []int64, nextPos int64) {
-	entryBz, numberOfSN, nextPos := ef.readEntry(off, true, false, true)
+	entryBz, numberOfSN, nextPos := ef.readEntry(off, true /*withSNList*/, false /*useRaw*/, true /*withBuf*/)
 	entry, deactivedSerialNumList = EntryFromBytes(entryBz, numberOfSN)
 	return
 }
 
-func (ef *EntryFile) ReadEntry(off int64) (entry *Entry, nextPos int64) {
-	entryBz, numberOfSN, nextPos := ef.readEntry(off, false, false, false)
+func (ef *EntryFile) ReadEntry(off int64) (entry *Entry) {
+	entryBz, numberOfSN, _ := ef.readEntry(off, false /*withSNList*/, false /*useRaw*/, false /*withBuf*/)
 	entry, _ = EntryFromBytes(entryBz, numberOfSN)
 	return
 }
 
 func (ef *EntryFile) ReadEntryRawBytes(off int64) (entryBz []byte, nextPos int64) {
-	entryBz, _, nextPos = ef.readEntry(off, false, true, true)
+	entryBz, _, nextPos = ef.readEntry(off, false /*withSNList*/, true /*useRaw*/, true /*withBuf*/)
+	return
+}
+
+func (ef *EntryFile) ReadEntryBytesForProof(off int64) (entryBz []byte) {
+	entryBz, _, _ = ef.readEntry(off, true /*withSNList*/, true /*useRaw*/, false /*withBuf*/)
 	return
 }
 

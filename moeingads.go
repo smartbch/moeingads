@@ -191,7 +191,6 @@ func (mads *MoeingADS) recoverDataTrees(dirName string) {
 	datatree.ParallelRun(types.ShardCount, func(shardID int) {
 		oldestActiveTwigID := mads.meta.GetOldestActiveTwigID(shardID)
 		youngestTwigID := mads.meta.GetYoungestTwigID(shardID)
-		mads.meta.GetYoungestTwigID(shardID)
 		bz := mads.meta.GetEdgeNodes(shardID)
 		edgeNodes := datatree.BytesToEdgeNodes(bz)
 		var recoveredRoot [32]byte
@@ -256,27 +255,35 @@ func (mads *MoeingADS) GetRootHash() []byte {
 	return n1[:]
 }
 
-func (mads *MoeingADS) GetProof(k []byte) (*Entry, []byte, error) {
-	e := mads.GetEntry(k)
-	if e != nil {
+func (mads *MoeingADS) GetProof(k []byte) (entryBz, proofBz []byte, err error) {
+	entry, entryBz := mads.getEntry(k, true /*forProof*/)
+	if entry != nil {
 		shardID := types.GetShardID(k)
-		bz, err := mads.datTree[shardID].GetProofBytes(e.SerialNum)
-		return e, bz, err
+		bz, err := mads.datTree[shardID].GetProofBytesAndCheck(entry.SerialNum, entryBz)
+		return entryBz, bz, err
 	}
 	return nil, nil, errors.New("Cannot find entry")
 }
 
 func (mads *MoeingADS) GetEntry(k []byte) *Entry {
+	entry, _ := mads.getEntry(k, false /*forProof*/)
+	return entry
+}
+
+func (mads *MoeingADS) getEntry(k []byte, forProof bool) (entry *Entry, entryBz []byte) {
 	pos, ok := mads.idxTree.Get(k)
 	if !ok {
-		return nil
+		return nil, nil
 	}
 	shardID := types.GetShardID(k)
-	e := mads.datTree[shardID].ReadEntry(int64(pos))
-	if !mads.datTree[shardID].GetActiveBit(e.SerialNum) {
-		panic(fmt.Sprintf("Reading inactive entry %d\n", e.SerialNum))
+	entry = mads.datTree[shardID].ReadEntry(int64(pos))
+	if forProof && !mads.datTree[shardID].GetActiveBit(entry.SerialNum) {
+		panic(fmt.Sprintf("Reading inactive entry %d\n", entry.SerialNum))
 	}
-	return e
+	if forProof {
+		entryBz = mads.datTree[shardID].ReadEntryBytesForProof(int64(pos))
+	}
+	return
 }
 
 // An entry is prepared for insertion, but not inserted (no SerialNum and Value assigned)

@@ -17,6 +17,55 @@ import (
 	storetypes "github.com/smartbch/moeingads/store/types"
 )
 
+// go test -tags debug -c -coverpkg github.com/smartbch/moeingads/... .
+// RANDFILE=~/Downloads/goland-2019.1.3.dmg RANDCOUNT=2000 ./fuzz.test -test.coverprofile a.out
+
+func allTests() {
+	//cfg1 := &FuzzConfig {
+	//	MaxReadCountInTx:       10,
+	//	MaxCheckProofCountInTx: 2,
+	//	MaxWriteCountInTx:      10,
+	//	MaxDeleteCountInTx:     10,
+	//	MaxTxCountInEpoch:      100,
+	//	MaxEpochCountInBlock:   5,
+	//	EffectiveBits:          0xFFF00000_00000FFF,
+	//	MaxActiveCount:         -1,
+	//	MaxValueLength:         256,
+	//	TxSucceedRatio:         0.85,
+	//	BlockSucceedRatio:      0.95,
+	//	BlockPanicRatio:        0.02,
+	//	RootType:               "Real",
+	//	ConsistencyEveryNBlock: 200,
+	//	PruneEveryNBlock:       100,
+	//	KeepRecentNBlock:       100,
+	//	ReloadEveryNBlock:      500,
+	//}
+	//runTest(cfg1)
+
+	cfg2 := &FuzzConfig{
+		MaxReadCountInTx:       20,
+		MaxCheckProofCountInTx: 20,
+		MaxWriteCountInTx:      10,
+		MaxDeleteCountInTx:     10,
+		MaxTxCountInEpoch:      100, // For rabbit, we cannot avoid inter-tx dependency prehand, but it seldom happens
+		MaxEpochCountInBlock:   900,
+		EffectiveBits:          0xFF000000_000003FF,
+		MaxActiveCount:         128 * 1024,
+		MaxValueLength:         256,
+		TxSucceedRatio:         0.85,
+		BlockSucceedRatio:      0.95,
+		BlockPanicRatio:        0.03,
+		RootType:               "Real", //"MockDataTree", //"MockRoot",
+		ConsistencyEveryNBlock: 10,
+		PruneEveryNBlock:       100,
+		KeepRecentNBlock:       100,
+		ReloadEveryNBlock:      500,
+	}
+	runTest(cfg2)
+
+}
+
+// ==============================
 const (
 	FirstByteOfCacheableKey = byte(105)
 )
@@ -321,15 +370,15 @@ func CheckTx(height, epochNum, txNum int, mads *moeingads.MoeingADS, rbt rabbit.
 				panic(fmt.Sprintf("Error in Get %#v real %#v expected %#v", op.key[:], bz, op.value[:]))
 			}
 		} else if op.opType == OpCheckProof {
-			_, proofBz, _ := mads.GetProof(op.key[:])
-			if len(proofBz) != 0 {
-				path, err := datatree.BytesToProofPath(proofBz)
-				if err != nil {
-					panic(err)
-				}
-				err = path.Check(true)
-				if err != nil {
-					panic(err)
+			path, ok := rbt.GetShortKeyPath(op.key[:])
+			if ok && len(path) == 1 {
+				entry := mads.GetEntry(path[0][:])
+				if entry != nil {
+					_, _, err := mads.GetProof(path[0][:])
+					if err != nil {
+						fmt.Printf("Why %#v err %#v\n", entry, err)
+						panic(err)
+					}
 				}
 			}
 		} else if op.opType == OpWrite {

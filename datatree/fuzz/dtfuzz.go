@@ -235,7 +235,6 @@ func (ctx *Context) reloadTree() {
 }
 
 func (ctx *Context) recoverTree() {
-	ctx.tree.SaveMemToDisk()
 	tree1, _ := datatree.RecoverTree(datatree.BufferSize, defaultFileSize, dirName, "", ctx.edgeNodes,
 		ctx.lastPrunedTwigID, ctx.oldestActiveTwigID, ctx.serialNum>>datatree.TwigShift, nil)
 

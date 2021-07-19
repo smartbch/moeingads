@@ -85,25 +85,12 @@ type IndexTree interface {
 
 type EntryHandler func(pos int64, entry *Entry, deactivedSNList []int64)
 
-type ProofNode struct {
-	SelfHash   [32]byte
-	PeerHash   [32]byte
-	PeerAtLeft bool
-}
-
-type ProofPath struct {
-	LeftOfTwig  [11]ProofNode
-	RightOfTwig [3]ProofNode
-	UpperPath   []ProofNode
-	SerialNum   int64
-	Root        [32]byte
-}
-
 type DataTree interface {
 	DeactiviateEntry(sn int64) int
 	AppendEntry(entry *Entry) int64
 	AppendEntryRawBytes(entryBz []byte, sn int64) int64
 	ReadEntry(pos int64) *Entry
+	ReadEntryBytesForProof(pos int64) []byte
 	GetActiveBit(sn int64) bool
 	EvictTwig(twigID int64)
 	GetActiveEntriesInTwig(twigID int64) chan []byte
@@ -116,7 +103,7 @@ type DataTree interface {
 	WaitForFlushing()
 	DeactivedSNListSize() int
 	PrintTree()
-	GetProofBytes(sn int64) ([]byte, error)
+	GetProofBytesAndCheck(sn int64, entryBz []byte) ([]byte, error)
 	SaveMemToDisk()
 	Close()
 }

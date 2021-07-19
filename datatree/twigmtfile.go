@@ -21,7 +21,7 @@ func NewTwigMtFile(bufferSize, blockSize int, dirName string) (res TwigMtFile, e
 We store 1~255, 2048~4095, there levels in the middle are ignored
 Level_11  =  1
 Level_10  =  2~3
-Level_9	  =  4~7
+Level_9   =  4~7
 Level_8   =  8~15
 Level_7   =  16~31
 Level_6   =  32~63
@@ -101,8 +101,13 @@ func (tf *TwigMtFile) getHashNodeInIgnoreRange(twigID int64, hashID int, cache m
 	var buf [32 * 8]byte
 	offset := twigID*int64(TwigMtSize) + 12 + (int64(start)-1)*32 - IgnoredCount*32
 	err := tf.HPFile.ReadAt(buf[:], offset, false)
-	if err != nil {
-		panic(err)
+	if err != nil { // Cannot read them in one call because of file-crossing
+		for i := 0; i < 8; i++ { //read them in 8 steps in case of file-crossing
+			err := tf.HPFile.ReadAt(buf[i*32:i*32+32], offset+int64(i*32), false)
+			if err != nil {
+				panic(err)
+			}
+		}
 	}
 	// recover a little cone with 8 leaves into cache
 	level := byte(0)
