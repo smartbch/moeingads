@@ -111,7 +111,7 @@ func assert(b bool, s string) {
 }
 
 type FuzzConfig struct {
-	HeightStripe int
+	HeightStride int
 	InitCount    int
 	QueryCount   int
 	IterCount    int
@@ -121,7 +121,7 @@ type FuzzConfig struct {
 }
 
 var DefaultConfig = FuzzConfig{
-	HeightStripe: 100,
+	HeightStride: 100,
 	DelCount:     100,
 	InitCount:    200,
 	QueryCount:   300,
@@ -176,7 +176,7 @@ func RunFuzz(roundCount int, cfg FuzzConfig, randFilename string) {
 		FuzzInit(rocksdb, trMem, refTree, cfg, rs, h, changeMap)
 		FuzzQuery(trMem, refTree, cfg, rs, h)
 		FuzzIter(trMem, refTree, cfg, rs)
-		h += (1 + rs.GetUint64()%uint64(cfg.HeightStripe))
+		h += (1 + rs.GetUint64()%uint64(cfg.HeightStride))
 	}
 	trMem.Close()
 	rocksdb.Close()

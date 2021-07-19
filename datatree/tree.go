@@ -94,10 +94,10 @@ func init() {
 	bz := EntryToBytes(nullEntry, nil)
 	nullHash := hash(bz)
 	level := byte(0)
-	for stripe := 2048; stripe >= 1; stripe = stripe >> 1 {
+	for stride := 2048; stride >= 1; stride = stride >> 1 {
 		// use nullHash to fill one level of nodes
-		for i := 0; i < stripe; i++ {
-			copy(NullMT4Twig[stripe+i][:], nullHash[:])
+		for i := 0; i < stride; i++ {
+			copy(NullMT4Twig[stride+i][:], nullHash[:])
 		}
 		nullHash = hash2(level, nullHash, nullHash)
 		level++
@@ -297,7 +297,7 @@ func (tree *Tree) setEntryActiviation(sn int64, active bool) {
 	} else {
 		twig, ok := tree.activeTwigs[twigID]
 		if !ok {
-			fmt.Printf("Cannot find twig %d\n", twigID)
+			panic("Invalid activeTwigs, bug here")
 		}
 		twig.clearBit(int(sn & TwigMask))
 		tree.deactivedSNList = append(tree.deactivedSNList, sn)

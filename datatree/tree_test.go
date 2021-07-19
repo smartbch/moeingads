@@ -47,38 +47,38 @@ func TestTreeInit(t *testing.T) {
 	lvl[18] = sha256.Sum256(append(append([]byte{17}, lvl[17][:]...), lvl[17][:]...))
 	lvl[19] = sha256.Sum256(append(append([]byte{18}, lvl[18][:]...), lvl[18][:]...))
 	lvl[20] = sha256.Sum256(append(append([]byte{19}, lvl[19][:]...), lvl[19][:]...))
-	for i, stripe := 0, 2048; i < stripe; i++ {
-		assert.Equal(t, lvl[0], NullMT4Twig[stripe+i])
+	for i, stride := 0, 2048; i < stride; i++ {
+		assert.Equal(t, lvl[0], NullMT4Twig[stride+i])
 	}
-	for i, stripe := 0, 1024; i < stripe; i++ {
-		assert.Equal(t, lvl[1], NullMT4Twig[stripe+i])
+	for i, stride := 0, 1024; i < stride; i++ {
+		assert.Equal(t, lvl[1], NullMT4Twig[stride+i])
 	}
-	for i, stripe := 0, 512; i < stripe; i++ {
-		assert.Equal(t, lvl[2], NullMT4Twig[stripe+i])
+	for i, stride := 0, 512; i < stride; i++ {
+		assert.Equal(t, lvl[2], NullMT4Twig[stride+i])
 	}
-	for i, stripe := 0, 256; i < stripe; i++ {
-		assert.Equal(t, lvl[3], NullMT4Twig[stripe+i])
+	for i, stride := 0, 256; i < stride; i++ {
+		assert.Equal(t, lvl[3], NullMT4Twig[stride+i])
 	}
-	for i, stripe := 0, 128; i < stripe; i++ {
-		assert.Equal(t, lvl[4], NullMT4Twig[stripe+i])
+	for i, stride := 0, 128; i < stride; i++ {
+		assert.Equal(t, lvl[4], NullMT4Twig[stride+i])
 	}
-	for i, stripe := 0, 64; i < stripe; i++ {
-		assert.Equal(t, lvl[5], NullMT4Twig[stripe+i])
+	for i, stride := 0, 64; i < stride; i++ {
+		assert.Equal(t, lvl[5], NullMT4Twig[stride+i])
 	}
-	for i, stripe := 0, 32; i < stripe; i++ {
-		assert.Equal(t, lvl[6], NullMT4Twig[stripe+i])
+	for i, stride := 0, 32; i < stride; i++ {
+		assert.Equal(t, lvl[6], NullMT4Twig[stride+i])
 	}
-	for i, stripe := 0, 16; i < stripe; i++ {
-		assert.Equal(t, lvl[7], NullMT4Twig[stripe+i])
+	for i, stride := 0, 16; i < stride; i++ {
+		assert.Equal(t, lvl[7], NullMT4Twig[stride+i])
 	}
-	for i, stripe := 0, 8; i < stripe; i++ {
-		assert.Equal(t, lvl[8], NullMT4Twig[stripe+i])
+	for i, stride := 0, 8; i < stride; i++ {
+		assert.Equal(t, lvl[8], NullMT4Twig[stride+i])
 	}
-	for i, stripe := 0, 4; i < stripe; i++ {
-		assert.Equal(t, lvl[9], NullMT4Twig[stripe+i])
+	for i, stride := 0, 4; i < stride; i++ {
+		assert.Equal(t, lvl[9], NullMT4Twig[stride+i])
 	}
-	for i, stripe := 0, 2; i < stripe; i++ {
-		assert.Equal(t, lvl[10], NullMT4Twig[stripe+i])
+	for i, stride := 0, 2; i < stride; i++ {
+		assert.Equal(t, lvl[10], NullMT4Twig[stride+i])
 	}
 	assert.Equal(t, lvl[11], NullMT4Twig[1])
 	assert.Equal(t, lvl[11], NullTwig.leftRoot)
@@ -168,13 +168,13 @@ func TestTreeMaxLevel(t *testing.T) {
 // fill tree.nodes and test tree.ReapNodes
 func TestTreeReapNodes(t *testing.T) {
 	tree := &Tree{nodes: make(map[NodePos]*[32]byte)}
-	stripe := 32
+	stride := 32
 	for level := FirstLevelAboveTwig - 1; level < FirstLevelAboveTwig+5; level++ {
-		for i := 0; i < stripe; i++ {
+		for i := 0; i < stride; i++ {
 			var zero [32]byte
 			tree.nodes[Pos(int(level), int64(i))] = &zero
 		}
-		stripe >>= 1
+		stride >>= 1
 	}
 	tree.youngestTwigID = 15
 	bz := tree.ReapNodes(0, 3)
@@ -524,7 +524,7 @@ func TestTreeAppendEntry(t *testing.T) {
 		i++
 	}
 
-	tree.Flush()
+	tree.SaveMemToDisk()
 	tree.Close()
 	os.RemoveAll(dirName)
 }

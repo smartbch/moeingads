@@ -41,15 +41,15 @@ func runTest() {
 }
 
 type FuzzConfig struct {
-	EndBlockStripe         uint32 // run EndBlock every n steps
+	EndBlockStride         uint32 // run EndBlock every n steps
 	ConsistencyEveryNBlock uint32 // check consistency every n blocks
 	ReloadEveryNBlock      uint32 // reload tree from disk every n blocks
 	RecoverEveryNBlock     uint32 // recover tree from disk every n blocks
 	PruneEveryNBlock       uint32 // prune the tree every n blocks
 	MaxKVLen               uint32 // max length of key and value
-	DeactiveStripe         uint32 // deactive some entry every n steps
+	DeactiveStride         uint32 // deactive some entry every n steps
 	DeactiveCount          uint32 // number of deactive try times
-	MassDeactiveStripe     uint32 // deactive many entries every n steps
+	MassDeactiveStride     uint32 // deactive many entries every n steps
 	ProofCount             uint32 // check several proofs at endblock
 	MaxActiveCount         uint32 // the maximum count of active entries
 	MagicBytesInKey        uint32 // chance that keys have magicbytes
@@ -58,15 +58,15 @@ type FuzzConfig struct {
 }
 
 var DefaultConfig = FuzzConfig{
-	EndBlockStripe:         1000,
+	EndBlockStride:         1000,
 	ConsistencyEveryNBlock: 20,
 	ReloadEveryNBlock:      309,
 	RecoverEveryNBlock:     606,
 	PruneEveryNBlock:       20,
 	MaxKVLen:               20,
-	DeactiveStripe:         3,
+	DeactiveStride:         3,
 	DeactiveCount:          4,
-	MassDeactiveStripe:     6000,
+	MassDeactiveStride:     6000,
 	ProofCount:             4,
 	MaxActiveCount:         1 * 1024 * 1024,
 	MagicBytesInKey:        1000,
@@ -151,7 +151,7 @@ func (ctx *Context) initialAppends() {
 }
 
 func (ctx *Context) step() {
-	if ctx.rs.GetUint32()%ctx.cfg.DeactiveStripe == 0 {
+	if ctx.rs.GetUint32()%ctx.cfg.DeactiveStride == 0 {
 		for i := 0; i < int(ctx.cfg.DeactiveCount); i++ {
 			sn := ctx.generateRandSN()
 			//if datatree.Debug {
@@ -163,7 +163,7 @@ func (ctx *Context) step() {
 			}
 		}
 	}
-	if ctx.rs.GetUint32()%ctx.cfg.MassDeactiveStripe == 0 {
+	if ctx.rs.GetUint32()%ctx.cfg.MassDeactiveStride == 0 {
 		fmt.Printf("Now MassDeactive\n")
 		for i := 0; i < 4*datatree.DeactivedSNListMaxLen; i++ {
 			sn := ctx.generateRandSN()
@@ -178,7 +178,7 @@ func (ctx *Context) step() {
 		ctx.tree.AppendEntry(entry) // make sure every Deactivation is followed by AppendEntry
 		ctx.activeCount++
 	}
-	if ctx.rs.GetUint32()%ctx.cfg.EndBlockStripe == 0 {
+	if ctx.rs.GetUint32()%ctx.cfg.EndBlockStride == 0 {
 		ctx.endBlock()
 	}
 	//if ctx.stepCount >= 420000 {
@@ -224,7 +224,7 @@ func (ctx *Context) endBlock() {
 }
 
 func (ctx *Context) reloadTree() {
-	ctx.tree.Flush()
+	ctx.tree.SaveMemToDisk()
 	tree1 := datatree.LoadTree(datatree.BufferSize, defaultFileSize, dirName)
 
 	datatree.CompareTreeTwigs(ctx.tree, tree1)
@@ -235,7 +235,7 @@ func (ctx *Context) reloadTree() {
 }
 
 func (ctx *Context) recoverTree() {
-	ctx.tree.Flush()
+	ctx.tree.SaveMemToDisk()
 	tree1, _ := datatree.RecoverTree(datatree.BufferSize, defaultFileSize, dirName, "", ctx.edgeNodes,
 		ctx.lastPrunedTwigID, ctx.oldestActiveTwigID, ctx.serialNum>>datatree.TwigShift, nil)
 

@@ -8,11 +8,9 @@ import (
 )
 
 func checkMT(mt [4096][32]byte) {
-	for stripe, level := 1, byte(10); stripe <= 1024; stripe, level = stripe*2, level-1 {
-		for i := stripe; i < 2*stripe; i++ {
+	for stride, level := 1, byte(10); stride <= 1024; stride, level = stride*2, level-1 {
+		for i := stride; i < 2*stride; i++ {
 			b := append(append([]byte{level}, mt[2*i][:]...), mt[2*i+1][:]...)
-			//fmt.Printf("Check %d-%d(%d) %d(%d) %d(%d)\n", level, i-stripe, i,
-			//	2*i-stripe*2, 2*i, 2*i+1-stripe*2, 2*i+1)
 			sum := sha256.Sum256(b)
 			if !bytes.Equal(mt[i][:], sum[:]) {
 				panic(fmt.Sprintf("Mismatch %d-%d %d %d", level, i, 2*i, 2*i+1))
@@ -25,7 +23,6 @@ func checkUpperNodes(tree *Tree) {
 	for pos, parentHash := range tree.nodes {
 		level := int64(pos) >> 56
 		n := (int64(pos) << 8) >> 8
-		//fmt.Printf("Checking %d-%d %d- %d %d\n", level, n, level-1, 2*n, 2*n+1)
 		var leftChild, rightChild [32]byte
 		if level == int64(FirstLevelAboveTwig) {
 			var ok bool
@@ -37,12 +34,6 @@ func checkUpperNodes(tree *Tree) {
 			if !ok {
 				rightChild = NullTwig.twigRoot
 			}
-			//if Debug {
-			//	fmt.Printf("rightTwig:%v ok:%v\n", rightChild, ok)
-			//	for i := range tree.activeTwigs {
-			//		fmt.Printf("active %d\n", i)
-			//	}
-			//}
 		} else {
 			leftChildPtr, ok := tree.nodes[Pos(int(level-1), 2*n)]
 			if !ok {

@@ -201,7 +201,7 @@ func (tree *Tree) GetProof(sn int64) *ProofPath {
 	twig, ok := tree.activeTwigs[twigID]
 	if ok {
 		path.RightOfTwig = getRightPath(twig, sn)
-	} else {
+	} else { // for the old and deactived twigs
 		path.RightOfTwig = getRightPath(&NullTwig, sn)
 	}
 	return path
@@ -258,12 +258,12 @@ func getRightPath(twig *Twig, sn int64) (right [3]ProofNode) {
 
 func getLeftPath(sn int64, getHash func(int) [32]byte) (left [11]ProofNode) {
 	n := sn & TwigMask
-	for stripe, level := 2048, 0; level <= 10; stripe, level = stripe/2, level+1 {
+	for stride, level := 2048, 0; level <= 10; stride, level = stride/2, level+1 {
 		self := n >> level
 		peer := self ^ 1
 		left[level] = ProofNode{
-			SelfHash:   getHash(stripe + int(self)),
-			PeerHash:   getHash(stripe + int(peer)),
+			SelfHash:   getHash(stride + int(self)),
+			PeerHash:   getHash(stride + int(peer)),
 			PeerAtLeft: (peer & 1) == 0,
 		}
 	}
@@ -277,7 +277,7 @@ func getLeftPathInMem(mt4twig [4096][32]byte, sn int64) (left [11]ProofNode) {
 }
 
 func getLeftPathOnDisk(tf *TwigMtFile, twigID int64, sn int64) (left [11]ProofNode) {
-	cache := make(map[int][]byte, 16)
+	cache := make(map[int][]byte, 8)
 	return getLeftPath(sn, func(i int) (res [32]byte) {
 		if bz, ok := cache[i]; ok {
 			copy(res[:], bz)

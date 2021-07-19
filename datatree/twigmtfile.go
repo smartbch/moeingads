@@ -105,13 +105,10 @@ func (tf *TwigMtFile) getHashNodeInIgnoreRange(twigID int64, hashID int, cache m
 		panic(err)
 	}
 	// recover a little cone with 8 leaves into cache
-	for id := start; id < end; id++ {
-		off := (id - start) * 32
-		cache[id] = buf[off : off+32]
-	}
 	level := byte(0)
 	for id := start / 2; id < end/2; id++ {
-		cache[id] = hash2(level, cache[id*2], cache[id*2+1])
+		off := (id - start/2) * 64
+		cache[id] = hash2(level, buf[off:off+32], buf[off+32:off+64])
 	}
 	level = byte(1)
 	for id := start / 4; id < end/4; id++ {

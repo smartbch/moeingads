@@ -73,14 +73,6 @@ func (rabbit *RabbitStore) Get(key []byte) []byte {
 	return cv.value
 }
 
-func (rabbit *RabbitStore) PrepareForUpdate(key []byte) {
-	_, path, status := rabbit.find(key, true)
-	if status != Exists && len(path) == 1 {
-		rabbit.sms.parent.PrepareForUpdate(path[0][:])
-	}
-	return
-}
-
 func (rabbit *RabbitStore) find(key []byte, earlyExit bool) (cv *CachedValue, path [][KeySize]byte, status int) {
 	var k [KeySize]byte
 	hash := sha256.Sum256(key)

@@ -52,9 +52,6 @@ const (
 )
 
 func PutUint24(b []byte, n uint32) {
-	//!! if n == 0 {
-	//!! 	panic("here PutUint24")
-	//!! }
 	b[0] = byte(n)
 	b[1] = byte(n >> 8)
 	b[2] = byte(n >> 16)
@@ -64,20 +61,8 @@ func GetUint24(b []byte) (n uint32) {
 	n = uint32(b[0])
 	n |= uint32(b[1]) << 8
 	n |= uint32(b[2]) << 16
-	//!! if n == 0 {
-	//!! 	panic("here GetUint24")
-	//!! }
 	return
 }
-
-//!! func SkipPosList(bz []byte) []byte {
-//!! 	for i := 0; i + 4 < len(bz); i+=4 {
-//!! 		if (bz[i]&bz[i+1]&bz[i+2]&bz[i+3]) == 0xFF {
-//!! 			return bz[i+4:]
-//!! 		}
-//!! 	}
-//!! 	return nil
-//!! }
 
 func ExtractKeyFromRawBytes(b []byte) []byte {
 	bb := b[4:]
@@ -125,9 +110,6 @@ func EntryToBytes(entry Entry, deactivedSerialNumList []int64) []byte {
 	stop := len(b) - len(deactivedSerialNumList)*8 - 3*8
 	magicBytesPosList := getAllPos(b[start:stop], MagicBytes[:])
 	if len(magicBytesPosList) == 0 {
-		//!! if dbg {
-		//!! 	fmt.Printf("here-length %d %d\n", length, length-4-len(deactivedSerialNumList)*8)
-		//!! }
 		PutUint24(b[1:4], uint32(length-4-len(deactivedSerialNumList)*8))
 		binary.LittleEndian.PutUint32(b[4:8], ^uint32(0))
 		return b
@@ -152,9 +134,6 @@ func EntryToBytes(entry Entry, deactivedSerialNumList []int64) []byte {
 	// Re-write the new length. minus 4 because the first 4 bytes of length isn't included
 	buf[0] = byte(len(deactivedSerialNumList))
 	PutUint24(buf[1:4], uint32(length-4-len(deactivedSerialNumList)*8))
-	//!! if dbg {
-	//!! 	fmt.Printf("there-length %d %d\n", length, length-4-len(deactivedSerialNumList)*8)
-	//!! }
 	return buf
 }
 
@@ -257,14 +236,7 @@ func (ef *EntryFile) readMagicBytesAndLength(off int64, withBuf bool) (length in
 	if err != nil {
 		panic(err)
 	}
-	//fmt.Printf("Now off %d %x %#v %#v\n", off, off, buf[:], MagicBytes[:])
 	if !bytes.Equal(buf[:8], MagicBytes[:]) {
-		//var buf [120]byte
-		//err := ef.HPFile.ReadAt(buf[:], off, withBuf)
-		//if err != nil {
-		//	panic(err)
-		//}
-		//fmt.Printf("%#v\n", buf[:])
 		panic(fmt.Sprintf("Invalid MagicBytes at %d", off))
 	}
 	length = int64(GetUint24(buf[9:12]))
@@ -279,7 +251,6 @@ func getNextPos(off, length int64) int64 {
 	paddingSize := getPaddingSize(int(length))
 	paddedLen := length + int64(paddingSize)
 	nextPos := off + paddedLen
-	//fmt.Printf("off %d length %d paddingSize %d paddedLen %d nextPos %d\n", off, length, paddingSize, paddedLen, nextPos)
 	return nextPos
 
 }
@@ -376,10 +347,6 @@ func (ef *EntryFile) PruneHead(off int64) {
 }
 
 func (ef *EntryFile) Append(b [2][]byte) (pos int64) {
-	//!! if b[0][1] == 0 && b[0][2] == 0  && b[0][3] == 0 {
-	//!! 	fmt.Printf("%#v\n", b)
-	//!! 	panic("here in Append")
-	//!! }
 	var bb [4][]byte
 	bb[0] = MagicBytes[:]
 	bb[1] = b[0]
@@ -387,17 +354,12 @@ func (ef *EntryFile) Append(b [2][]byte) (pos int64) {
 	paddingSize := getPaddingSize(len(b[0]) + len(b[1]))
 	bb[3] = make([]byte, paddingSize) // padding zero bytes
 	pos, err := ef.HPFile.Append(bb[:])
-	//!! if pos > 108996000 {
-	//!! 	dbg = true
-	//!! 	fmt.Printf("Append pos %d %#v len(bb[1]) %d padding %d\n", pos, bb[:], len(bb[1]), paddingSize)
-	//!! }
 	if pos%8 != 0 {
 		panic("Entries are not aligned")
 	}
 	if err != nil {
 		panic(err)
 	}
-	//fmt.Printf("Now Append At: %d len: %d\n", pos, len(b))
 	return
 }
 
@@ -427,22 +389,3 @@ func (ef *EntryFile) getActiveEntriesInTwig(twig *Twig, checkSN bool) chan []byt
 	}()
 	return res
 }
-
-//!! func (ef *EntryFile) GetActiveEntriesInTwigOld(twig *Twig) chan *Entry {
-//!! 	res := make(chan *Entry, 100)
-//!! 	go func() {
-//!! 		start := twig.FirstEntryPos
-//!! 		for i := 0; i < LeafCountInTwig; i++ {
-//!! 			if twig.getBit(i) {
-//!! 				entry, next := ef.ReadEntry(start)
-//!! 				start = next
-//!! 				res <- entry
-//!! 			} else { // skip an inactive entry
-//!! 				length, numberOfSN := ef.readMagicBytesAndLength(start, true)
-//!! 				start = getNextPos(start, length+8*int64(numberOfSN))
-//!! 			}
-//!! 		}
-//!! 		close(res)
-//!! 	}()
-//!! 	return res
-//!! }

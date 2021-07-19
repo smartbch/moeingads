@@ -9,29 +9,29 @@ import (
 )
 
 func EdgeNodesToBytes(edgeNodes []*EdgeNode) []byte {
-	const stripe = 8 + 32
-	res := make([]byte, len(edgeNodes)*stripe)
+	const stride = 8 + 32
+	res := make([]byte, len(edgeNodes)*stride)
 	for i, node := range edgeNodes {
 		if len(node.Value) != 32 {
 			s := fmt.Sprintf("node.Value %#v\n", node.Value)
 			panic("len(node.Value) != 32 " + s)
 		}
-		binary.LittleEndian.PutUint64(res[i*stripe:i*stripe+8], uint64(node.Pos))
-		copy(res[i*stripe+8:(i+1)*stripe], node.Value)
+		binary.LittleEndian.PutUint64(res[i*stride:i*stride+8], uint64(node.Pos))
+		copy(res[i*stride+8:(i+1)*stride], node.Value)
 	}
 	return res
 }
 
 func BytesToEdgeNodes(bz []byte) []*EdgeNode {
-	const stripe = 8 + 32
-	if len(bz)%stripe != 0 {
+	const stride = 8 + 32
+	if len(bz)%stride != 0 {
 		panic("Invalid byteslice length for EdgeNodes")
 	}
-	res := make([]*EdgeNode, len(bz)/stripe)
+	res := make([]*EdgeNode, len(bz)/stride)
 	for i := 0; i < len(res); i++ {
 		var value [32]byte
-		pos := binary.LittleEndian.Uint64(bz[i*stripe : i*stripe+8])
-		copy(value[:], bz[i*stripe+8:(i+1)*stripe])
+		pos := binary.LittleEndian.Uint64(bz[i*stride : i*stride+8])
+		copy(value[:], bz[i*stride+8:(i+1)*stride])
 		res[i] = &EdgeNode{Pos: NodePos(pos), Value: value[:]}
 	}
 	return res

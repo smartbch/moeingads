@@ -40,7 +40,7 @@ func TestLoadTree(t *testing.T) {
 	nodes0 := tree0.nodes
 	activeTwigs0 := tree0.activeTwigs
 	mtree4YoungestTwig0 := tree0.mtree4YoungestTwig
-	tree0.Flush()
+	tree0.SaveMemToDisk()
 	tree0.Close()
 
 	tree1 := LoadTree(SmallBufferSize, defaultFileSize, dirName)

@@ -19,9 +19,6 @@ type SimpleMultiStore struct {
 	isClosed bool
 }
 
-//var WatchedKey = []uint8{0x47, 0x60, 0x3, 0x0, 0x0, 0x0, 0x0, 0x0}
-//var WatchedShortKey = []uint8{0xe3, 0x7e}
-
 func NewSimpleMultiStore(parent types.BaseStoreI) SimpleMultiStore {
 	parent.RLock()
 	return SimpleMultiStore{

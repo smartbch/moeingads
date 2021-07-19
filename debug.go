@@ -7,9 +7,10 @@ import (
 )
 
 const (
-	defaultFileSize int   = 64 * 1024 * 1024
-	StartReapThres  int64 = 10 * 1000
-	bufferSize      int   = 8 * 1024
+	DefaultHPFileSize  int   = 64 * 1024 * 1024
+	StartReapThres     int64 = 10 * 1000
+	HPFileBufferSize   int   = 8 * 1024
+	RootCacheSizeLimit int   = 1024
 )
 
 var DebugPanicNumber int

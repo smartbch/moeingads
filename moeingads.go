@@ -112,7 +112,7 @@ func NewMoeingADS(dirName string, canQueryHistory bool /*not supported yet*/, st
 	if dirNotExists { // Create a new database in this dir
 		for i := 0; i < types.ShardCount; i++ {
 			suffix := fmt.Sprintf(".%d", i)
-			mads.datTree[i] = datatree.NewEmptyTree(datatree.BufferSize, defaultFileSize, dirName, suffix)
+			mads.datTree[i] = datatree.NewEmptyTree(HPFileBufferSize, DefaultHPFileSize, dirName, suffix)
 		}
 		mads.rocksdb.OpenNewBatch()
 		mads.meta.Init()
@@ -196,7 +196,7 @@ func (mads *MoeingADS) recoverDataTrees(dirName string) {
 		edgeNodes := datatree.BytesToEdgeNodes(bz)
 		var recoveredRoot [32]byte
 		suffix := fmt.Sprintf(".%d", shardID)
-		mads.datTree[shardID], recoveredRoot = datatree.RecoverTree(datatree.BufferSize, defaultFileSize,
+		mads.datTree[shardID], recoveredRoot = datatree.RecoverTree(HPFileBufferSize, DefaultHPFileSize,
 			dirName, suffix, edgeNodes, mads.meta.GetLastPrunedTwig(shardID),
 			oldestActiveTwigID, youngestTwigID,
 			[]int64{mads.meta.GetEntryFileSize(shardID), mads.meta.GetTwigMtFileSize(shardID)})

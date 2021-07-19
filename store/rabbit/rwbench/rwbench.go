@@ -25,10 +25,10 @@ const (
 	BatchSize    = 10000
 	JobSize      = 200
 	SamplePos    = 99
-	SampleStripe = 125
+	SampleStride = 125
 
-	Stripe        = 64
-	ReadBatchSize = 64 * Stripe
+	Stride        = 64
+	ReadBatchSize = 64 * Stride
 )
 
 type KVPair struct {
@@ -210,7 +210,7 @@ func RandomWrite(root *store.RootStore, rs randsrc.RandSrc, count int) {
 			k, v := GetRandKV(touchedShortKeys, rs)
 			kList[j] = k
 			vList[j] = v
-			if (j % SampleStripe) == SamplePos {
+			if (j % SampleStride) == SamplePos {
 				s := fmt.Sprintf("SAMPLE %s %s\n", base64.StdEncoding.EncodeToString(k),
 					base64.StdEncoding.EncodeToString(v))
 				_, err := file.Write([]byte(s))
@@ -250,7 +250,7 @@ func checkPar(trunk *store.TrunkStore, batch []KVPair) {
 		panic(fmt.Sprintf("invalid size %d %d", len(batch), ReadBatchSize))
 	}
 	var wg sync.WaitGroup
-	for i := 0; i < ReadBatchSize/Stripe; i++ {
+	for i := 0; i < ReadBatchSize/Stride; i++ {
 		wg.Add(1)
 		go func(start, end int) {
 			rbt := rabbit.NewRabbitStore(trunk)
@@ -263,7 +263,7 @@ func checkPar(trunk *store.TrunkStore, batch []KVPair) {
 			rbt.Close()
 			rbt.WriteBack()
 			wg.Done()
-		}(i*Stripe, (i+1)*Stripe)
+		}(i*Stride, (i+1)*Stride)
 	}
 	wg.Wait()
 }

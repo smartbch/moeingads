@@ -11,8 +11,7 @@ import (
 )
 
 const (
-	CacheSizeLimit = 1024 * 1024
-	EvictTryDist   = 16
+	EvictTryDist = 16
 )
 
 type cacheEntry struct {
@@ -144,7 +143,7 @@ func (root *RootStore) Update(updater func(db types.SetDeleter)) {
 
 func (root *RootStore) addToCache(key, value []byte) {
 	shardID := adstypes.GetShardID(key)
-	if len(root.cache[shardID]) > CacheSizeLimit {
+	if len(root.cache[shardID]) > moeingads.RootCacheSizeLimit {
 		var delK string
 		delHeight := int64(math.MaxInt64)
 		dist := 0

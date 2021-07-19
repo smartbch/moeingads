@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	FirstByteOfCacheableKey = byte(15)
+	FirstByteOfCacheableKey = byte(105)
 )
 
 var (
@@ -70,7 +70,7 @@ func runTest(cfg *FuzzConfig) {
 			panic(err)
 		}
 		root = store.NewRootStore(mads, func(k []byte) bool {
-			return (k[0] & FirstByteOfCacheableKey) == FirstByteOfCacheableKey
+			return k[0] > FirstByteOfCacheableKey
 		})
 	}
 	if cfg.RootType == "MockRoot" {
@@ -79,7 +79,7 @@ func runTest(cfg *FuzzConfig) {
 		os.RemoveAll("./rocksdb.db")
 		mads := moeingads.NewMoeingADS4Mock([][]byte{GuardStart, GuardEnd})
 		root = store.NewRootStore(mads, func(k []byte) bool {
-			return (k[0] & FirstByteOfCacheableKey) == FirstByteOfCacheableKey
+			return k[0] > FirstByteOfCacheableKey
 		})
 	} else if cfg.RootType == "Real" {
 		os.RemoveAll("./moeingads4test")
@@ -158,7 +158,10 @@ type Block struct {
 }
 
 func getRandValue(rs randsrc.RandSrc, cfg *FuzzConfig) []byte {
-	length := 1 + int(rs.GetUint32())%(cfg.MaxValueLength-1) //no zero-length value
+	length := 1 + int(rs.GetUint32())%(cfg.MaxValueLength-1)     //no zero-length value
+	if float32(rs.GetUint32()%0x10000)/float32(0x10000) < 0.15 { //some corner cases for large value
+		length = 1 + int(rs.GetUint32())%(moeingads.HPFileBufferSize/2)
+	}
 	bz := rs.GetBytes(length)
 	if len(bz) < 16 {
 		return bz
@@ -205,7 +208,8 @@ func GenerateRandTx(ref *RefL1, rs randsrc.RandSrc, cfg *FuzzConfig, touchedKeys
 		OpList:  make([]Operation, 0, maxReadCount+maxWriteCount+maxDeleteCount),
 		Succeed: float32(rs.GetUint32()%0x10000)/float32(0x10000) < cfg.TxSucceedRatio,
 	}
-	for readCount != maxReadCount || writeCount != maxWriteCount || deleteCount != maxDeleteCount {
+	for readCount != maxReadCount || checkProofCount != maxCheckProofCount ||
+		writeCount != maxWriteCount || deleteCount != maxDeleteCount {
 		if rs.GetUint32()%4 == 0 && readCount < maxReadCount {
 			key := getRand8Bytes(rs, cfg, touchedKeys)
 			tx.OpList = append(tx.OpList, Operation{
@@ -215,7 +219,7 @@ func GenerateRandTx(ref *RefL1, rs randsrc.RandSrc, cfg *FuzzConfig, touchedKeys
 			})
 			readCount++
 		}
-		if rs.GetUint32()%4 == 0 && checkProofCount < maxCheckProofCount {
+		if rs.GetUint32()%4 == 1 && checkProofCount < maxCheckProofCount {
 			key := getRand8Bytes(rs, cfg, touchedKeys)
 			tx.OpList = append(tx.OpList, Operation{
 				opType: OpCheckProof,
@@ -223,7 +227,7 @@ func GenerateRandTx(ref *RefL1, rs randsrc.RandSrc, cfg *FuzzConfig, touchedKeys
 			})
 			checkProofCount++
 		}
-		if rs.GetUint32()%4 == 0 && writeCount < maxWriteCount {
+		if rs.GetUint32()%4 == 2 && writeCount < maxWriteCount {
 			op := Operation{
 				opType: OpWrite,
 				key:    getRand8Bytes(rs, cfg, touchedKeys),
@@ -233,7 +237,7 @@ func GenerateRandTx(ref *RefL1, rs randsrc.RandSrc, cfg *FuzzConfig, touchedKeys
 			tx.OpList = append(tx.OpList, op)
 			writeCount++
 		}
-		if rs.GetUint32()%4 == 0 && deleteCount < maxDeleteCount {
+		if rs.GetUint32()%4 == 3 && deleteCount < maxDeleteCount {
 			op := Operation{
 				opType: OpDelete,
 				key:    getRand8Bytes(rs, cfg, touchedKeys),
