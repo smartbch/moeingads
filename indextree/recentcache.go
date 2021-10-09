@@ -17,12 +17,12 @@ func NewCache() *Cache {
 }
 
 func (cache *Cache) Set(k uint64, v int64) {
-	m := cache.maps[types.GetIndexChanID(byte(k>>64))]
+	m := cache.maps[types.GetIndexChanID(byte(k>>56))]
 	m[k] = v
 }
 
 func (cache *Cache) Get(k uint64) (v int64, ok bool) {
-	m := cache.maps[types.GetIndexChanID(byte(k>>64))]
+	m := cache.maps[types.GetIndexChanID(byte(k>>56))]
 	v, ok = m[k]
 	return
 }

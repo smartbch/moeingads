@@ -32,7 +32,7 @@ const (
 	MinKeptTwigs       = 10  //minimum kept twig count in each shard
 )
 
-var Phase1n2Time, Phase1Time, Phase2Time, Phase3Time, Phase4Time, Phase0Time, tscOverhead uint64
+var Phase1n2Time, Phase1Time, Phase2Time, Phase3Time, Phase4Time, Phase0Time uint64
 
 type MoeingADS struct {
 	meta           types.MetaDB
@@ -95,7 +95,7 @@ func NewMoeingADS(dirName string, canQueryHistory bool /*not supported yet*/, st
 		mads.tempEntries64[i] = make([]*HotEntry, 0, len(mads.cachedEntries)/8)
 	}
 	if dirNotExists {
-		os.Mkdir(dirName, 0700)
+		_ = os.Mkdir(dirName, 0700)
 	}
 
 	mads.rocksdb, err = indextree.NewRocksDB("rocksdb", dirName)
