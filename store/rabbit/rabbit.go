@@ -22,19 +22,21 @@ const (
 
 // RabbitStore inherits SimpleMultiStore to implement the 'RabbitJump' algorithm
 type RabbitStore struct {
-	readOnly bool
 	sms      SimpleMultiStore
 }
 
 func NewRabbitStore(parent types.BaseStoreI) (rabbit RabbitStore) {
 	rabbit.sms = NewSimpleMultiStore(parent)
-	rabbit.readOnly = false
 	return
 }
 
 func NewReadOnlyRabbitStore(parent types.BaseStoreI) (rabbit RabbitStore) {
-	rabbit.sms = NewSimpleMultiStore(parent)
-	rabbit.readOnly = true
+	rabbit.sms = NewReadOnlySimpleMultiStore(parent)
+	return
+}
+
+func NewReadOnlyRabbitStoreAtHeight(parent types.BaseStoreI, height uint64) (rabbit RabbitStore) {
+	rabbit.sms = NewReadOnlySimpleMultiStoreAtHeight(parent, height)
 	return
 }
 
@@ -161,7 +163,7 @@ func (rabbit *RabbitStore) Close() {
 }
 
 func (rabbit *RabbitStore) WriteBack() {
-	if rabbit.readOnly {
+	if rabbit.sms.readOnly {
 		panic("Cannot writeback a readonly RabbitStore")
 	}
 	rabbit.sms.WriteBack()

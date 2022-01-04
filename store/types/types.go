@@ -24,6 +24,7 @@ type BaseStoreI interface {
 	RLock()
 	RUnlock()
 	Get(key []byte) []byte
+	GetAtHeight(key []byte, height uint64) []byte
 	PrepareForUpdate(key []byte)
 	PrepareForDeletion(key []byte)
 	Update(func(db SetDeleter))

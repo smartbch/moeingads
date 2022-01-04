@@ -270,6 +270,15 @@ func (mads *MoeingADS) GetEntry(k []byte) *Entry {
 	return entry
 }
 
+func (mads *MoeingADS) GetEntryAtHeight(k []byte, height uint64) *Entry {
+	pos, ok := mads.idxTree.GetAtHeight(k, height)
+	if !ok {
+		return nil
+	}
+	shardID := types.GetShardID(k)
+	return mads.datTree[shardID].ReadEntry(int64(pos))
+}
+
 func (mads *MoeingADS) getEntry(k []byte, forProof bool) (entry *Entry, entryBz []byte) {
 	pos, ok := mads.idxTree.Get(k)
 	if !ok {

@@ -53,6 +53,10 @@ func (rs *MockRootStore) GetTrunkStore(cacheSize int) interface{} {
 func (rs *MockRootStore) SetHeight(h int64) {
 }
 
+func (rs *MockRootStore) GetAtHeight(key []byte, height uint64) []byte {
+	panic("Implement me")
+}
+
 func (rs *MockRootStore) Get(key []byte) []byte {
 	if rs.isWritting {
 		panic("isWritting")

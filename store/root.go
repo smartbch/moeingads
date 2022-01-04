@@ -89,6 +89,14 @@ func (root *RootStore) Get(key []byte) []byte {
 	}
 }
 
+func (root *RootStore) GetAtHeight(key []byte, height uint64) []byte {
+	e := root.mads.GetEntryAtHeight(key, height)
+	if e == nil {
+		return nil
+	}
+	return e.Value
+}
+
 func (root *RootStore) get(key []byte) []byte {
 	e := root.mads.GetEntry(key)
 	if e == nil {

@@ -65,6 +65,10 @@ func (ts *TrunkStore) CacheSize() int {
 	return ts.cache.Size()
 }
 
+func (ts *TrunkStore) GetAtHeight(key []byte, height uint64) []byte {
+	return ts.root.GetAtHeight(key, height)
+}
+
 func (ts *TrunkStore) PrepareForUpdate(key []byte) {
 	if atomic.LoadInt64(&ts.isWriting) != 0 {
 		panic("Is Writing")

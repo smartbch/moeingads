@@ -17,6 +17,8 @@ type SimpleMultiStore struct {
 	cache    *SimpleCacheStore
 	parent   types.BaseStoreI
 	isClosed bool
+	height   uint64
+	readOnly bool
 }
 
 func NewSimpleMultiStore(parent types.BaseStoreI) SimpleMultiStore {
@@ -25,7 +27,35 @@ func NewSimpleMultiStore(parent types.BaseStoreI) SimpleMultiStore {
 		cache:    NewSimpleCacheStore(),
 		parent:   parent,
 		isClosed: false,
+		height:   ^uint64(0),
+		readOnly: false,
 	}
+}
+
+func NewReadOnlySimpleMultiStore(parent types.BaseStoreI) SimpleMultiStore {
+	parent.RLock()
+	return SimpleMultiStore{
+		cache:    NewSimpleCacheStore(),
+		parent:   parent,
+		isClosed: false,
+		height:   ^uint64(0),
+		readOnly: true,
+	}
+}
+
+func NewReadOnlySimpleMultiStoreAtHeight(parent types.BaseStoreI, height uint64) SimpleMultiStore {
+	parent.RLock()
+	return SimpleMultiStore{
+		cache:    NewSimpleCacheStore(),
+		parent:   parent,
+		isClosed: false,
+		height:   height,
+		readOnly: true,
+	}
+}
+
+func (sms *SimpleMultiStore) isHistorical() bool {
+	return 0 != ^sms.height;
 }
 
 func (sms *SimpleMultiStore) GetCachedValue(key [KeySize]byte) *CachedValue {
@@ -37,7 +67,12 @@ func (sms *SimpleMultiStore) GetCachedValue(key [KeySize]byte) *CachedValue {
 	case types.JustDeleted:
 		return nil
 	case types.Missed:
-		bz := sms.parent.Get(key[:])
+		var bz []byte
+		if(sms.isHistorical()) {
+			bz = sms.parent.GetAtHeight(key[:], sms.height)
+		} else {
+			bz = sms.parent.Get(key[:])
+		}
 		if bz == nil {
 			return nil
 		}
@@ -68,10 +103,12 @@ func (sms *SimpleMultiStore) SetCachedValue(key [KeySize]byte, cv *CachedValue) 
 	}
 	cv.isDirty = true
 	sms.cache.SetValue(key, cv)
-	if cv.isDeleted {
-		sms.parent.PrepareForDeletion(key[:])
-	} else {
-		sms.parent.PrepareForUpdate(key[:])
+	if(!sms.readOnly) {
+		if cv.isDeleted {
+			sms.parent.PrepareForDeletion(key[:])
+		} else {
+			sms.parent.PrepareForUpdate(key[:])
+		}
 	}
 }
 
@@ -84,6 +121,9 @@ func (sms *SimpleMultiStore) Close() {
 }
 
 func (sms *SimpleMultiStore) WriteBack() {
+	if(sms.readOnly) {
+		panic("Cannot write back when readOnly")
+	}
 	if !sms.isClosed {
 		panic("Cannot write back before closed")
 	}
