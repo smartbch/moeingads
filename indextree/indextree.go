@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"math"
 	"sync"
 
 	"github.com/smartbch/moeingads/indextree/b"
@@ -106,8 +105,7 @@ Here we implement IndexTree with an in-memory B-Tree and a on-disk RocksDB.
 The B-Tree contains only the latest key-position records, while the RocksDB
 contains several versions of positions for each key. The keys in RocksDB have
 two parts: the original key and 64-bit height. The height means the key-position
-record expires (get invalid) at this height. When the height is math.MaxUint64,
-the key-position record is up-to-date, i.e., not expired.
+record is created (get valid) at this height.
 */
 
 type NVTreeMem struct {
@@ -116,6 +114,7 @@ type NVTreeMem struct {
 	isWriting  bool
 	rocksdb    *RocksDB
 	currHeight [8]byte
+	duringInit bool
 }
 
 var _ types.IndexTree = (*NVTreeMem)(nil)
@@ -128,20 +127,12 @@ func NewNVTreeMem(rocksdb *RocksDB) *NVTreeMem {
 	}
 }
 
-func (tree *NVTreeMem) Close() {
-	tree.bt.Close()
-	// tree.rocksdb should be closed at somewhere else, not here
-}
-
-func (tree *NVTreeMem) ActiveCount() int {
-	return tree.bt.Len()
-}
-
 // Load the RocksDB and use its up-to-date records to initialize the in-memory B-Tree.
 // RocksDB's historical records are ignored.
 func (tree *NVTreeMem) Init(repFn func([]byte)) (err error) {
-	iter := tree.rocksdb.Iterator([]byte{}, []byte(nil))
+	iter := tree.rocksdb.ReverseIterator([]byte{}, []byte(nil))
 	defer iter.Close()
+	var key []byte
 	for iter.Valid() {
 		k := iter.Key()
 		v := iter.Value()
@@ -158,13 +149,30 @@ func (tree *NVTreeMem) Init(repFn func([]byte)) (err error) {
 		if len(v) != 8 && len(v) != 0 {
 			panic("value length is not 8 or 0")
 		}
-		if bytes.Equal(k[len(k)-8:], []byte{255, 255, 255, 255, 255, 255, 255, 255}) {
+		if !bytes.Equal(k[0:len(k)-8], key) {
 			//write the up-to-date value
-			tree.bt.Set(binary.BigEndian.Uint64(k[:len(k)-8]), int64(binary.BigEndian.Uint64(v)))
+			key = append([]byte{}, k[0:len(k)-8]...)
+			if len(v) != 0 {
+				tree.bt.Set(binary.BigEndian.Uint64(key), int64(binary.BigEndian.Uint64(v)))
+			}
 		}
 		iter.Next()
 	}
 	return nil
+}
+
+
+func (tree *NVTreeMem) SetDuringInit(b bool) {
+	tree.duringInit = b
+}
+
+func (tree *NVTreeMem) Close() {
+	tree.bt.Close()
+	// tree.rocksdb should be closed at somewhere else, not here
+}
+
+func (tree *NVTreeMem) ActiveCount() int {
+	return tree.bt.Len()
 }
 
 // Begin the write phase of block execution
@@ -192,9 +200,9 @@ func (tree *NVTreeMem) Set(k []byte, v int64) {
 	if !tree.isWriting {
 		panic("tree.isWriting must be true! bug here...")
 	}
-	oldV, oldVExists := tree.bt.PutNewAndGetOld(binary.BigEndian.Uint64(k), v)
+	tree.bt.Set(binary.BigEndian.Uint64(k), v)
 
-	if tree.rocksdb == nil {
+	if tree.rocksdb == nil || tree.duringInit {
 		return
 	}
 	newK := make([]byte, 0, 1+len(k)+8)
@@ -202,27 +210,20 @@ func (tree *NVTreeMem) Set(k []byte, v int64) {
 	newK = append(newK, k...)
 	newK = append(newK, tree.currHeight[:]...)
 	var buf [8]byte
-	if oldVExists {
-		binary.BigEndian.PutUint64(buf[:], uint64(oldV))
-		tree.batchSet(newK, buf[:]) // write a historical value
-		//fmt.Printf("historical %#v %x\n", newK, oldV)
-	} else {
-		tree.batchSet(newK, []byte{}) // write a historical empty value
-		//fmt.Printf("historical %#v nil\n", newK)
-	}
-
 	binary.BigEndian.PutUint64(buf[:], uint64(v))
-	binary.BigEndian.PutUint64(newK[len(newK)-8:], math.MaxUint64)
-	//fmt.Printf("up-to-date %#v %#v\n", newK, buf[:])
-	tree.batchSet(newK, buf[:]) // write the up-to-date value
+	tree.batchSet(newK, buf[:])
 }
 
 func (tree *NVTreeMem) batchSet(key, value []byte) {
+	tree.rocksdb.LockBatch()
 	tree.rocksdb.CurrBatch().Set(key, value)
+	tree.rocksdb.UnlockBatch()
 }
 
 func (tree *NVTreeMem) batchDelete(key []byte) {
+	tree.rocksdb.LockBatch()
 	tree.rocksdb.CurrBatch().Delete(key)
+	tree.rocksdb.UnlockBatch()
 }
 
 // Get the up-to-date position of k, from the B-Tree
@@ -243,22 +244,15 @@ func (tree *NVTreeMem) GetAtHeight(k []byte, height uint64) (position int64, ok 
 	newK := make([]byte, 1+len(k)+8) // all bytes equal zero
 	copy(newK[1:], k)
 	binary.BigEndian.PutUint64(newK[1+len(k):], height+1)
-	//fmt.Printf("GetAtHeight newK %#v\n", newK)
-	iter := tree.rocksdb.Iterator(newK, nil)
+	iter := tree.rocksdb.ReverseIterator([]byte{}, newK)
 	defer iter.Close()
-	if !iter.Valid() {
+	if !iter.Valid() || !bytes.Equal(iter.Key()[1:1+len(k)], k) {//not exists or to a different key
 		return 0, false
-	}
-
-	//fmt.Printf("GetAtHeight iter.Key() %#v iter.Value() %#v\n", iter.Key(), iter.Value())
-	binary.BigEndian.PutUint64(newK[len(k):], math.MaxUint64)
-	if bytes.Compare(iter.Key(), newK) > 0 { // iter is pointing to a different k
-		return tree.Get(k)
 	}
 
 	v := iter.Value()
 	if len(v) == 0 {
-		ok = false
+		ok = false //was deleted
 	} else {
 		ok = true
 		position = int64(binary.BigEndian.Uint64(v))
@@ -273,26 +267,20 @@ func (tree *NVTreeMem) Delete(k []byte) {
 		panic("tree.isWriting must be true! bug here...")
 	}
 	key := binary.BigEndian.Uint64(k)
-	oldV, ok := tree.bt.Get(key)
+	_, ok := tree.bt.Get(key)
 	if !ok {
 		panic(fmt.Sprintf("deleting a nonexistent key: %#v bug here...", key))
 	}
 	tree.bt.Delete(key)
 
-	if tree.rocksdb == nil {
+	if tree.rocksdb == nil || tree.duringInit {
 		return
 	}
-	var buf [8]byte
-	binary.BigEndian.PutUint64(buf[:], uint64(oldV))
 	newK := make([]byte, 0, 1+len(k)+8)
 	newK = append(newK, byte(0)) //first byte is always zero
 	newK = append(newK, k...)
 	newK = append(newK, tree.currHeight[:]...)
-	tree.batchSet(newK, buf[:]) // write a historical value
-	//fmt.Printf("Deletion historical %#v %#v\n", newK, buf[:])
-
-	binary.BigEndian.PutUint64(newK[len(newK)-8:], math.MaxUint64)
-	tree.batchDelete(newK) // delete the up-to-date value
+	tree.batchSet(newK, []byte{})
 }
 
 // Create a forward iterator from the B-Tree

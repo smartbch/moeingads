@@ -132,6 +132,7 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 		mads.rocksdb.CloseOldBatch()
 	} else {
 		mads.recoverDataTrees(dirName)
+		if canQueryHistory {mads.idxTree.SetDuringInit(true)}
 		mads.idxTree.BeginWrite(0) // we set height=0 here, but this value will not be used
 		mads.runIdxTreeJobs()
 		datatree.ParallelRun(types.ShardCount, func(shardID int) {
@@ -147,6 +148,7 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 		})
 		mads.flushIdxTreeJobs()
 		mads.idxTree.EndWrite()
+		if canQueryHistory {mads.idxTree.SetDuringInit(false)}
 	}
 
 	return mads, nil
@@ -551,7 +553,6 @@ func (mads *MoeingADS) update() {
 			hotEntry.IsModified = true
 		}
 	}
-	debugPanic(2)
 	// update stored data
 	mads.runIdxTreeJobs()
 	datatree.ParallelRun(types.ShardCount, func(shardID int) {
@@ -675,9 +676,7 @@ func (mads *MoeingADS) allShardEndBlock() {
 }
 
 func (mads *MoeingADS) EndWrite() {
-	debugPanic(1)
 	mads.update()
-	debugPanic(3)
 	activeCount := int64(mads.idxTree.ActiveCount())
 	for {
 		if activeCount < StartReapThres {
@@ -707,7 +706,6 @@ func (mads *MoeingADS) EndWrite() {
 	for i := 0; i < types.ShardCount; i++ {
 		mads.datTree[i].WaitForFlushing()
 	}
-	debugPanic(4)
 	mads.meta.Commit()
 	mads.idxTree.EndWrite()
 	mads.rocksdb.CloseOldBatch()

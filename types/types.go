@@ -71,6 +71,7 @@ type IteratorUI64 interface {
 
 type IndexTree interface {
 	Init(repFn func([]byte)) error
+	SetDuringInit(b bool)
 	ActiveCount() int
 	BeginWrite(height int64)
 	EndWrite()

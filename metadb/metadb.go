@@ -84,6 +84,10 @@ func (db *MetaDB) Commit() {
 	defer db.mtx.Unlock()
 	var buf [8]byte
 	binary.LittleEndian.PutUint64(buf[:], uint64(db.currHeight))
+
+	db.kvdb.LockBatch()
+	defer db.kvdb.UnlockBatch()
+
 	db.kvdb.CurrBatch().Set([]byte{ByteCurrHeight}, buf[:])
 
 	for i := 0; i < types.ShardCount; i++ {
@@ -113,6 +117,8 @@ func (db *MetaDB) SetTwigMtFileSize(shardID int, size int64) {
 	defer db.mtx.Unlock()
 	var buf [8]byte
 	binary.LittleEndian.PutUint64(buf[:], uint64(size))
+	db.kvdb.LockBatch()
+	defer db.kvdb.UnlockBatch()
 	db.kvdb.CurrBatch().Set([]byte{ByteTwigMtFileSize, byte(shardID)}, buf[:])
 }
 
@@ -129,6 +135,8 @@ func (db *MetaDB) SetEntryFileSize(shardID int, size int64) {
 	defer db.mtx.Unlock()
 	var buf [8]byte
 	binary.LittleEndian.PutUint64(buf[:], uint64(size))
+	db.kvdb.LockBatch()
+	defer db.kvdb.UnlockBatch()
 	db.kvdb.CurrBatch().Set([]byte{ByteEntryFileSize, byte(shardID)}, buf[:])
 }
 
@@ -147,6 +155,8 @@ func (db *MetaDB) setTwigHeight(shardID int, twigID int64, height int64) {
 	binary.LittleEndian.PutUint64(buf[:], uint64(twigID))
 	key := append([]byte{ByteTwigHeight, byte(shardID)}, buf[:]...)
 	binary.LittleEndian.PutUint64(buf[:], uint64(height))
+	db.kvdb.LockBatch()
+	defer db.kvdb.UnlockBatch()
 	db.kvdb.CurrBatch().Set(key, buf[:])
 }
 
@@ -165,6 +175,8 @@ func (db *MetaDB) DeleteTwigHeight(shardID int, twigID int64) {
 	defer db.mtx.Unlock()
 	var buf [8]byte
 	binary.LittleEndian.PutUint64(buf[:], uint64(twigID))
+	db.kvdb.LockBatch()
+	defer db.kvdb.UnlockBatch()
 	db.kvdb.CurrBatch().Delete(append([]byte{ByteTwigHeight, byte(shardID)}, buf[:]...))
 }
 
@@ -183,6 +195,8 @@ func (db *MetaDB) GetEdgeNodes(shardID int) []byte {
 func (db *MetaDB) SetEdgeNodes(shardID int, bz []byte) {
 	db.mtx.Lock()
 	defer db.mtx.Unlock()
+	db.kvdb.LockBatch()
+	defer db.kvdb.UnlockBatch()
 	db.kvdb.CurrBatch().Set([]byte{ByteEdgeNodes, byte(shardID)}, bz)
 }
 

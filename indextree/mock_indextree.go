@@ -18,6 +18,9 @@ func NewMockIndexTree() *MockIndexTree {
 	}
 }
 
+func (tree *MockIndexTree) SetDuringInit(b bool) {
+}
+
 func (it *MockIndexTree) ActiveCount() int {
 	return it.bt.Len()
 }

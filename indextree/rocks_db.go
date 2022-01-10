@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"runtime"
+	"sync"
 
 	"github.com/smartbch/moeingads/types"
 	"github.com/tecbot/gorocksdb"
@@ -45,10 +46,19 @@ type RocksDB struct {
 	woSync *gorocksdb.WriteOptions
 	filter *HeightCompactionFilter
 	batch  *rocksDBBatch
+	mtx    sync.Mutex
 }
 
 func (db *RocksDB) CurrBatch() types.Batch {
 	return db.batch
+}
+
+func (db *RocksDB) LockBatch() {
+	db.mtx.Lock()
+}
+
+func (db *RocksDB) UnlockBatch() {
+	db.mtx.Unlock()
 }
 
 func (db *RocksDB) CloseOldBatch() {
