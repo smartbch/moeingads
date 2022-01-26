@@ -12,11 +12,11 @@ import (
 
 	"github.com/coinexchain/randsrc"
 
-	it "github.com/smartbch/moeingads/indextree"
-	"github.com/smartbch/moeingads/types"
 	"github.com/smartbch/moeingads"
+	it "github.com/smartbch/moeingads/indextree"
 	"github.com/smartbch/moeingads/store"
 	"github.com/smartbch/moeingads/store/rabbit"
+	"github.com/smartbch/moeingads/types"
 )
 
 type FuzzConfig struct {
@@ -103,7 +103,7 @@ func (db *RefHisDb) GetAtHeight(k []byte, height uint64) []byte {
 	copyK := append([]byte{0}, k...)
 	copyK = append(copyK, AllOnes...)
 	binary.BigEndian.PutUint64(copyK[len(copyK)-8:], height+1) //overwrite the 'AllOnes' part
-	var allZeros [1+32+8]byte
+	var allZeros [1 + 32 + 8]byte
 	iter := db.rocksdb.ReverseIterator(allZeros[:], copyK)
 	defer iter.Close()
 	//fmt.Printf(" the key : %#v copyK %#v\n", iter.Key(), copyK)
@@ -135,7 +135,7 @@ func NewRoot(dir string) *store.RootStore {
 	if err != nil {
 		panic(err)
 	}
-	return store.NewRootStore(mads, func(k []byte) bool {return false})
+	return store.NewRootStore(mads, func(k []byte) bool { return false })
 }
 
 func getRandKey(numOfKeys int, rs randsrc.RandSrc) []byte {
@@ -219,4 +219,3 @@ func fuzzQuery(cfg FuzzConfig, ref *RefHisDb, root *store.RootStore, rs randsrc.
 		rbt.Close()
 	}
 }
-

@@ -22,7 +22,7 @@ const (
 
 // RabbitStore inherits SimpleMultiStore to implement the 'RabbitJump' algorithm
 type RabbitStore struct {
-	sms      SimpleMultiStore
+	sms SimpleMultiStore
 }
 
 func NewRabbitStore(parent types.BaseStoreI) (rabbit RabbitStore) {

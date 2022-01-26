@@ -55,7 +55,7 @@ func NewReadOnlySimpleMultiStoreAtHeight(parent types.BaseStoreI, height uint64)
 }
 
 func (sms *SimpleMultiStore) isHistorical() bool {
-	return 0 != ^sms.height;
+	return 0 != ^sms.height
 }
 
 func (sms *SimpleMultiStore) GetCachedValue(key [KeySize]byte) *CachedValue {
@@ -68,7 +68,7 @@ func (sms *SimpleMultiStore) GetCachedValue(key [KeySize]byte) *CachedValue {
 		return nil
 	case types.Missed:
 		var bz []byte
-		if(sms.isHistorical()) {
+		if sms.isHistorical() {
 			bz = sms.parent.GetAtHeight(key[:], sms.height)
 		} else {
 			bz = sms.parent.Get(key[:])
@@ -103,7 +103,7 @@ func (sms *SimpleMultiStore) SetCachedValue(key [KeySize]byte, cv *CachedValue) 
 	}
 	cv.isDirty = true
 	sms.cache.SetValue(key, cv)
-	if(!sms.readOnly) {
+	if !sms.readOnly {
 		if cv.isDeleted {
 			sms.parent.PrepareForDeletion(key[:])
 		} else {
@@ -121,7 +121,7 @@ func (sms *SimpleMultiStore) Close() {
 }
 
 func (sms *SimpleMultiStore) WriteBack() {
-	if(sms.readOnly) {
+	if sms.readOnly {
 		panic("Cannot write back when readOnly")
 	}
 	if !sms.isClosed {

@@ -132,7 +132,9 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 		mads.rocksdb.CloseOldBatch()
 	} else {
 		mads.recoverDataTrees(dirName)
-		if canQueryHistory {mads.idxTree.SetDuringInit(true)}
+		if canQueryHistory {
+			mads.idxTree.SetDuringInit(true)
+		}
 		mads.idxTree.BeginWrite(0) // we set height=0 here, but this value will not be used
 		mads.runIdxTreeJobs()
 		datatree.ParallelRun(types.ShardCount, func(shardID int) {
@@ -148,7 +150,9 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 		})
 		mads.flushIdxTreeJobs()
 		mads.idxTree.EndWrite()
-		if canQueryHistory {mads.idxTree.SetDuringInit(false)}
+		if canQueryHistory {
+			mads.idxTree.SetDuringInit(false)
+		}
 	}
 
 	return mads, nil

@@ -161,7 +161,6 @@ func (tree *NVTreeMem) Init(repFn func([]byte)) (err error) {
 	return nil
 }
 
-
 func (tree *NVTreeMem) SetDuringInit(b bool) {
 	tree.duringInit = b
 }
@@ -246,7 +245,7 @@ func (tree *NVTreeMem) GetAtHeight(k []byte, height uint64) (position int64, ok 
 	binary.BigEndian.PutUint64(newK[1+len(k):], height+1)
 	iter := tree.rocksdb.ReverseIterator([]byte{}, newK)
 	defer iter.Close()
-	if !iter.Valid() || !bytes.Equal(iter.Key()[1:1+len(k)], k) {//not exists or to a different key
+	if !iter.Valid() || !bytes.Equal(iter.Key()[1:1+len(k)], k) { //not exists or to a different key
 		return 0, false
 	}
 
