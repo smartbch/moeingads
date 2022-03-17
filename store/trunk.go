@@ -136,3 +136,35 @@ func (ts *TrunkStore) Close(writeBack bool) {
 func (ts *TrunkStore) ActiveCount() int {
 	return ts.root.ActiveCount()
 }
+
+func (ts *TrunkStore) GetCacheContent() map[string]string {
+	return ts.cache.m
+}
+
+func SyncUpdateTo(m map[string]string, root types.RootStoreI) {
+	cache := &CacheStore{m: m}
+
+	datatree.ParallelRun(adstypes.ShardCount, func(shardID int) {
+		cache.ScanAllEntriesInShard(shardID, func(key, value []byte, isDeleted bool) {
+			if isDeleted {
+				root.PrepareForDeletion(key)
+			} else {
+				root.PrepareForUpdate(key)
+			}
+		})
+	})
+
+	root.BeginWrite()
+
+	datatree.ParallelRun(adstypes.ShardCount, func(shardID int) {
+		cache.ScanAllEntriesInShard(shardID, func(key, value []byte, isDeleted bool) {
+			if isDeleted {
+				root.Delete(key)
+			} else {
+				root.Set(key, value)
+			}
+		})
+	})
+
+	root.EndWrite()
+}
