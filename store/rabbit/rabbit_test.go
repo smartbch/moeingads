@@ -27,7 +27,7 @@ type FuzzConfig struct {
 	WritebackInterval int
 }
 
-func FuzzSet(cfg *FuzzConfig, rs randsrc.RandSrc, refMap map[[KeyLen]byte][]byte, rbt RabbitStore) {
+func _FuzzSet(cfg *FuzzConfig, rs randsrc.RandSrc, refMap map[[KeyLen]byte][]byte, rbt RabbitStore) {
 	var key [KeyLen]byte
 	for i := 0; i < cfg.RunSteps; i++ {
 		copy(key[:], rs.GetBytes(KeyLen))
@@ -37,7 +37,7 @@ func FuzzSet(cfg *FuzzConfig, rs randsrc.RandSrc, refMap map[[KeyLen]byte][]byte
 	}
 }
 
-func FuzzModify(cfg *FuzzConfig, rs randsrc.RandSrc, refMap map[[KeyLen]byte][]byte, rbt RabbitStore) {
+func _FuzzModify(cfg *FuzzConfig, rs randsrc.RandSrc, refMap map[[KeyLen]byte][]byte, rbt RabbitStore) {
 	finishedSteps := 0
 	skippedEntries := 0
 	toBeSkipped := int(rs.GetUint64())%len(refMap) - cfg.RunSteps
@@ -112,11 +112,11 @@ func RunFuzz(cfg *FuzzConfig, roundCount int, randFilename string) {
 		}
 		if len(refMap) < cfg.MaxSize {
 			//fmt.Printf("FuzzSet\n")
-			FuzzSet(cfg, rs, refMap, rbt)
+			_FuzzSet(cfg, rs, refMap, rbt)
 		}
 		if len(refMap) > cfg.MinSize {
 			//fmt.Printf("FuzzModify\n")
-			FuzzModify(cfg, rs, refMap, rbt)
+			_FuzzModify(cfg, rs, refMap, rbt)
 		}
 		if i%cfg.CompareInterval == 0 {
 			//fmt.Printf("RunCompare\n")

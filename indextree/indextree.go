@@ -219,11 +219,11 @@ func (tree *NVTreeMem) batchSet(key, value []byte) {
 	tree.rocksdb.UnlockBatch()
 }
 
-func (tree *NVTreeMem) batchDelete(key []byte) {
-	tree.rocksdb.LockBatch()
-	tree.rocksdb.CurrBatch().Delete(key)
-	tree.rocksdb.UnlockBatch()
-}
+//func (tree *NVTreeMem) batchDelete(key []byte) {
+//	tree.rocksdb.LockBatch()
+//	tree.rocksdb.CurrBatch().Delete(key)
+//	tree.rocksdb.UnlockBatch()
+//}
 
 // Get the up-to-date position of k, from the B-Tree
 func (tree *NVTreeMem) Get(k []byte) (int64, bool) {

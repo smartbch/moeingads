@@ -1,6 +1,6 @@
 module github.com/smartbch/moeingads
 
-go 1.17
+go 1.18
 
 require (
 	github.com/coinexchain/randsrc v0.2.0

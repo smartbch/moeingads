@@ -16,6 +16,6 @@ const (
 
 var DebugPanicNumber int //not used
 
-func debugPanic(num int) {
-	//do nothing
-}
+//func debugPanic(num int) {
+//	//do nothing
+//}
