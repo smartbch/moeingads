@@ -75,6 +75,7 @@ func (db *RocksDB) OpenNewBatch() {
 }
 
 func NewRocksDB(name string, dir string) (*RocksDB, error) {
+	// default rocksdb option, good enough for most cases, including heavy workloads.
 	// 64MB table cache, 32MB write buffer
 	// compression: snappy as default, need to -lsnappy to enable.
 	bbto := gorocksdb.NewDefaultBlockBasedTableOptions()
@@ -83,9 +84,12 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 
 	opts := gorocksdb.NewDefaultOptions()
 	opts.SetBlockBasedTableFactory(bbto)
+	// SetMaxOpenFiles to 4096 seems to provide a reliable performance boost
+	opts.SetMaxOpenFiles(4096)
 	opts.SetCreateIfMissing(true)
 	opts.IncreaseParallelism(runtime.NumCPU())
-	opts.OptimizeLevelStyleCompaction(32 * 1024 * 1024)
+	// 1.5GB maximum memory use for writebuffer.
+	opts.OptimizeLevelStyleCompaction(512 * 1024 * 1024)
 	return NewRocksDBWithOptions(name, dir, opts)
 }
 
@@ -125,7 +129,9 @@ func (db *RocksDB) GetPruneHeight() (uint64, bool) {
 
 // Implements DB.
 func (db *RocksDB) Get(key []byte) []byte {
-	key = nonNilBytes(key)
+	if len(key) == 0 {
+		panic("Empty Key for RocksDB")
+	}
 	res, err := db.db.Get(db.ro, key)
 	if err != nil {
 		panic(err)
@@ -135,13 +141,18 @@ func (db *RocksDB) Get(key []byte) []byte {
 
 // Implements DB.
 func (db *RocksDB) Has(key []byte) bool {
-	return db.Get(key) != nil
+	bytes := db.Get(key)
+	return bytes != nil
 }
 
 // Implements DB.
 func (db *RocksDB) Set(key []byte, value []byte) {
-	key = nonNilBytes(key)
-	value = nonNilBytes(value)
+	if len(key) == 0 {
+		panic("Empty Key for RocksDB")
+	}
+	if value == nil {
+		panic("Nil Value for RocksDB")
+	}
 	err := db.db.Put(db.wo, key, value)
 	if err != nil {
 		panic(err)
@@ -150,8 +161,12 @@ func (db *RocksDB) Set(key []byte, value []byte) {
 
 // Implements DB.
 func (db *RocksDB) SetSync(key []byte, value []byte) {
-	key = nonNilBytes(key)
-	value = nonNilBytes(value)
+	if len(key) == 0 {
+		panic("Empty Key for RocksDB")
+	}
+	if value == nil {
+		panic("Nil Value for RocksDB")
+	}
 	err := db.db.Put(db.woSync, key, value)
 	if err != nil {
 		panic(err)
@@ -160,7 +175,9 @@ func (db *RocksDB) SetSync(key []byte, value []byte) {
 
 // Implements DB.
 func (db *RocksDB) Delete(key []byte) {
-	key = nonNilBytes(key)
+	if len(key) == 0 {
+		panic("Empty Key for RocksDB")
+	}
 	err := db.db.Delete(db.wo, key)
 	if err != nil {
 		panic(err)
@@ -169,7 +186,9 @@ func (db *RocksDB) Delete(key []byte) {
 
 // Implements DB.
 func (db *RocksDB) DeleteSync(key []byte) {
-	key = nonNilBytes(key)
+	if len(key) == 0 {
+		panic("Empty Key for RocksDB")
+	}
 	err := db.db.Delete(db.woSync, key)
 	if err != nil {
 		panic(err)
@@ -225,39 +244,66 @@ type rocksDBBatch struct {
 
 // Implements Batch.
 func (mBatch *rocksDBBatch) Set(key, value []byte) {
+	if len(key) == 0 {
+		panic("Empty Key for RocksDB")
+	}
+	if value == nil {
+		panic("Nil Value for RocksDB")
+	}
+	if mBatch.batch == nil {
+		panic("errBatchClosed")
+	}
 	mBatch.batch.Put(key, value)
 }
 
 // Implements Batch.
 func (mBatch *rocksDBBatch) Delete(key []byte) {
+	if len(key) == 0 {
+		panic("Empty Key for RocksDB")
+	}
+	if mBatch.batch == nil {
+		panic("errBatchClosed")
+	}
 	mBatch.batch.Delete(key)
 }
 
 // Implements Batch.
 func (mBatch *rocksDBBatch) Write() {
+	if mBatch.batch == nil {
+		panic("errBatchClosed")
+	}
 	err := mBatch.db.db.Write(mBatch.db.wo, mBatch.batch)
 	if err != nil {
 		panic(err)
 	}
+	// Make sure batch cannot be used afterwards. Callers should still call Close(), for errors.
+	mBatch.Close()
 }
 
 // Implements Batch.
 func (mBatch *rocksDBBatch) WriteSync() {
+	if mBatch.batch == nil {
+		panic("errBatchClosed")
+	}
 	err := mBatch.db.db.Write(mBatch.db.woSync, mBatch.batch)
 	if err != nil {
 		panic(err)
 	}
+	// Make sure batch cannot be used afterwards. Callers should still call Close(), for errors.
+	mBatch.Close()
 }
 
 // Implements Batch.
 func (mBatch *rocksDBBatch) Close() {
-	mBatch.batch.Destroy()
+	if mBatch.batch != nil {
+		mBatch.batch.Destroy()
+		mBatch.batch = nil
+	}
 }
+
 
 //----------------------------------------
 // Iterator
-// NOTE This is almost identical to db/go_level_db.Iterator
-// Before creating a third version, refactor.
 
 func (db *RocksDB) Iterator(start, end []byte) types.Iterator {
 	itr := db.db.NewIterator(db.ro)
@@ -277,6 +323,8 @@ type rocksDBIterator struct {
 	isReverse  bool
 	isInvalid  bool
 }
+
+var _ types.Iterator = (*rocksDBIterator)(nil)
 
 func newRocksDBIterator(source *gorocksdb.Iterator, start, end []byte, isReverse bool) *rocksDBIterator {
 	if isReverse {
@@ -309,19 +357,22 @@ func newRocksDBIterator(source *gorocksdb.Iterator, start, end []byte, isReverse
 	}
 }
 
-func (itr rocksDBIterator) Domain() ([]byte, []byte) {
+func (itr *rocksDBIterator) Domain() ([]byte, []byte) {
 	return itr.start, itr.end
 }
 
-func (itr rocksDBIterator) Valid() bool {
+func (itr *rocksDBIterator) Valid() bool {
 
 	// Once invalid, forever invalid.
 	if itr.isInvalid {
 		return false
 	}
 
-	// Panic on DB error.  No way to recover.
-	itr.assertNoError()
+	// If source has error, invalid.
+	if err := itr.source.Err(); err != nil {
+		itr.isInvalid = true
+		return false
+	}
 
 	// If source is invalid, invalid.
 	if !itr.source.Valid() {
@@ -349,20 +400,17 @@ func (itr rocksDBIterator) Valid() bool {
 	return true
 }
 
-func (itr rocksDBIterator) Key() []byte {
-	itr.assertNoError()
+func (itr *rocksDBIterator) Key() []byte {
 	itr.assertIsValid()
 	return moveSliceToBytes(itr.source.Key())
 }
 
-func (itr rocksDBIterator) Value() []byte {
-	itr.assertNoError()
+func (itr *rocksDBIterator) Value() []byte {
 	itr.assertIsValid()
 	return moveSliceToBytes(itr.source.Value())
 }
 
 func (itr rocksDBIterator) Next() {
-	itr.assertNoError()
 	itr.assertIsValid()
 	if itr.isReverse {
 		itr.source.Prev()
@@ -371,19 +419,13 @@ func (itr rocksDBIterator) Next() {
 	}
 }
 
-func (itr rocksDBIterator) Close() {
+func (itr *rocksDBIterator) Close() {
 	itr.source.Close()
 }
 
-func (itr rocksDBIterator) assertNoError() {
-	if err := itr.source.Err(); err != nil {
-		panic(err)
-	}
-}
-
-func (itr rocksDBIterator) assertIsValid() {
+func (itr *rocksDBIterator) assertIsValid() {
 	if !itr.Valid() {
-		panic("rocksDBIterator is invalid")
+		panic("iterator is invalid")
 	}
 }
 
@@ -398,11 +440,4 @@ func moveSliceToBytes(s *gorocksdb.Slice) []byte {
 	v := make([]byte, len(s.Data()))
 	copy(v, s.Data())
 	return v
-}
-
-func nonNilBytes(bz []byte) []byte {
-	if bz == nil {
-		return []byte{}
-	}
-	return bz
 }

@@ -270,7 +270,11 @@ func RunGenerateAccounts(numAccounts int, randFilename string, jsonFile string) 
 		//Phase3Time += gotsc.BenchEnd() - start - tscOverhead
 	}
 
-	b, _ := json.Marshal(addr2num)
+	addrStr2num := make(map[string]uint64, len(addr2num))
+	for addr, num := range addr2num {
+		addrStr2num[string(addr[:])] = num
+	}
+	b, _ := json.Marshal(addrStr2num)
 	out, err := os.OpenFile(jsonFile, os.O_RDWR|os.O_CREATE, 0700)
 	if err != nil {
 		panic(err)

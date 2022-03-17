@@ -117,11 +117,18 @@ func RunGenerateTxFile(epochCount int, totalAccounts uint64, jsonFilename, randF
 	if err != nil {
 		panic(err)
 	}
-	addr2num := make(map[[AddrLen]byte]uint64)
+	var addr2num map[[AddrLen]byte]uint64
 	if len(bz) != 0 {
+		addrStr2num := make(map[string]uint64)
 		err = json.Unmarshal(bz, &addr2num)
 		if err != nil {
 			panic(err)
+		}
+		addr2num = make(map[[AddrLen]byte]uint64, len(addrStr2num))
+		for addrStr, num := range addrStr2num {
+			var addr [AddrLen]byte
+			copy(addr[:], addrStr)
+			addr2num[addr] = num
 		}
 	}
 
