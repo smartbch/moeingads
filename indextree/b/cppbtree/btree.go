@@ -1,7 +1,7 @@
 package cppbtree
 
 /*
-#cgo CXXFLAGS: -O3 -std=c++11
+#cgo CXXFLAGS: -O3 -std=c++11 -static
 #cgo LDFLAGS: -lstdc++
 #include "cppbtree.h"
 */
