@@ -97,9 +97,7 @@ func NewRocksDBWithOptions(name string, dir string, opts *gorocksdb.Options) (*R
 	dbPath := filepath.Join(dir, name+".db")
 	filter := HeightCompactionFilter{}
 	opts.SetCompactionFilter(&filter) // use a customized compaction filter
-	noc := gorocksdb.NoCompression
-	opts.SetCompression(noc)
-	opts.SetCompressionPerLevel([]gorocksdb.CompressionType{noc, noc, noc, noc, noc, noc, noc, noc, noc, noc, noc})
+	opts.SetCompression(gorocksdb.NoCompression)
 	db, err := gorocksdb.OpenDb(opts, dbPath)
 	if err != nil {
 		return nil, err
