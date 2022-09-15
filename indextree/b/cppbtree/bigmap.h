@@ -225,22 +225,20 @@ public:
 			}
 		}
 		
+		//check whether iterator is pointing to the end of slot
 		void check_ending() {
 			if(_curr_idx >= slot_count) { //current index cannot exceed the slot count
 				_valid = false;
-				
-			//check whether iterator is pointing to the end of slot
 			} else if(_curr_idx == slot_count-1 &&
 				_iter == _map->_map_arr[_curr_idx]->end()) {
 				_valid = false;
 			}
 		}
 		
+		//check whether iterator is pointing to beginning of slot
 		void check_ending_rev(bool is_first) {
 			if(_curr_idx < 0) {	//current index cannot be negative
-				_valid = false;
-				
-			//check whether iterator is pointing to beginning of slot
+				_valid = false;	
 			} else if(_curr_idx == 0 && is_first) {
 				_valid = false;
 			}
@@ -279,6 +277,8 @@ public:
 			//	std::cout<<" starting prev _valid "<<_valid<<std::endl;
 			//}
 			if(!_valid) return;
+			
+			//is_first checks whether iterator points at the beginning of slot
 			bool is_first = (_iter == _map->_map_arr[_curr_idx]->begin());
 			auto orig_idx = _curr_idx;
 			_iter--;
@@ -308,6 +308,7 @@ public:
 			for(; iter._curr_idx < slot_count; iter._curr_idx++) {
 				if(_map_arr[iter._curr_idx] != nullptr) break;	//terminate the loop if slot is not empty
 			}
+			//if the current iterator position is at the end of map or the current slot is empty, iterator is invalid and return the iterator.
 			if(iter._curr_idx == slot_count || _map_arr[iter._curr_idx] == nullptr) {
 				iter._valid = false;
 				return iter;
@@ -315,7 +316,7 @@ public:
 				iter._iter = _map_arr[iter._curr_idx]->begin();	//set iter._iter as the iterator pointing to the first element of _map_arr[iter._curr_idx]
 			}
 		} else {
-			iter._iter = _map_arr[iter._curr_idx]->lower_bound(start_key); // set iter._iter as the slot iterator pointing to element not larger than start_key
+			iter._iter = _map_arr[iter._curr_idx]->lower_bound(start_key); // set iter._iter as the slot iterator pointing to element not larger than start_key of _map_arr[iter._curr_idx
 		}
 		iter.handle_slot_crossing();
 		iter.check_ending();
