@@ -124,7 +124,7 @@ public:
 			*old_exist = true;
 			return old;
 		}
-		//insert new k,v values into basic_map
+		//insert new k,v values into basic_map at idx-th slot
 		_map_arr[idx]->insert(it, std::make_pair(k, v));
 		_size++;
 		//std::cout<<"after size++: "<<_size<<std::endl;
@@ -228,7 +228,7 @@ public:
 		void check_ending() {
 			if(_curr_idx >= slot_count) { //current index cannot exceed the slot count
 				_valid = false;
-			
+				
 			//check whether iterator is pointing to the end of slot
 			} else if(_curr_idx == slot_count-1 &&
 				_iter == _map->_map_arr[_curr_idx]->end()) {
