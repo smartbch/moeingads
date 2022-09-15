@@ -25,7 +25,7 @@ struct bits_n {
 		return from_uint64(uint64_t(uint32));
 	}
 	
-	//converts unsigned 8 bits to unsigned 64 bits int type
+	//converts unsigned 8 bits int to unsigned 64 bits int type
 	uint64_t to_uint64() const {
 		uint64_t v = 0;
 		for(int i=byte_count-1; i>=0; i--) { //little endian
@@ -76,13 +76,13 @@ private:
 		}
 	}
 public:
-	//initialize size and debug values, and make sure each slot is empty initially
+	//initialize size and debug values, and set every slot to be null
 	bigmap(): _size(0), debug(false) {
 		for(int i = 0; i < slot_count; i++) {
 			_map_arr[i] = nullptr;
 		}
 	}
-	//make sure each slot is empty, otherwise set it to null.
+	//if a slot is not empty, delete the slot and set it to null.
 	~bigmap() {
 		for(int i = 0; i < slot_count; i++) {
 			if(_map_arr[i] == nullptr) continue;
@@ -116,7 +116,7 @@ public:
 	}
 	value_type put_new_and_get_old(uint64_t idx, key_type k, value_type v, bool* old_exist) {
 		assert(idx < slot_count);
-		create_if_null(idx); //create basic_map if none exists in the slot
+		create_if_null(idx);  //create basic_map if none exists in the slot
 		auto it = _map_arr[idx]->lower_bound(k); //assign the slot's iterator that points to element not larger than k to variable it
 		if(it !=  _map_arr[idx]->end() && it->first == k) {
 			value_type old = it->second; //store the old value in old variable
