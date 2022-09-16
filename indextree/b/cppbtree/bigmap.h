@@ -14,7 +14,7 @@ struct bits_n {
 	static bits_n from_uint64(uint64_t uint64) {
 		bits_n v;
 		for(int i=0; i<byte_count; i++) { //little endian
-			v.b[i] = uint8_t(uint64>>(i*8)); //convert each v.b[i] to unsigned 8 bit int
+			v.b[i] = uint8_t(uint64>>(i*8)); //initialize each v.b[i] with an 8-bit part of uint64
 		}
 		return v;
 	}
@@ -25,7 +25,7 @@ struct bits_n {
 		return from_uint64(uint64_t(uint32));
 	}
 	
-	//converts unsigned 8 bits int to unsigned 64 bits int type
+	//convert a compact integer to unsigned 64 bits int type
 	uint64_t to_uint64() const {
 		uint64_t v = 0;
 		for(int i=byte_count-1; i>=0; i--) { //little endian
@@ -109,7 +109,7 @@ public:
 	int get_slot_count() {
 		return slot_count;
 	}
-	// add (k,v) at the basic_map in the 'idx'-th slot. This function is thread-safe
+	// add (k,v) at the basic_map in the 'idx'-th slot.
 	void set(uint64_t idx, key_type k, value_type v) {
 		bool old_exist;
 		put_new_and_get_old(idx, k, v, &old_exist);
@@ -117,7 +117,7 @@ public:
 	value_type put_new_and_get_old(uint64_t idx, key_type k, value_type v, bool* old_exist) {
 		assert(idx < slot_count);
 		create_if_null(idx);  //create basic_map if none exists in the slot
-		auto it = _map_arr[idx]->lower_bound(k); //assign the slot's iterator that points to element not larger than k to variable it
+		auto it = _map_arr[idx]->lower_bound(k); //assign the slot's iterator that points to an element no less than k to variable it
 		if(it !=  _map_arr[idx]->end() && it->first == k) {
 			value_type old = it->second; //store the old value in old variable
 			it->second = v; //overwrite the old value
@@ -131,18 +131,18 @@ public:
 		*old_exist = false;
 		return value_type{};
 	}
-	// erase (k,v) at the basic_map in the 'idx'-th slot. This function is thread-safe
+	// erase (k,v) at the basic_map in the 'idx'-th slot.
 	void erase(uint64_t idx, key_type k) {
 		assert(idx < slot_count);
 		if(_map_arr[idx] == nullptr) return;	//if the slot is already empty, there's nothing to erase
 		auto it = _map_arr[idx]->find(k);	//assign the slot's iterator that points to k to variable it
-		if(it !=  _map_arr[idx]->end()) {	//make sure "it" is not the last element of the basic_map before erasing
+		if(it !=  _map_arr[idx]->end()) {	//make sure "it" exists before erasing
 			_map_arr[idx]->erase(it);
 			_size--;
 			//std::cout<<"after size--: "<<_size<<std::endl;
 		}
 	}
-	// seek to a position no larger than the 'k' at the basic_map in the 'idx'-th slot
+	// seek to a position no less than the 'k' at the basic_map in the 'idx'-th slot
 	// *ok indicates whether the returned iterator is valid
 	typename basic_map::iterator seek(uint64_t idx, key_type k, bool* ok) {
 		assert(idx < slot_count);
@@ -152,7 +152,7 @@ public:
 			return it;
 		}
 		it = _map_arr[idx]->lower_bound(k);
-		//if the slot that points to element not larger than k is also the map's last slot, return the iterator
+		//if the iterator exists, return it
 		if(it == _map_arr[idx]->end()) {  
 			return it;
 		}
@@ -168,7 +168,7 @@ public:
 			return value_type{};
 		}
 		auto it = _map_arr[idx]->find(k);
-		//if the slot that points to element with value equal to k is also the map's last slot, return empty list
+		//return zero value if not found
 		if(it == _map_arr[idx]->end()) {
 			return value_type{};
 		}
@@ -196,23 +196,22 @@ public:
 				return; // no need for slot crossing
 			}
 			_valid = false;
-			for(_curr_idx++; _curr_idx < slot_count; _curr_idx++) {
+			for(_curr_idx++; _curr_idx < slot_count; _curr_idx++) { // find a non-empty slot
 				if(_map->_map_arr[_curr_idx] == nullptr) continue; //skip null slot
 				
-				//check whether the first element iterator of _map->_map_arr[_curr_idx] is unequal to
-				// last element iterator for _map->_map_arr[_curr_idx], if unequal _valid=true
 				_iter = _map->_map_arr[_curr_idx]->begin();
 				_valid = _iter != _map->_map_arr[_curr_idx]->end(); 
-				if(_valid) break;  //stop loop when _valid==true
+				if(_valid) break;
 			}
 		}
 		void handle_slot_crossing_rev() {
+			if(_iter != _map->_map_arr[_curr_idx]->rend()) {
+				return; // no need for slot crossing
+			}
 			_valid = false;
-			for(_curr_idx--; _curr_idx >= 0; _curr_idx--) {
-				if(_map->_map_arr[_curr_idx] == nullptr) continue; //skip null slot
+			for(_curr_idx--; _curr_idx >= 0; _curr_idx--) { // find a non-empty slot
+				if(_map->_map_arr[_curr_idx] == nullptr) continue;
 				
-				//check whether the last element iterator of _map->_map_arr[_curr_idx] is unequal to
-				// first element iterator for _map->_map_arr[_curr_idx], if unequal _valid=true
 				auto rev_it = _map->_map_arr[_curr_idx]->rbegin();
 				_valid = rev_it != _map->_map_arr[_curr_idx]->rend();
 				//if(_map->debug) {
@@ -222,25 +221,6 @@ public:
 					_iter = _map->_map_arr[_curr_idx]->find(rev_it->first);
 					break;
 				}
-			}
-		}
-		
-		//check whether iterator is pointing to the end of slot
-		void check_ending() {
-			if(_curr_idx >= slot_count) { //current index cannot exceed the slot count
-				_valid = false;
-			} else if(_curr_idx == slot_count-1 &&
-				_iter == _map->_map_arr[_curr_idx]->end()) {
-				_valid = false;
-			}
-		}
-		
-		//check whether iterator is pointing to beginning of slot
-		void check_ending_rev(bool is_first) {
-			if(_curr_idx < 0) {	//current index cannot be negative
-				_valid = false;	
-			} else if(_curr_idx == 0 && is_first) {
-				_valid = false;
 			}
 		}
 	public:
@@ -268,7 +248,6 @@ public:
 			if(!_valid) return;
 			_iter++;
 			handle_slot_crossing();
-			check_ending();
 		}
 		
 		//when the iterator points at beginning of slot, move it to the previous valid position
@@ -278,23 +257,11 @@ public:
 			//}
 			if(!_valid) return;
 			
-			//is_first checks whether iterator points at the beginning of slot
-			bool is_first = (_iter == _map->_map_arr[_curr_idx]->begin());
-			auto orig_idx = _curr_idx;
 			_iter--;
 			//if(_map->debug) {
 			//	std::cout<<" is_first "<<is_first<<std::endl;
 			//}
-			if(is_first) {
-				handle_slot_crossing_rev();
-			}
-			//if(_map->debug) {
-			//	std::cout<<" before check_ending_rev "<<_valid<<std::endl;
-			//}
-			check_ending_rev(is_first && orig_idx == _curr_idx);
-			//if(_map->debug) {
-			//	std::cout<<" after check_ending_rev "<<_valid<<std::endl;
-			//}
+			handle_slot_crossing_rev();
 		}
 	};
 
@@ -316,7 +283,7 @@ public:
 				iter._iter = _map_arr[iter._curr_idx]->begin();	//set iter._iter as the iterator pointing to the first element of _map_arr[iter._curr_idx]
 			}
 		} else {
-			iter._iter = _map_arr[iter._curr_idx]->lower_bound(start_key); // set iter._iter as the slot iterator pointing to element not larger than start_key of _map_arr[iter._curr_idx
+			iter._iter = _map_arr[iter._curr_idx]->lower_bound(start_key); // set iter._iter as the slot iterator pointing to element not less than start_key of _map_arr[iter._curr_idx]
 		}
 		iter.handle_slot_crossing();
 		iter.check_ending();
