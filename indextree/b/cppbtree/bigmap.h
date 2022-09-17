@@ -191,6 +191,9 @@ public:
 		int _curr_idx;
 		typename basic_map::iterator _iter; // an iterator to _map._map_arr[_curr_idx]
 		bool _valid; // this iterator is still valid. once it turns false, it'll never turn true.
+
+		// When _iter is pointing at the "past-last" element of current slot, we increase _iter across the next 
+		// slots until it points to a valid element. If we cannot find such an element, _valid will be set to false.
 		void handle_slot_crossing() {
 			if(_iter != _map->_map_arr[_curr_idx]->end()) {
 				return; // no need for slot crossing
@@ -204,6 +207,9 @@ public:
 				if(_valid) break;
 			}
 		}
+
+		// When _iter is pointing at the "before-first" element of current slot, we decrease _iter across the previous 
+		// slots until it points to a valid element. If we cannot find such an element, _valid will be set to false.
 		void handle_slot_crossing_rev() {
 			if(_iter != _map->_map_arr[_curr_idx]->rend()) {
 				return; // no need for slot crossing
