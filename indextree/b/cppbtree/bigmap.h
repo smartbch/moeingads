@@ -292,7 +292,6 @@ public:
 			iter._iter = _map_arr[iter._curr_idx]->lower_bound(start_key); // set iter._iter as the slot iterator pointing to element not less than start_key of _map_arr[iter._curr_idx]
 		}
 		iter.handle_slot_crossing();
-		iter.check_ending();
 		return iter;
 	}
 	//return slot iterator at the end of the map
