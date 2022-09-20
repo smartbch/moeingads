@@ -11,7 +11,7 @@ import (
 	cb "github.com/smartbch/moeingads/indextree/b/cppbtree"
 )
 
-func runTest(cfg FuzzConfig) {
+func runTest(testConfig FuzzConfig) {
 	randFilename := os.Getenv("RANDFILE")
 	if len(randFilename) == 0 {
 		fmt.Printf("No RANDFILE specified. Exiting...")
@@ -22,19 +22,14 @@ func runTest(cfg FuzzConfig) {
 		panic(err)
 	}
 
-	RunFuzz(roundCount, cfg, randFilename)
+	RunFuzz(roundCount, testConfig, randFilename)
 }
 
-var DefaultConfig = FuzzConfig{
-	MaxInitCount: 200,
-	ChangeCount:  100,
-	QueryCount:   300,
-	IterCount:    100,
-	IterDistance: 20,
-	MaxDelCount:  200,
-	MinLen:       500,
-	MaxLen:       1000,
-}
+/*
+DefaultConfig variable is no longer needed
+because Fuzz test will create a config with random values
+each time it runs
+*/
 
 type FuzzConfig struct {
 	MaxInitCount int
@@ -57,33 +52,33 @@ const (
 	Mask48 = (int64(1) << 48) - 1
 )
 
-func RunFuzz(roundCount int, cfg FuzzConfig, fname string) {
+func RunFuzz(roundCount int, testConfig FuzzConfig, fname string) {
 	rs := randsrc.NewRandSrcFromFile(fname)
 	gobt := TreeNew()
 	defer gobt.Close()
 	cppbt := cb.TreeNew()
 	defer cppbt.Close()
-	addedKeyList := make([]uint64, 0, cfg.MaxInitCount)
+	addedKeyList := make([]uint64, 0, testConfig.MaxInitCount)
 	for i := 0; i < roundCount; i++ {
 		if i%1000 == 0 {
 			fmt.Printf("====== Now Round %d ========\n", i)
 		}
 		addedKeyList = addedKeyList[:0]
-		FuzzInit(gobt, cppbt, &addedKeyList, cfg, rs)
-		FuzzChange(gobt, cppbt, addedKeyList, cfg, rs)
-		FuzzQuery(gobt, cppbt, addedKeyList, cfg, rs)
-		FuzzIter(gobt, cppbt, addedKeyList, cfg, rs)
-		FuzzDelete(gobt, cppbt, cfg, rs)
+		FuzzInit(gobt, cppbt, &addedKeyList, testConfig, rs)
+		FuzzChange(gobt, cppbt, addedKeyList, testConfig, rs)
+		FuzzQuery(gobt, cppbt, addedKeyList, testConfig, rs)
+		FuzzIter(gobt, cppbt, addedKeyList, testConfig, rs)
+		FuzzDelete(gobt, cppbt, testConfig, rs)
 	}
 }
 
-func FuzzInit(gobt *Tree, cppbt *cb.Tree, addedKeyList *[]uint64, cfg FuzzConfig, rs randsrc.RandSrc) {
-	for i := 0; i < cfg.MaxInitCount; i++ {
+func FuzzInit(gobt *Tree, cppbt *cb.Tree, addedKeyList *[]uint64, testConfig FuzzConfig, rs randsrc.RandSrc) {
+	for i := 0; i < testConfig.MaxInitCount; i++ {
 		//if gobt.Len() != cppbt.Len() {
 		//	fmt.Printf("Different length go %d cpp %d\n", gobt.Len(), cppbt.Len())
 		//}
 		assert(gobt.Len() == cppbt.Len(), "Should be same length")
-		if gobt.Len() > cfg.MaxLen {
+		if gobt.Len() > testConfig.MaxLen {
 			break
 		}
 		key := rs.GetUint64()
@@ -105,8 +100,8 @@ func FuzzInit(gobt *Tree, cppbt *cb.Tree, addedKeyList *[]uint64, cfg FuzzConfig
 	}
 }
 
-func FuzzChange(gobt *Tree, cppbt *cb.Tree, addedKeyList []uint64, cfg FuzzConfig, rs randsrc.RandSrc) {
-	for i := 0; i < cfg.ChangeCount; i++ {
+func FuzzChange(gobt *Tree, cppbt *cb.Tree, addedKeyList []uint64, testConfig FuzzConfig, rs randsrc.RandSrc) {
+	for i := 0; i < testConfig.ChangeCount; i++ {
 		randIdx := int(uint(rs.GetUint64()) % uint(len(addedKeyList)))
 		key := addedKeyList[randIdx]
 		value := rs.GetInt64() & Mask48
@@ -123,8 +118,8 @@ func FuzzChange(gobt *Tree, cppbt *cb.Tree, addedKeyList []uint64, cfg FuzzConfi
 	}
 }
 
-func FuzzQuery(gobt *Tree, cppbt *cb.Tree, addedKeyList []uint64, cfg FuzzConfig, rs randsrc.RandSrc) {
-	for i := 0; i < cfg.QueryCount; i++ {
+func FuzzQuery(gobt *Tree, cppbt *cb.Tree, addedKeyList []uint64, testConfig FuzzConfig, rs randsrc.RandSrc) {
+	for i := 0; i < testConfig.QueryCount; i++ {
 		var key uint64
 		if rs.GetBool() {
 			key = rs.GetUint64()
@@ -139,8 +134,8 @@ func FuzzQuery(gobt *Tree, cppbt *cb.Tree, addedKeyList []uint64, cfg FuzzConfig
 	}
 }
 
-func FuzzIter(gobt *Tree, cppbt *cb.Tree, addedKeyList []uint64, cfg FuzzConfig, rs randsrc.RandSrc) {
-	for i := 0; i < cfg.IterCount; i++ {
+func FuzzIter(gobt *Tree, cppbt *cb.Tree, addedKeyList []uint64, testConfig FuzzConfig, rs randsrc.RandSrc) {
+	for i := 0; i < testConfig.IterCount; i++ {
 		var key uint64
 		if rs.GetBool() {
 			key = rs.GetUint64()
@@ -161,7 +156,7 @@ func FuzzIter(gobt *Tree, cppbt *cb.Tree, addedKeyList []uint64, cfg FuzzConfig,
 		//if key == 5460358719145416 {
 		//	cppbt.SetDebug(true)
 		//}
-		for j := 0; j < cfg.IterDistance; j++ {
+		for j := 0; j < testConfig.IterDistance; j++ {
 			//if key == 5460358719145416 {
 			//	fmt.Printf("#%d isNext:%v\n", j, isNext)
 			//}
@@ -197,8 +192,8 @@ func FuzzIter(gobt *Tree, cppbt *cb.Tree, addedKeyList []uint64, cfg FuzzConfig,
 	}
 }
 
-func FuzzDelete(gobt *Tree, cppbt *cb.Tree, cfg FuzzConfig, rs randsrc.RandSrc) {
-	for i := 0; i < cfg.MaxDelCount; i++ {
+func FuzzDelete(gobt *Tree, cppbt *cb.Tree, testConfig FuzzConfig, rs randsrc.RandSrc) {
+	for i := 0; i < testConfig.MaxDelCount; i++ {
 		key := rs.GetUint64()
 		iterG, okG := gobt.Seek(key)
 		iterC, okC := cppbt.Seek(key)
@@ -214,7 +209,7 @@ func FuzzDelete(gobt *Tree, cppbt *cb.Tree, cfg FuzzConfig, rs randsrc.RandSrc) 
 		gobt.Delete(kG)
 		cppbt.Delete(kC)
 		assert(gobt.Len() == cppbt.Len(), "Should be same length")
-		if gobt.Len() < cfg.MinLen {
+		if gobt.Len() < testConfig.MinLen {
 			break
 		}
 	}
