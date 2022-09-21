@@ -212,9 +212,6 @@ public:
 		// When rev_it is pointing at the "before-first" element of current slot, we decrease rev_it across the previous 
 		// slots until it points to a valid element. If we cannot find such an element, _valid will be set to false.
 		void handle_slot_crossing_rev() {
-			if(_iter != _map->_map_arr[_curr_idx]->rend()) {
-				return; // no need for slot crossing
-			}
 			_valid = false;
 			for(_curr_idx--; _curr_idx >= 0; _curr_idx--) { // find a non-empty slot
 				if(_map->_map_arr[_curr_idx] == nullptr) continue;
@@ -259,16 +256,13 @@ public:
 		
 		//when the iterator points at beginning of slot, move it to the previous valid position
 		void prev() {
-			//if(_map->debug) {
-			//	std::cout<<" starting prev _valid "<<_valid<<std::endl;
-			//}
 			if(!_valid) return;
 			
-			_iter--;
-			//if(_map->debug) {
-			//	std::cout<<" is_first "<<is_first<<std::endl;
-			//}
-			handle_slot_crossing_rev();
+			if(_iter != _map->_map_arr[_curr_idx]->begin()) {
+				_iter--;
+			} else {
+				handle_slot_crossing_rev();
+			}
 		}
 	};
 

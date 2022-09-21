@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 	"sync"
 
 	"github.com/smartbch/moeingads/indextree/b"
@@ -13,7 +14,7 @@ import (
 
 const (
 	MaxKeyLength     = 8192
-	RecentBlockCount = 128
+	RecentBlockCount = 1024
 )
 
 type Iterator = types.IteratorUI64
@@ -115,6 +116,9 @@ type NVTreeMem struct {
 	rocksdb    *RocksDB
 	currHeight [8]byte
 	duringInit bool
+
+	recentCache   RecentCache
+	currHeightI64 int64
 }
 
 var _ types.IndexTree = (*NVTreeMem)(nil)
@@ -182,6 +186,11 @@ func (tree *NVTreeMem) BeginWrite(currHeight int64) {
 	}
 	tree.isWriting = true
 	binary.BigEndian.PutUint64(tree.currHeight[:], uint64(currHeight))
+	tree.currHeightI64 = currHeight
+	tree.recentCache.AllocateIfNotExist(currHeight)
+	if currHeight > RecentBlockCount {
+		tree.recentCache.Prune(currHeight-RecentBlockCount)
+	}
 }
 
 // End the write phase of block execution
@@ -199,7 +208,12 @@ func (tree *NVTreeMem) Set(k []byte, v int64) {
 	if !tree.isWriting {
 		panic("tree.isWriting must be true! bug here...")
 	}
-	tree.bt.Set(binary.BigEndian.Uint64(k), v)
+	key := binary.BigEndian.Uint64(k)
+	oldV, foundOld := tree.bt.PutNewAndGetOld(key, v)
+	if !foundOld {
+		oldV = math.MaxInt64
+	}
+	tree.recentCache.SetAtHeight(tree.currHeightI64, key, oldV)
 
 	if tree.rocksdb == nil || tree.duringInit {
 		return
@@ -237,6 +251,10 @@ func (tree *NVTreeMem) Get(k []byte) (int64, bool) {
 
 // Get the position of k, at the specified height.
 func (tree *NVTreeMem) GetAtHeight(k []byte, height uint64) (position int64, ok bool) {
+	if height + RecentBlockCount > uint64(tree.currHeightI64) {
+		position, ok = tree.recentCache.FindFirstTill(int64(height), binary.BigEndian.Uint64(k))
+		if ok {return}
+	}
 	if h, enable := tree.rocksdb.GetPruneHeight(); enable && height <= h {
 		return 0, false
 	}
@@ -266,11 +284,12 @@ func (tree *NVTreeMem) Delete(k []byte) {
 		panic("tree.isWriting must be true! bug here...")
 	}
 	key := binary.BigEndian.Uint64(k)
-	_, ok := tree.bt.Get(key)
+	oldV, ok := tree.bt.Get(key)
 	if !ok {
 		panic(fmt.Sprintf("deleting a nonexistent key: %#v bug here...", key))
 	}
 	tree.bt.Delete(key)
+	tree.recentCache.SetAtHeight(tree.currHeightI64, key, oldV)
 
 	if tree.rocksdb == nil || tree.duringInit {
 		return
