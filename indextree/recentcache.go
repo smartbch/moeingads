@@ -54,7 +54,7 @@ func (rc *RecentCache) DidNotTouchInRange(start, end int64, k uint64) bool {
 	return true
 }
 
-func (rc *RecentCache) FindFirstTill(height int64, k uint64) (v int64, foundIt bool) {
+func (rc *RecentCache) FindFrom(height int64, k uint64) (v int64, foundIt bool) {
 	for {
 		cache, ok := rc.caches[height]
 		if !ok {
@@ -64,7 +64,7 @@ func (rc *RecentCache) FindFirstTill(height int64, k uint64) (v int64, foundIt b
 		if ok {
 			return v, true
 		}
-		height--
+		height++
 	}
 	return
 }

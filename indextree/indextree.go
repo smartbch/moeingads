@@ -252,8 +252,11 @@ func (tree *NVTreeMem) Get(k []byte) (int64, bool) {
 // Get the position of k, at the specified height.
 func (tree *NVTreeMem) GetAtHeight(k []byte, height uint64) (position int64, ok bool) {
 	if height + RecentBlockCount > uint64(tree.currHeightI64) {
-		position, ok = tree.recentCache.FindFirstTill(int64(height), binary.BigEndian.Uint64(k))
-		if ok {return}
+		position, ok = tree.recentCache.FindFrom(int64(height+1), binary.BigEndian.Uint64(k))
+		if !ok {
+			 position, ok = tree.Get(k)
+		}
+		return
 	}
 	if h, enable := tree.rocksdb.GetPruneHeight(); enable && height <= h {
 		return 0, false
