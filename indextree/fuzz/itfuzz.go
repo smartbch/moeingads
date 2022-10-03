@@ -252,7 +252,7 @@ func FuzzQuery(trMem *it.NVTreeMem, refTree *NVTreeRef, cfg FuzzConfig, rs rands
 		vMem, okMem := trMem.Get(key)
 		vFuzz, okFuzz := refTree.Get(key)
 		// added >
-		vCache, okCache := trMem.recentCache.Get(key)
+		vCache, okCache := &trMem.recentCache.Get(key)
 		// > finished
 		assert(okMem == okFuzz, "ok should be equal")
 		assert(vMem == vFuzz, "Value should be equal")
@@ -264,7 +264,7 @@ func FuzzQuery(trMem *it.NVTreeMem, refTree *NVTreeRef, cfg FuzzConfig, rs rands
 		vMem, okMem = trMem.GetAtHeight(key, h)
 		vFuzz, okFuzz = refTree.GetAtHeight(key, h)
 		// added >
-		vCache, okCache = trMem.recentCache.FindFrom(h, key)
+		vCache, okCache = &trMem.recentCache.FindFrom(h, key)
 		// > finished
 		assert(okMem == okFuzz, "ok should be equal")
 		assert(vMem == vFuzz, "Value at height should be equal")
@@ -292,7 +292,7 @@ func FuzzQuery(trMem *it.NVTreeMem, refTree *NVTreeRef, cfg FuzzConfig, rs rands
 		vMem, okMem = trMem.GetAtHeight(key[1:], height)
 		vFuzz, okFuzz = refTree.GetAtHeight(key[1:], height)
 		// added >
-		vCache, okCache = trMem.recentCache.FindFrom(height, key[1:])
+		vCache, okCache = &trMem.recentCache.FindFrom(height, key[1:])
 		// > finished
 		assert(okMem == okFuzz, "ok should be equal")
 		// added >
@@ -309,6 +309,11 @@ func FuzzQuery(trMem *it.NVTreeMem, refTree *NVTreeRef, cfg FuzzConfig, rs rands
 	}
 }
 
+/*
+*********
+ORIGINAL
+*********
+*/
 // func FuzzQuery(trMem *it.NVTreeMem, refTree *NVTreeRef, cfg FuzzConfig, rs randsrc.RandSrc, h uint64) {
 // 	for i := 0; i < cfg.QueryCount; i++ {
 // 		key := getRandKey(rs)
