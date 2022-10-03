@@ -251,27 +251,13 @@ func FuzzQuery(trMem *it.NVTreeMem, refTree *NVTreeRef, cfg FuzzConfig, rs rands
 		key := getRandKey(rs)
 		vMem, okMem := trMem.Get(key)
 		vFuzz, okFuzz := refTree.Get(key)
-		// added >
-		vCache, okCache := &trMem.recentCache.Get(key)
-		// > finished
 		assert(okMem == okFuzz, "ok should be equal")
-		assert(vMem == vFuzz, "Value should be equal")
-		// added >
-		assert(okMem == okCache, "ok should be equal for cache too")
-		assert(vMem == vCache, "Value should be equal for cache too")
-		// > finished
+		assert(vMem == vFuzz, "Value at height should be equal")
 
 		vMem, okMem = trMem.GetAtHeight(key, h)
 		vFuzz, okFuzz = refTree.GetAtHeight(key, h)
-		// added >
-		vCache, okCache = &trMem.recentCache.FindFrom(h, key)
-		// > finished
 		assert(okMem == okFuzz, "ok should be equal")
 		assert(vMem == vFuzz, "Value at height should be equal")
-		// added >
-		assert(okMem == okCache, "ok should be equal for cache too")
-		assert(vMem == vCache, "Value at height should be equal for cache too")
-		// > finished
 
 		iter := refTree.Iterator(key, AllOnes)
 		if !iter.Valid() {
@@ -291,68 +277,14 @@ func FuzzQuery(trMem *it.NVTreeMem, refTree *NVTreeRef, cfg FuzzConfig, rs rands
 		height := rs.GetUint64() % h
 		vMem, okMem = trMem.GetAtHeight(key[1:], height)
 		vFuzz, okFuzz = refTree.GetAtHeight(key[1:], height)
-		// added >
-		vCache, okCache = &trMem.recentCache.FindFrom(height, key[1:])
-		// > finished
 		assert(okMem == okFuzz, "ok should be equal")
-		// added >
-		assert(okMem == okCache, "ok should be equal for cache too")
-		// > finished
 		if vMem != vFuzz {
 			fmt.Printf("AtHeight key %#v height %v okMem %v okFuzz %v vMem %x vFuzz %x\n",
 				key[1:], height, okMem, okFuzz, vMem, vFuzz)
 		}
 		assert(vMem == vFuzz, "Value at height should be equal")
-		// added >
-		assert(vMem == vCache, "Value at height should be equal for cache too")
-		// > finished
 	}
 }
-
-/*
-*********
-ORIGINAL
-*********
-*/
-// func FuzzQuery(trMem *it.NVTreeMem, refTree *NVTreeRef, cfg FuzzConfig, rs randsrc.RandSrc, h uint64) {
-// 	for i := 0; i < cfg.QueryCount; i++ {
-// 		key := getRandKey(rs)
-// 		vMem, okMem := trMem.Get(key)
-// 		vFuzz, okFuzz := refTree.Get(key)
-// 		assert(okMem == okFuzz, "ok should be equal")
-// 		assert(vMem == vFuzz, "Value at height should be equal")
-
-// 		vMem, okMem = trMem.GetAtHeight(key, h)
-// 		vFuzz, okFuzz = refTree.GetAtHeight(key, h)
-// 		assert(okMem == okFuzz, "ok should be equal")
-// 		assert(vMem == vFuzz, "Value at height should be equal")
-
-// 		iter := refTree.Iterator(key, AllOnes)
-// 		if !iter.Valid() {
-// 			iter.Close()
-// 			continue
-// 		}
-// 		key = iter.Key()
-// 		v, ok := refTree.Get(key[1:])
-// 		//fmt.Printf("Here we get query key %#v\n", key)
-// 		assert(ok, "Get returns ok")
-// 		assert(binary.BigEndian.Uint64(iter.Value()) == uint64(v), "Value should be equal")
-// 		iter.Close()
-
-// 		if h == 0 {
-// 			continue
-// 		}
-// 		height := rs.GetUint64() % h
-// 		vMem, okMem = trMem.GetAtHeight(key[1:], height)
-// 		vFuzz, okFuzz = refTree.GetAtHeight(key[1:], height)
-// 		assert(okMem == okFuzz, "ok should be equal")
-// 		if vMem != vFuzz {
-// 			fmt.Printf("AtHeight key %#v height %v okMem %v okFuzz %v vMem %x vFuzz %x\n",
-// 				key[1:], height, okMem, okFuzz, vMem, vFuzz)
-// 		}
-// 		assert(vMem == vFuzz, "Value at height should be equal")
-// 	}
-// }
 
 func FuzzIter(trMem *it.NVTreeMem, refTree *NVTreeRef, cfg FuzzConfig, rs randsrc.RandSrc) {
 	for i := 0; i < cfg.IterCount; i++ {
