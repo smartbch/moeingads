@@ -118,10 +118,10 @@ func TestRecentCache(t *testing.T) {
 
 	// FindFrom
 	// ***WORKONNEXT: edge cases like heights with same keys but different values
-	value, _ = rc.FindFrom(2, 6)
+	value, _ = rc.FindFrom(2, 6, 6)
 
 	assert.Equal(t, value, int64(6))
-	value, _ = rc.FindFrom(5, 4)
+	value, _ = rc.FindFrom(5, 6, 4)
 	assert.Equal(t, value, int64(4))
 	// t.Log("FindFromDONE==============================================================================")
 }

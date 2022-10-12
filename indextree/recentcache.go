@@ -31,6 +31,10 @@ type RecentCache struct {
 	caches map[int64]*Cache
 }
 
+func NewRecentCache() *RecentCache {
+	return &RecentCache{caches: make(map[int64]*Cache)}
+}
+
 func (rc *RecentCache) Prune(h int64) {
 	delete(rc.caches, h)
 }
@@ -54,11 +58,12 @@ func (rc *RecentCache) DidNotTouchInRange(start, end int64, k uint64) bool {
 	return true
 }
 
-func (rc *RecentCache) FindFrom(height int64, k uint64) (v int64, foundIt bool) {
-	for {
+func (rc *RecentCache) FindFrom(height, endHeight int64, k uint64) (v int64, foundIt bool) {
+	for height <= endHeight {
 		cache, ok := rc.caches[height]
 		if !ok {
-			break
+			height++
+			continue
 		}
 		v, ok := cache.Get(k)
 		if ok {

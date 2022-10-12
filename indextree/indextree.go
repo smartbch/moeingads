@@ -117,7 +117,7 @@ type NVTreeMem struct {
 	currHeight [8]byte
 	duringInit bool
 
-	recentCache   RecentCache
+	recentCache   *RecentCache
 	currHeightI64 int64
 }
 
@@ -126,8 +126,9 @@ var _ types.IndexTree = (*NVTreeMem)(nil)
 func NewNVTreeMem(rocksdb *RocksDB) *NVTreeMem {
 	btree := b.TreeNew()
 	return &NVTreeMem{
-		bt:      btree,
-		rocksdb: rocksdb,
+		bt:          btree,
+		rocksdb:     rocksdb,
+		recentCache: NewRecentCache(),
 	}
 }
 
@@ -252,9 +253,12 @@ func (tree *NVTreeMem) Get(k []byte) (int64, bool) {
 // Get the position of k, at the specified height.
 func (tree *NVTreeMem) GetAtHeight(k []byte, height uint64) (position int64, ok bool) {
 	if height + RecentBlockCount > uint64(tree.currHeightI64) {
-		position, ok = tree.recentCache.FindFrom(int64(height+1), binary.BigEndian.Uint64(k))
-		if !ok {
-			 position, ok = tree.Get(k)
+		position, ok = tree.recentCache.FindFrom(int64(height+1), tree.currHeightI64, binary.BigEndian.Uint64(k))
+		if ok && position == math.MaxInt64 { // has no old value at height
+			return 0, false
+		}
+		if !ok { // not touched after height
+			position, ok = tree.Get(k)
 		}
 		return
 	}
