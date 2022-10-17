@@ -5,8 +5,11 @@ import (
 	"os"
 	"testing"
 
+	"fmt"
+
 	"github.com/stretchr/testify/assert"
 )
+
 
 func toBz(k uint64) []byte {
 	var buf [8]byte
@@ -15,10 +18,13 @@ func toBz(k uint64) []byte {
 }
 
 func mustGet(tree *NVTreeMem, key uint64) int64 {
-	res, ok := tree.Get(toBz(key))
+	//
+	fmt.Println("***************TESTING KEY: ", key)
+	res, ok := tree.Get(toBz(key)) 
 	if !ok {
 		panic("Failed to get")
 	}
+
 	return res
 }
 
@@ -27,6 +33,7 @@ func mustGetH(tree *NVTreeMem, key uint64, height uint64) int64 {
 	if !ok {
 		panic("Failed to get")
 	}
+	
 	return res
 }
 
@@ -40,7 +47,14 @@ func createNVTreeMem(dirname string) (*RocksDB, *NVTreeMem) {
 
 func Test1(t *testing.T) {
 	rocksdb, tree := createNVTreeMem("./")
+	// covers SetDuringInit
+	tree.SetDuringInit(true)
+	// covers Set when duringInit which just returns
+	// tree.Set(toBz(0xABcd1000), 10)
 	err := tree.Init(func([]byte) {})
+	// covers SetDuringInit
+	tree.SetDuringInit(false)
+
 	assert.Equal(t, nil, err)
 	tree.BeginWrite(0)
 	rocksdb.OpenNewBatch()
@@ -50,14 +64,30 @@ func Test1(t *testing.T) {
 	tree.Set(toBz(0xABed1234), 3)
 	tree.Set(toBz(0xBBed1234), 3)
 	tree.Set(toBz(0xFBed1234), 4)
+
+	// covers ActiveCount
+	assert.Equal(t, 6, tree.ActiveCount())
 	tree.Delete(toBz(0xBBed1234))
+
+	// covers ActiveCount
+	assert.Equal(t, 5, tree.ActiveCount())
+	// covers RecentCaches' DidNotTouchInRange
+	assert.Equal(t, false, tree.recentCache.DidNotTouchInRange(0, 1, 0xABcd1234))
+	assert.Equal(t, false, tree.recentCache.DidNotTouchInRange(0, 1, 0xABcd1235))
+	assert.Equal(t, true, tree.recentCache.DidNotTouchInRange(0, 1, 0xABcd1236))
+
 	rocksdb.CloseOldBatch()
 	tree.EndWrite()
 	tree.Close()
 	rocksdb.Close()
 
 	rocksdb, tree = createNVTreeMem("./")
+
+	// covers SetDuringInit
+	tree.SetDuringInit(true)
 	err = tree.Init(func(k []byte) {})
+	// covers SetDuringInit
+	tree.SetDuringInit(false)
 	assert.Equal(t, nil, err)
 
 	assert.Equal(t, int64(0), mustGet(tree, 0x0bcd1234))
@@ -76,6 +106,8 @@ func Test1(t *testing.T) {
 	tree.BeginWrite(10)
 	tree.Set(toBz(0xABcd1234), 111)
 	tree.Set(toBz(0x1bcd1234), 100)
+	// covers ActiveCount
+	assert.Equal(t, 6, tree.ActiveCount())
 	rocksdb.CloseOldBatch()
 	tree.EndWrite()
 
@@ -148,5 +180,60 @@ func Test1(t *testing.T) {
 	tree.Close()
 	rocksdb.Close()
 
+	// NVTreeMem to test more heights beyond RecentBlockCount
+	rocksdb, tree = createNVTreeMem("./")
+
+	// covers SetDuringInit
+	tree.SetDuringInit(true)
+	err = tree.Init(func(k []byte) {})
+	// covers SetDuringInit
+	tree.SetDuringInit(false)
+	assert.Equal(t, nil, err)
+
+	tree.BeginWrite(0)
+	rocksdb.OpenNewBatch()
+	tree.Set(toBz(0), 1000)
+	tree.Set(toBz(1), 2000)
+	rocksdb.CloseOldBatch()
+	tree.EndWrite()
+
+	tree.BeginWrite(1)
+	rocksdb.OpenNewBatch()
+	tree.Set(toBz(0xABcd1234), 1)
+	tree.Set(toBz(0xABcd1235), 2)
+	tree.Set(toBz(0x0bcd1234), 0)
+	tree.Set(toBz(0xABed1234), 3)
+
+	rocksdb.CloseOldBatch()
+	tree.EndWrite()
+
+	// check that height 1 is not empty
+	assert.NotEmpty(t, tree.recentCache.caches[1])
+
+	// UP TO HERE, CURRHEIGHT IS 1
+	// height at 1 + RecentBlockCount (1024)
+	// so 1 after 1024th height from height 1
+	tree.BeginWrite(1025)
+	rocksdb.OpenNewBatch()
+	tree.Set(toBz(0xABcd1234), 1)
+	tree.Set(toBz(0xABcd1235), 2)
+	tree.Set(toBz(0x0bcd1234), 0)
+	tree.Set(toBz(0xABed1234), 3)
+
+	rocksdb.CloseOldBatch()
+	tree.EndWrite()
+
+	// check that caches do not include height 0 anymore
+	// should be pruned because went over RecentBlockCount
+	// since not there is caches map anymore, should be empty
+	assert.Empty(t, tree.recentCache.caches[1])
+
+	// try getting value from height 0 which is not in cache
+	assert.Equal(t, int64(1000), mustGetH(tree, 0, 0))
+	assert.Equal(t, int64(2000), mustGetH(tree, 1, 0))
+
+	tree.Close()
+	rocksdb.Close()
+		
 	os.RemoveAll("./idxtree.db")
 }
