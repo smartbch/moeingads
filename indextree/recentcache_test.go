@@ -1,7 +1,3 @@
-/*
-Oct 10th: got ok but need to think about edge cases and test them
-*/
-
 package indextree
 
 import (
@@ -19,8 +15,7 @@ func isHeightExist(rc *RecentCache, h int64) (foundIt bool) {
 
 func TestRecentCache(t *testing.T) {
 	// create recent cache
-	rc := RecentCache{}
-	rc.caches = make(map[int64]*Cache)
+	rc := NewRecentCache()
 	caches := rc.caches
 
 	/*
@@ -68,29 +63,23 @@ func TestRecentCache(t *testing.T) {
 	/*
 	RECENTCACHE METHODS
 	*/
-
 	// Prune
 	// delete height 1 from recentCache's caches map
-	// ***WORKONNEXT: add more Pruning
 	rc.Prune(1)
-	// t.Log("PruneDONE==============================================================================")
 	// check that height 1 is gone
-	foundIt := isHeightExist(&rc, 1)
+	foundIt := isHeightExist(rc, 1)
 	assert.Equal(t, foundIt, false)
 	// 0 and 2 still exist
-	foundIt = isHeightExist(&rc, 0)
+	foundIt = isHeightExist(rc, 0)
 	assert.Equal(t, foundIt, true)
-	foundIt = isHeightExist(&rc, 2)
+	foundIt = isHeightExist(rc, 2)
 	assert.Equal(t, foundIt, true)
-	// t.Log("CheckHeightExistDONE==============================================================================")
 
 	// AllocateIfNotExist
 	// create new height in caches, 3, 4 & 5
-	// ***WORKONNEXT: check that it does not make a duplicate for existing height
 	rc.AllocateIfNotExist(3)
 	rc.AllocateIfNotExist(4)
 	rc.AllocateIfNotExist(5)
-	// t.Log("AllocateIfNotExistDONE==============================================================================")
 
 	// SetAtHeight
 	rc.SetAtHeight(3, 0, 0)
@@ -99,14 +88,10 @@ func TestRecentCache(t *testing.T) {
 	rc.SetAtHeight(4, 3, 3)
 	rc.SetAtHeight(5, 4, 4)
 	rc.SetAtHeight(5, 5, 5)
-	// t.Log("SetAtHeightDONE==============================================================================")
 
 	// recreate height 1 to test DidNotTouchInRange
 	// can not have any "hole" while looping
 	rc.AllocateIfNotExist(1)
-
-	// check that all heights from 0 to 5 are occupied
-	// t.Log(caches)
 
 	// DidNotTouchInRange
 	// need to set only up to 6 because max height is 5 right now (up to h < end)
@@ -114,14 +99,19 @@ func TestRecentCache(t *testing.T) {
 	assert.Equal(t, rc.DidNotTouchInRange(0, 6, 3), false)
 	// there is no cache with key 10
 	assert.Equal(t, rc.DidNotTouchInRange(0, 6, 100), true)
-	// t.Log("DidNotTouchInRangeDONE==============================================================================")
 
 	// FindFrom
-	// ***WORKONNEXT: edge cases like heights with same keys but different values
 	value, _ = rc.FindFrom(2, 6, 6)
 
 	assert.Equal(t, value, int64(6))
 	value, _ = rc.FindFrom(5, 6, 4)
 	assert.Equal(t, value, int64(4))
-	// t.Log("FindFromDONE==============================================================================")
+
+	// cases in which cache cannot be retrieved from inputte height (err)
+	_, foundIt = rc.FindFrom(6, 10, 0)
+	assert.Equal(t, foundIt, false)
+	// cases in which inputted key is not in inputted height
+	// which leads to going up in height (loop)
+	value, _ = rc.FindFrom(0, 5, 5)
+	assert.Equal(t, value, int64(5))
 }
