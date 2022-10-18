@@ -207,7 +207,8 @@ func Test1(t *testing.T) {
 	rocksdb.CloseOldBatch()
 	tree.EndWrite()
 
-	// check that height 1 is not empty
+	// check that height 0 & 1 is not empty
+	assert.NotEmpty(t, tree.recentCache.caches[0])
 	assert.NotEmpty(t, tree.recentCache.caches[1])
 
 	// UP TO HERE, CURRHEIGHT IS 1
@@ -223,9 +224,8 @@ func Test1(t *testing.T) {
 	rocksdb.CloseOldBatch()
 	tree.EndWrite()
 
-	// check that caches do not include height 0 anymore
-	// should be pruned because went over RecentBlockCount
-	// since not there is caches map anymore, should be empty
+	// check that caches do not include height 1 anymore
+	// 1025 - RecentBlockCount is 1
 	assert.Empty(t, tree.recentCache.caches[1])
 
 	// try getting value from height 0 which is not in cache
