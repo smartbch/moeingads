@@ -114,6 +114,7 @@ func (tree *Tree) ScanEntriesLite(oldestActiveTwigID int64, outChan chan types.K
 			Key:       ExtractKeyFromRawBytes(entryBz),
 			Pos:       pos,
 			SerialNum: ExtractSerialNum(entryBz),
+			Height:    ExtractHeight(entryBz),
 		}
 		pos = next
 	}

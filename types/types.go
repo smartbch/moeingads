@@ -19,6 +19,7 @@ type KeyAndPos struct {
 	Key       []byte
 	Pos       int64
 	SerialNum int64
+	Height    int64
 }
 
 type OperationOnEntry int32
@@ -80,7 +81,9 @@ type IndexTree interface {
 	Get(k []byte) (int64, bool)
 	GetAtHeight(k []byte, height uint64) (int64, bool)
 	Set(k []byte, v int64)
+	SetAtHeight(k []byte, v, h int64)
 	Delete(k []byte)
+	DeleteAtHeight(k []byte, h int64)
 	Close()
 }
 
