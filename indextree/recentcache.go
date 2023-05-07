@@ -50,15 +50,6 @@ func (rc *RecentCache) SetAtHeight(h int64, k uint64, v int64) {
 	rc.caches[h].Set(k, v)
 }
 
-func (rc *RecentCache) DidNotTouchInRange(start, end int64, k uint64) bool {
-	for h := start; h < end; h++ {
-		if _, ok := rc.caches[h].Get(k); ok {
-			return false
-		}
-	}
-	return true
-}
-
 func (rc *RecentCache) FindFrom(height, endHeight int64, k uint64) (v int64, foundIt bool) {
 	for height <= endHeight {
 		cache, ok := rc.caches[height]

@@ -75,12 +75,6 @@ func TestRecentCache(t *testing.T) {
 	foundIt = isHeightExist(rc, 2)
 	assert.Equal(t, foundIt, true)
 
-	// AllocateIfNotExist
-	// create new height in caches, 3, 4 & 5
-	rc.AllocateIfNotExist(3)
-	rc.AllocateIfNotExist(4)
-	rc.AllocateIfNotExist(5)
-
 	// SetAtHeight
 	rc.SetAtHeight(3, 0, 0)
 	rc.SetAtHeight(3, 1, 1)
@@ -88,17 +82,6 @@ func TestRecentCache(t *testing.T) {
 	rc.SetAtHeight(4, 3, 3)
 	rc.SetAtHeight(5, 4, 4)
 	rc.SetAtHeight(5, 5, 5)
-
-	// recreate height 1 to test DidNotTouchInRange
-	// can not have any "hole" while looping
-	rc.AllocateIfNotExist(1)
-
-	// DidNotTouchInRange
-	// need to set only up to 6 because max height is 5 right now (up to h < end)
-	// there is a cache with key 3
-	assert.Equal(t, rc.DidNotTouchInRange(0, 6, 3), false)
-	// there is no cache with key 10
-	assert.Equal(t, rc.DidNotTouchInRange(0, 6, 100), true)
 
 	// FindFrom
 	value, _ = rc.FindFrom(2, 6, 6)
