@@ -145,8 +145,8 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte,
 			go mads.datTree[shardID].ScanEntriesLite(oldestActiveTwigID, keyAndPosChan)
 			for e := range keyAndPosChan {
 				isActive := mads.datTree[shardID].GetActiveBit(e.SerialNum)
-				isRecentBlock := e.Height + recentBlockCount > currHeight
-				if isActive || isRecentBlock {
+				isAtLatestBlock := e.Height + recentBlockCount > currHeight
+				if isActive || isAtLatestBlock {
 					chanID := types.GetIndexChanID(e.Key[0])
 					mads.idxTreeJobChan[chanID] <- idxTreeJob{
 						key:    e.Key,
@@ -760,6 +760,7 @@ func (mads *MoeingADS) PruneBeforeHeight(height int64) {
 		}
 	}
 	mads.rocksdb.CloseOldBatch()
+	mads.rocksdb.SetPruneHeight(uint64(height))
 }
 
 func (mads *MoeingADS) CheckHashConsistency() {

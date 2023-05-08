@@ -103,7 +103,7 @@ func GenerateTx(totalAccounts uint64, addr2num map[[AddrLen]byte]uint64, rs rand
 
 func RunGenerateTxFile(epochCount int, totalAccounts uint64, jsonFilename, randFilename, outFilename string) {
 	fmt.Printf("Start %f\n", float64(time.Now().UnixNano())/1e9)
-	//mads, err := moeingads.NewMoeingADS("./moeingads4test", false, [][]byte{GuardStart, GuardEnd}, 0)
+	//mads, err := moeingads.NewMoeingADS("./moeingads4test", false, [][]byte{GuardStart, GuardEnd})
 	//if err != nil {
 	//	panic(err)
 	//}

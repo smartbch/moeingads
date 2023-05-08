@@ -131,7 +131,7 @@ func NewRoot(dir string) *store.RootStore {
 	for i := 0; i < 8; i++ {
 		end[i] = ^start[i]
 	}
-	mads, err := moeingads.NewMoeingADS(dir, true, [][]byte{start[:], end[:]}, 0)
+	mads, err := moeingads.NewMoeingADS(dir, true, [][]byte{start[:], end[:]})
 	if err != nil {
 		panic(err)
 	}

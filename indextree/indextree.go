@@ -112,7 +112,7 @@ type NVTreeMem struct {
 	mtx        sync.RWMutex
 	bt         *b.Tree
 	isWriting  bool
-	rocksdb    *RocksDB // only used in archive mode
+	rocksdb    *RocksDB
 	currHeight [8]byte
 	duringInit bool
 
@@ -217,13 +217,11 @@ func (tree *NVTreeMem) SetAtHeight(k []byte, v, h int64) {
 		panic("tree.isWriting must be true! bug here...")
 	}
 	key := binary.BigEndian.Uint64(k)
-	if tree.recentCache == nil {
-		tree.bt.Set(key, v)
-	} else {
-		oldV, foundOld := tree.bt.PutNewAndGetOld(key, v)
-		if !foundOld {
-			oldV = math.MaxInt64
-		}
+	oldV, foundOld := tree.bt.PutNewAndGetOld(key, v)
+	if !foundOld {
+		oldV = math.MaxInt64
+	}
+	if tree.recentCache != nil {
 		tree.recentCache.SetAtHeight(h, key, oldV)
 	}
 
@@ -265,15 +263,15 @@ func (tree *NVTreeMem) Get(k []byte) (int64, bool) {
 func (tree *NVTreeMem) GetAtHeight(k []byte, height uint64) (position int64, ok bool) {
 	if height + tree.recentBlockCount > uint64(tree.currHeightI64) && tree.recentCache != nil {
 		position, ok = tree.recentCache.FindFrom(int64(height+1), tree.currHeightI64, binary.BigEndian.Uint64(k))
-		if ok && position == math.MaxInt64 { // did not exist at height
+		if ok && position == math.MaxInt64 { // has no old value at height
 			return 0, false
 		}
 		if !ok { // not touched after height
 			position, ok = tree.Get(k)
 		}
-		return // got the old position at height
+		return
 	}
-	if tree.rocksdb == nil {
+	if h, enable := tree.rocksdb.GetPruneHeight(); enable && height <= h {
 		return 0, false
 	}
 	newK := make([]byte, 1+len(k)+8) // all bytes equal zero

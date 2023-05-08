@@ -28,7 +28,7 @@ func (f *HeightCompactionFilter) Filter(level int, key, val []byte) (remove bool
 		return false, val
 	}
 	if len(key) >= 1 && key[0] != 0 {
-		return false, val // not starting with zero, so it's not a historical record
+		return false, val // not starting with zero
 	}
 	start := len(key) - 8
 	h := binary.BigEndian.Uint64(key[start:])

@@ -96,7 +96,7 @@ func main() {
 	}
 
 	fmt.Printf("Before Start %d\n", time.Now().UnixNano())
-	mads, err := moeingads.NewMoeingADS("./moeingads4test", false, [][]byte{GuardStart, GuardEnd}, 0)
+	mads, err := moeingads.NewMoeingADS("./moeingads4test", false, [][]byte{GuardStart, GuardEnd})
 	if err != nil {
 		panic(err)
 	}

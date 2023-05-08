@@ -208,7 +208,7 @@ func RunTx(numBlock int, txFile string) {
 	}()
 
 	fmt.Printf("Start %f\n", float64(time.Now().UnixNano())/1e9)
-	mads, err := moeingads.NewMoeingADS("./moeingads4test", false, [][]byte{GuardStart, GuardEnd}, 0)
+	mads, err := moeingads.NewMoeingADS("./moeingads4test", false, [][]byte{GuardStart, GuardEnd})
 	if err != nil {
 		panic(err)
 	}
