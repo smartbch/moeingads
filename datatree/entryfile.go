@@ -81,10 +81,6 @@ func ExtractSerialNum(entryBz []byte) int64 {
 	return int64(binary.LittleEndian.Uint64(entryBz[len(entryBz)-8:]))
 }
 
-func ExtractHeight(entryBz []byte) int64 {
-	return int64(binary.LittleEndian.Uint64(entryBz[len(entryBz)-24:len(entryBz)-16]))
-}
-
 func UpdateSerialNum(entryBz []byte, sn int64) {
 	binary.LittleEndian.PutUint64(entryBz[len(entryBz)-8:], uint64(sn))
 }

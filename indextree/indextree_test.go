@@ -35,7 +35,7 @@ func createNVTreeMem(dirname string) (*RocksDB, *NVTreeMem) {
 	if err != nil {
 		panic(err)
 	}
-	return rocksdb, NewNVTreeMem(rocksdb, 0)
+	return rocksdb, NewNVTreeMem(rocksdb)
 }
 
 func Test1(t *testing.T) {

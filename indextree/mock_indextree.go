@@ -49,15 +49,7 @@ func (it *MockIndexTree) Set(key []byte, v int64) {
 	it.bt.Set(binary.BigEndian.Uint64(key), v)
 }
 
-func (it *MockIndexTree) SetAtHeight(key []byte, v, h int64) {
-	it.bt.Set(binary.BigEndian.Uint64(key), v)
-}
-
 func (it *MockIndexTree) Delete(key []byte) {
-	it.bt.Delete(binary.BigEndian.Uint64(key))
-}
-
-func (it *MockIndexTree) DeleteAtHeight(key []byte, h int64) {
 	it.bt.Delete(binary.BigEndian.Uint64(key))
 }
 

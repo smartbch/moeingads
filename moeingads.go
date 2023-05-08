@@ -77,8 +77,7 @@ func NewMoeingADS4Mock(startEndKeys [][]byte) *MoeingADS {
 	return mads
 }
 
-func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte,
-                  recentBlockCount int64) (*MoeingADS, error) {
+func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (*MoeingADS, error) {
 	//tscOverhead = gotsc.TSCOverhead()
 	_, err := os.Stat(dirName)
 	dirNotExists := os.IsNotExist(err)
@@ -110,9 +109,9 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte,
 	}
 
 	if canQueryHistory {
-		mads.idxTree = indextree.NewNVTreeMem(mads.rocksdb, recentBlockCount)
+		mads.idxTree = indextree.NewNVTreeMem(mads.rocksdb)
 	} else {
-		mads.idxTree = indextree.NewNVTreeMem(nil, recentBlockCount)
+		mads.idxTree = indextree.NewNVTreeMem(nil)
 	}
 	if dirNotExists { // Create a new database in this dir
 		for i := 0; i < types.ShardCount; i++ {
@@ -132,7 +131,6 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte,
 		mads.initGuards()
 		mads.rocksdb.CloseOldBatch()
 	} else {
-		currHeight := mads.meta.GetCurrHeight()
 		mads.recoverDataTrees(dirName)
 		if canQueryHistory {
 			mads.idxTree.SetDuringInit(true)
@@ -144,15 +142,9 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte,
 			keyAndPosChan := make(chan types.KeyAndPos, JobChanSize)
 			go mads.datTree[shardID].ScanEntriesLite(oldestActiveTwigID, keyAndPosChan)
 			for e := range keyAndPosChan {
-				isActive := mads.datTree[shardID].GetActiveBit(e.SerialNum)
-				isAtLatestBlock := e.Height + recentBlockCount > currHeight
-				if isActive || isAtLatestBlock {
+				if mads.datTree[shardID].GetActiveBit(e.SerialNum) {
 					chanID := types.GetIndexChanID(e.Key[0])
-					mads.idxTreeJobChan[chanID] <- idxTreeJob{
-						key:    e.Key,
-						pos:    e.Pos,
-						height: e.Height,
-					}
+					mads.idxTreeJobChan[chanID] <- idxTreeJob{key: e.Key, pos: e.Pos}
 				}
 			}
 		})
@@ -484,9 +476,8 @@ func getNext(cachedEntries []*HotEntry, i int) int {
 }
 
 type idxTreeJob struct {
-	key    []byte
-	pos    int64
-	height int64
+	key []byte
+	pos int64
 }
 
 func (mads *MoeingADS) runIdxTreeJobs() {
@@ -498,18 +489,10 @@ func (mads *MoeingADS) runIdxTreeJobs() {
 				if job.key == nil {
 					break
 				}
-				if job.height != 0 {
-					if job.pos < 0 {
-						mads.idxTree.DeleteAtHeight(job.key, job.height)
-					} else {
-						mads.idxTree.SetAtHeight(job.key, job.pos, job.height)
-					}
+				if job.pos < 0 {
+					mads.idxTree.Delete(job.key)
 				} else {
-					if job.pos < 0 {
-						mads.idxTree.Delete(job.key)
-					} else {
-						mads.idxTree.Set(job.key, job.pos)
-					}
+					mads.idxTree.Set(job.key, job.pos)
 				}
 			}
 			mads.idxTreeJobWG.Done()
