@@ -77,7 +77,7 @@ func NewMoeingADS4Mock(startEndKeys [][]byte) *MoeingADS {
 	return mads
 }
 
-func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (*MoeingADS, error) {
+func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte, recentBlockCount int64) (*MoeingADS, error) {
 	//tscOverhead = gotsc.TSCOverhead()
 	_, err := os.Stat(dirName)
 	dirNotExists := os.IsNotExist(err)
@@ -109,9 +109,9 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 	}
 
 	if canQueryHistory {
-		mads.idxTree = indextree.NewNVTreeMem(mads.rocksdb)
+		mads.idxTree = indextree.NewNVTreeMem(mads.rocksdb, recentBlockCount)
 	} else {
-		mads.idxTree = indextree.NewNVTreeMem(nil)
+		mads.idxTree = indextree.NewNVTreeMem(nil, recentBlockCount)
 	}
 	if dirNotExists { // Create a new database in this dir
 		for i := 0; i < types.ShardCount; i++ {

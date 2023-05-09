@@ -244,7 +244,7 @@ func RunGenerateAccounts(numAccounts int, randFilename string, jsonFile string) 
 
 	addr2num := make(map[[AddrLen]byte]uint64)
 	rs := randsrc.NewRandSrcFromFile(randFilename)
-	mads, err := moeingads.NewMoeingADS("./moeingads4test", false, [][]byte{GuardStart, GuardEnd})
+	mads, err := moeingads.NewMoeingADS("./moeingads4test", false, [][]byte{GuardStart, GuardEnd}, 0)
 	if err != nil {
 		panic(err)
 	}

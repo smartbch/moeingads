@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 	"sync"
 
 	"github.com/smartbch/moeingads/indextree/b"
@@ -13,7 +14,6 @@ import (
 
 const (
 	MaxKeyLength     = 8192
-	RecentBlockCount = 128
 )
 
 type Iterator = types.IteratorUI64
@@ -112,19 +112,28 @@ type NVTreeMem struct {
 	mtx        sync.RWMutex
 	bt         *b.Tree
 	isWriting  bool
-	rocksdb    *RocksDB
+	rocksdb    *RocksDB // only used in archive mode
 	currHeight [8]byte
 	duringInit bool
+
+	recentCache      *RecentCache
+	recentBlockCount uint64
+	currHeightI64    int64
 }
 
 var _ types.IndexTree = (*NVTreeMem)(nil)
 
-func NewNVTreeMem(rocksdb *RocksDB) *NVTreeMem {
+func NewNVTreeMem(rocksdb *RocksDB, recentBlockCount int64) *NVTreeMem {
 	btree := b.TreeNew()
-	return &NVTreeMem{
-		bt:      btree,
-		rocksdb: rocksdb,
+	res := &NVTreeMem{
+		bt:               btree,
+		rocksdb:          rocksdb,
+		recentBlockCount: uint64(recentBlockCount),
 	}
+	if recentBlockCount > 0 {
+		res.recentCache = NewRecentCache()
+	}
+	return res
 }
 
 // Load the RocksDB and use its up-to-date records to initialize the in-memory B-Tree.
@@ -182,6 +191,10 @@ func (tree *NVTreeMem) BeginWrite(currHeight int64) {
 	}
 	tree.isWriting = true
 	binary.BigEndian.PutUint64(tree.currHeight[:], uint64(currHeight))
+	tree.currHeightI64 = currHeight
+	if currHeight > int64(tree.recentBlockCount) && tree.recentCache != nil {
+		tree.recentCache.Prune(currHeight - int64(tree.recentBlockCount))
+	}
 }
 
 // End the write phase of block execution
@@ -193,13 +206,30 @@ func (tree *NVTreeMem) EndWrite() {
 	tree.mtx.Unlock()
 }
 
+func (tree *NVTreeMem) DumpRecentCache(start, end int64) {
+	tree.recentCache.Dump(start, end)
+}
+
 // Update or insert a key-position record to B-Tree and RocksDB
 // Write the historical record to RocksDB
 func (tree *NVTreeMem) Set(k []byte, v int64) {
+	tree.SetAtHeight(k, v, tree.currHeightI64)
+}
+
+func (tree *NVTreeMem) SetAtHeight(k []byte, v, h int64) {
 	if !tree.isWriting {
 		panic("tree.isWriting must be true! bug here...")
 	}
-	tree.bt.Set(binary.BigEndian.Uint64(k), v)
+	key := binary.BigEndian.Uint64(k)
+	if tree.recentCache == nil {
+		tree.bt.Set(key, v)
+	} else {
+		oldV, foundOld := tree.bt.PutNewAndGetOld(key, v)
+		if !foundOld {
+			oldV = math.MaxInt64
+		}
+		tree.recentCache.SetAtHeight(h, key, oldV)
+	}
 
 	if tree.rocksdb == nil || tree.duringInit {
 		return
@@ -237,7 +267,19 @@ func (tree *NVTreeMem) Get(k []byte) (int64, bool) {
 
 // Get the position of k, at the specified height.
 func (tree *NVTreeMem) GetAtHeight(k []byte, height uint64) (position int64, ok bool) {
-	if h, enable := tree.rocksdb.GetPruneHeight(); enable && height <= h {
+	if height + tree.recentBlockCount > uint64(tree.currHeightI64) && tree.recentCache != nil {
+		tree.mtx.RLock()
+		defer tree.mtx.RUnlock()
+		position, ok = tree.recentCache.FindFrom(int64(height+1), tree.currHeightI64, binary.BigEndian.Uint64(k))
+		if ok && position == math.MaxInt64 { // did not exist at height
+			return 0, false
+		}
+		if !ok { // not touched after height
+			position, ok = tree.Get(k)
+		}
+		return // got the old position at height
+	}
+	if tree.rocksdb == nil {
 		return 0, false
 	}
 	newK := make([]byte, 1+len(k)+8) // all bytes equal zero
@@ -262,15 +304,22 @@ func (tree *NVTreeMem) GetAtHeight(k []byte, height uint64) (position int64, ok 
 // Delete a key-position record in B-Tree and RocksDB
 // Write the historical record to RocksDB
 func (tree *NVTreeMem) Delete(k []byte) {
+	tree.DeleteAtHeight(k, tree.currHeightI64)
+}
+
+func (tree *NVTreeMem) DeleteAtHeight(k []byte, h int64) {
 	if !tree.isWriting {
 		panic("tree.isWriting must be true! bug here...")
 	}
 	key := binary.BigEndian.Uint64(k)
-	_, ok := tree.bt.Get(key)
+	oldV, ok := tree.bt.Get(key)
 	if !ok {
 		panic(fmt.Sprintf("deleting a nonexistent key: %#v bug here...", key))
 	}
 	tree.bt.Delete(key)
+	if tree.recentCache != nil {
+		tree.recentCache.SetAtHeight(tree.currHeightI64, key, oldV)
+	}
 
 	if tree.rocksdb == nil || tree.duringInit {
 		return

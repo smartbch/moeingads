@@ -138,7 +138,7 @@ func RunFuzz(roundCount int, cfg FuzzConfig, randFilename string) {
 	if err != nil {
 		panic(err)
 	}
-	trMem := it.NewNVTreeMem(rocksdb)
+	trMem := it.NewNVTreeMem(rocksdb, 0)
 	err = trMem.Init(nil)
 	if err != nil {
 		panic(err)
@@ -162,7 +162,7 @@ func RunFuzz(roundCount int, cfg FuzzConfig, randFilename string) {
 			if err != nil {
 				panic(err)
 			}
-			trMem = it.NewNVTreeMem(rocksdb)
+			trMem = it.NewNVTreeMem(rocksdb, 0)
 			err = trMem.Init(nil)
 			if err != nil {
 				panic(err)

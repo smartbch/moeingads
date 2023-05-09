@@ -157,7 +157,7 @@ func RunCheckAccounts(numAccounts int, randFilename string) {
 	defer f.Close()
 	runtime.GC()
 
-	mads, err := moeingads.NewMoeingADS("./moeingads4test", false, [][]byte{GuardStart, GuardEnd})
+	mads, err := moeingads.NewMoeingADS("./moeingads4test", false, [][]byte{GuardStart, GuardEnd}, 0)
 	if err != nil {
 		panic(err)
 	}

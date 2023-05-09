@@ -114,7 +114,7 @@ func runTest(cfg *FuzzConfig) {
 	var mads *moeingads.MoeingADS
 	initRootAndMads := func() {
 		var err error
-		mads, err = moeingads.NewMoeingADS("./moeingads4test", false, [][]byte{GuardStart, GuardEnd})
+		mads, err = moeingads.NewMoeingADS("./moeingads4test", false, [][]byte{GuardStart, GuardEnd}, 0)
 		if err != nil {
 			panic(err)
 		}
