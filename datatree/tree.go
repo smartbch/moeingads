@@ -263,6 +263,17 @@ func (tree *Tree) Close() {
 	tree.deactivedSNList = nil
 }
 
+func (tree *Tree) printNodes() {
+	nList := make([]NodePos, 0, len(tree.nodes))
+	for pos := range tree.nodes {
+		nList = append(nList, pos)
+	}
+	sort.Slice(nList, func(i, j int) bool { return nList[i] < nList[j] })
+	for i, pos := range nList {
+		fmt.Printf("NODE#%d %d-%d %#v\n", i, pos.Level(), pos.Nth(), tree.nodes[pos])
+	}
+}
+
 func calcMaxLevel(youngestTwigID int64) int {
 	return FirstLevelAboveTwig + 63 - bits.LeadingZeros64(uint64(youngestTwigID))
 }
