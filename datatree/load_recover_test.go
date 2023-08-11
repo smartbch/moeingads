@@ -16,6 +16,12 @@ func compareNodes(t *testing.T, nodesA, nodesB map[NodePos]*[32]byte) {
 }
 
 func compareTwigs(t *testing.T, twigMapA, twigMapB map[int64]*Twig) {
+	//for k := range twigMapA {
+	//	fmt.Printf("A %d\n", k)
+	//}
+	//for k := range twigMapB {
+	//	fmt.Printf("B %d\n", k)
+	//}
 	assert.Equal(t, len(twigMapA), len(twigMapB))
 	for id, twigA := range twigMapA {
 		twigB := twigMapB[id]
@@ -29,12 +35,18 @@ func compareTwigs(t *testing.T, twigMapA, twigMapB map[int64]*Twig) {
 	}
 }
 
-func TestLoadTree(t *testing.T) {
+func TestLoadRecover(t *testing.T) {
+	testLoadRecover(t, TwigMask, 6)
+	testLoadRecover(t, LeafCountInTwig*2-10, 10)
+	testLoadRecover(t, LeafCountInTwig*4-3, 3)
+}
+
+func testLoadRecover(t *testing.T, countBefore, countAfter int) {
 	dirName := "./DataTree"
 	_ = os.RemoveAll(dirName)
 	_ = os.Mkdir(dirName, 0700)
 	deactSNList := []int64{101, 999, 1002}
-	tree0, _, _ := buildTestTree(dirName, deactSNList, TwigMask, 6)
+	tree0, _, _ := buildTestTree(dirName, deactSNList, countBefore, countAfter)
 	tree0.EndBlock()
 	tree0.WaitForFlushing()
 	nodes0 := tree0.nodes
@@ -59,3 +71,4 @@ func TestLoadTree(t *testing.T) {
 
 	os.RemoveAll(dirName)
 }
+

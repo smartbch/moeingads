@@ -75,6 +75,7 @@ func (tree *Tree) RecoverEntry(pos int64, entry *Entry, deactivedSNList []int64,
 		tree.youngestTwigID++
 		tree.activeTwigs[tree.youngestTwigID] = CopyNullTwig()
 		tree.mtree4YoungestTwig = NullMT4Twig
+		tree.touchedPosOf512b[(entry.SerialNum + 1)/512] = struct{}{}
 	}
 }
 
