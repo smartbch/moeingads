@@ -58,7 +58,7 @@ func runTest(cfg FuzzConfig) {
 var AllOnes = []byte{255, 255, 255, 255, 255, 255, 255, 255}
 
 type RefHisDb struct {
-	rocksdb    *it.RocksDB
+	kvdb       it.IKVDB
 	batch      types.Batch
 	currHeight [8]byte
 }
@@ -66,7 +66,7 @@ type RefHisDb struct {
 func NewRefHisDb(dirname string) *RefHisDb {
 	db := &RefHisDb{}
 	var err error
-	db.rocksdb, err = it.NewRocksDB(dirname, ".")
+	db.kvdb, err = it.NewRocksDB(dirname, ".")
 	if err != nil {
 		panic(err)
 	}
@@ -74,12 +74,12 @@ func NewRefHisDb(dirname string) *RefHisDb {
 }
 
 func (db *RefHisDb) Close() {
-	db.rocksdb.Close()
+	db.kvdb.Close()
 }
 
 func (db *RefHisDb) BeginWrite(currHeight int64) {
 	//fmt.Printf("========= currHeight %d =========\n", currHeight)
-	db.batch = db.rocksdb.NewBatch()
+	db.batch = db.kvdb.NewBatch()
 	binary.BigEndian.PutUint64(db.currHeight[:], uint64(currHeight))
 }
 
@@ -96,7 +96,7 @@ func (db *RefHisDb) Set(k, v []byte) {
 }
 
 func (db *RefHisDb) Get(k []byte) []byte {
-	return db.rocksdb.Get(append([]byte{1}, k...))
+	return db.kvdb.Get(append([]byte{1}, k...))
 }
 
 func (db *RefHisDb) GetAtHeight(k []byte, height uint64) []byte {
@@ -104,7 +104,7 @@ func (db *RefHisDb) GetAtHeight(k []byte, height uint64) []byte {
 	copyK = append(copyK, AllOnes...)
 	binary.BigEndian.PutUint64(copyK[len(copyK)-8:], height+1) //overwrite the 'AllOnes' part
 	var allZeros [1 + 32 + 8]byte
-	iter := db.rocksdb.ReverseIterator(allZeros[:], copyK)
+	iter := db.kvdb.ReverseIterator(allZeros[:], copyK)
 	defer iter.Close()
 	//fmt.Printf(" the key : %#v copyK %#v\n", iter.Key(), copyK)
 	if !iter.Valid() || len(iter.Value()) == 0 || !bytes.Equal(iter.Key()[1:1+len(k)], k) {

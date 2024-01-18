@@ -24,7 +24,7 @@ const (
 )
 
 type MetaDB struct {
-	kvdb               *indextree.RocksDB
+	kvdb               indextree.IKVDB
 	currHeight         int64
 	lastPrunedTwig     [types.ShardCount]int64
 	maxSerialNum       [types.ShardCount]int64
@@ -35,7 +35,7 @@ type MetaDB struct {
 
 var _ types.MetaDB = (*MetaDB)(nil)
 
-func NewMetaDB(kvdb *indextree.RocksDB) *MetaDB {
+func NewMetaDB(kvdb indextree.IKVDB) *MetaDB {
 	return &MetaDB{kvdb: kvdb}
 }
 

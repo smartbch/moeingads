@@ -74,7 +74,7 @@ func (db *RocksDB) OpenNewBatch() {
 	db.batch = &rocksDBBatch{db, batch}
 }
 
-func NewRocksDB(name string, dir string) (*RocksDB, error) {
+func NewRocksDB(name string, dir string) (IKVDB, error) {
 	// default rocksdb option, good enough for most cases, including heavy workloads.
 	// 64MB table cache, 32MB write buffer
 	// compression: snappy as default, need to -lsnappy to enable.
@@ -93,7 +93,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 	return NewRocksDBWithOptions(name, dir, opts)
 }
 
-func NewRocksDBWithOptions(name string, dir string, opts *gorocksdb.Options) (*RocksDB, error) {
+func NewRocksDBWithOptions(name string, dir string, opts *gorocksdb.Options) (IKVDB, error) {
 	dbPath := filepath.Join(dir, name+".db")
 	filter := HeightCompactionFilter{}
 	opts.SetCompactionFilter(&filter) // use a customized compaction filter
@@ -300,7 +300,6 @@ func (mBatch *rocksDBBatch) Close() {
 		mBatch.batch = nil
 	}
 }
-
 
 //----------------------------------------
 // Iterator

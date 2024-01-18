@@ -38,7 +38,7 @@ type MoeingADS struct {
 	meta           types.MetaDB
 	idxTree        types.IndexTree
 	datTree        [types.ShardCount]types.DataTree
-	rocksdb        *indextree.RocksDB
+	kvdb           indextree.IKVDB
 	k2heMap        *BucketMap // key-to-hot-entry map
 	nkSet          *BucketSet // next-key set
 	tempEntries64  [BucketCount][]*HotEntry
@@ -66,13 +66,13 @@ func NewMoeingADS4Mock(startEndKeys [][]byte) *MoeingADS {
 	mads.idxTree = indextree.NewMockIndexTree()
 
 	var err error
-	mads.rocksdb, err = indextree.NewRocksDB("rocksdb", "./")
+	mads.kvdb, err = indextree.NewRocksDB("rocksdb", "./")
 	if err != nil {
 		panic(err)
 	}
 
-	mads.meta = metadb.NewMetaDB(mads.rocksdb)
-	mads.rocksdb.OpenNewBatch()
+	mads.meta = metadb.NewMetaDB(mads.kvdb)
+	mads.kvdb.OpenNewBatch()
 	mads.initGuards()
 	return mads
 }
@@ -98,18 +98,18 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 		_ = os.Mkdir(dirName, 0700)
 	}
 
-	mads.rocksdb, err = indextree.NewRocksDB("rocksdb", dirName)
+	mads.kvdb, err = indextree.NewRocksDB("rocksdb", dirName)
 	if err != nil {
 		panic(err)
 	}
-	mads.meta = metadb.NewMetaDB(mads.rocksdb)
+	mads.meta = metadb.NewMetaDB(mads.kvdb)
 	if !dirNotExists {
 		mads.meta.ReloadFromKVDB()
 		//mads.meta.PrintInfo()
 	}
 
 	if canQueryHistory {
-		mads.idxTree = indextree.NewNVTreeMem(mads.rocksdb)
+		mads.idxTree = indextree.NewNVTreeMem(mads.kvdb)
 	} else {
 		mads.idxTree = indextree.NewNVTreeMem(nil)
 	}
@@ -118,7 +118,7 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 			suffix := fmt.Sprintf(".%d", i)
 			mads.datTree[i] = datatree.NewEmptyTree(HPFileBufferSize, DefaultHPFileSize, dirName, suffix)
 		}
-		mads.rocksdb.OpenNewBatch()
+		mads.kvdb.OpenNewBatch()
 		mads.meta.Init()
 		for i := 0; i < types.ShardCount; i++ {
 			for j := 0; j < 2048; j++ {
@@ -129,7 +129,7 @@ func NewMoeingADS(dirName string, canQueryHistory bool, startEndKeys [][]byte) (
 			}
 		}
 		mads.initGuards()
-		mads.rocksdb.CloseOldBatch()
+		mads.kvdb.CloseOldBatch()
 	} else {
 		mads.recoverDataTrees(dirName)
 		if canQueryHistory {
@@ -193,8 +193,8 @@ func (mads *MoeingADS) initGuards() {
 	for i := 0; i < types.ShardCount; i++ {
 		mads.datTree[i].WaitForFlushing()
 	}
-	mads.rocksdb.CloseOldBatch()
-	mads.rocksdb.OpenNewBatch()
+	mads.kvdb.CloseOldBatch()
+	mads.kvdb.OpenNewBatch()
 }
 
 func (mads *MoeingADS) recoverDataTrees(dirName string) {
@@ -232,14 +232,14 @@ func (mads *MoeingADS) PrintIdxTree() {
 
 func (mads *MoeingADS) Close() {
 	mads.idxTree.Close()
-	mads.rocksdb.Close()
+	mads.kvdb.Close()
 	for i := 0; i < types.ShardCount; i++ {
 		mads.datTree[i].Close()
 		mads.datTree[i] = nil
 	}
 	mads.meta.Close()
 	mads.idxTree = nil
-	mads.rocksdb = nil
+	mads.kvdb = nil
 	mads.meta = nil
 	mads.k2heMap = nil
 	mads.nkSet = nil
@@ -419,7 +419,7 @@ func (mads *MoeingADS) GetCurrHeight() int64 {
 }
 
 func (mads *MoeingADS) BeginWrite(height int64) {
-	mads.rocksdb.OpenNewBatch()
+	mads.kvdb.OpenNewBatch()
 	mads.idxTree.BeginWrite(height)
 	mads.meta.SetCurrHeight(height)
 }
@@ -712,7 +712,7 @@ func (mads *MoeingADS) EndWrite() {
 	}
 	mads.meta.Commit()
 	mads.idxTree.EndWrite()
-	mads.rocksdb.CloseOldBatch()
+	mads.kvdb.CloseOldBatch()
 }
 
 func (mads *MoeingADS) PruneBeforeHeight(height int64) {
@@ -730,7 +730,7 @@ func (mads *MoeingADS) PruneBeforeHeight(height int64) {
 		end--
 		starts[shardID], ends[shardID] = start, end
 	})
-	mads.rocksdb.OpenNewBatch()
+	mads.kvdb.OpenNewBatch()
 	for shardID := 0; shardID < types.ShardCount; shardID++ {
 		start, end := starts[shardID], ends[shardID]
 		if end > start+datatree.MinPruneCount {
@@ -742,8 +742,8 @@ func (mads *MoeingADS) PruneBeforeHeight(height int64) {
 			mads.meta.SetLastPrunedTwig(shardID, end-1)
 		}
 	}
-	mads.rocksdb.CloseOldBatch()
-	mads.rocksdb.SetPruneHeight(uint64(height))
+	mads.kvdb.CloseOldBatch()
+	mads.kvdb.SetPruneHeight(uint64(height))
 }
 
 func (mads *MoeingADS) CheckHashConsistency() {

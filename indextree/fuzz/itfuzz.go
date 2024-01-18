@@ -31,13 +31,13 @@ var AllOnes = []byte{255, 255, 255, 255, 255, 255, 255, 255}
 var AllZeros = []byte{0, 0, 0, 0, 0, 0, 0, 0}
 
 type NVTreeRef struct {
-	rocksdb    *it.RocksDB
+	kvdb       it.IKVDB
 	batch      types.Batch
 	currHeight [8]byte
 }
 
 func (tree *NVTreeRef) Init(dirname string) (err error) {
-	tree.rocksdb, err = it.NewRocksDB("idxtreeref", dirname)
+	tree.kvdb, err = it.NewRocksDB("idxtreeref", dirname)
 	if err != nil {
 		return err
 	}
@@ -45,12 +45,12 @@ func (tree *NVTreeRef) Init(dirname string) (err error) {
 }
 
 func (tree *NVTreeRef) Close() {
-	tree.rocksdb.Close()
+	tree.kvdb.Close()
 }
 
 func (tree *NVTreeRef) BeginWrite(currHeight int64) {
 	//fmt.Printf("========= currHeight %d =========\n", currHeight)
-	tree.batch = tree.rocksdb.NewBatch()
+	tree.batch = tree.kvdb.NewBatch()
 	binary.BigEndian.PutUint64(tree.currHeight[:], uint64(currHeight))
 }
 
@@ -69,7 +69,7 @@ func (tree *NVTreeRef) Set(k []byte, v int64) {
 }
 
 func (tree *NVTreeRef) Get(k []byte) (int64, bool) {
-	value := tree.rocksdb.Get(append([]byte{1}, k...))
+	value := tree.kvdb.Get(append([]byte{1}, k...))
 	if len(value) == 0 {
 		return 0, false
 	}
@@ -80,7 +80,7 @@ func (tree *NVTreeRef) GetAtHeight(k []byte, height uint64) (position int64, ok 
 	copyK := append([]byte{0}, k...)
 	copyK = append(copyK, AllOnes...)
 	binary.BigEndian.PutUint64(copyK[len(copyK)-8:], height+1) //overwrite the 'AllOnes' part
-	iter := tree.rocksdb.ReverseIterator(AllZeros, copyK)
+	iter := tree.kvdb.ReverseIterator(AllZeros, copyK)
 	defer iter.Close()
 	//fmt.Printf(" the key : %#v copyK %#v\n", iter.Key(), copyK)
 	if !iter.Valid() || len(iter.Value()) == 0 || !bytes.Equal(iter.Key()[1:9], k) {
@@ -97,11 +97,11 @@ func (tree *NVTreeRef) Delete(k []byte) {
 }
 
 func (tree *NVTreeRef) Iterator(start, end []byte) types.Iterator {
-	return tree.rocksdb.Iterator(append([]byte{1}, start...), append([]byte{1}, end...))
+	return tree.kvdb.Iterator(append([]byte{1}, start...), append([]byte{1}, end...))
 }
 
 func (tree *NVTreeRef) ReverseIterator(start, end []byte) types.Iterator {
-	return tree.rocksdb.ReverseIterator(append([]byte{1}, start...), append([]byte{1}, end...))
+	return tree.kvdb.ReverseIterator(append([]byte{1}, start...), append([]byte{1}, end...))
 }
 
 func assert(b bool, s string) {
@@ -208,7 +208,7 @@ func FuzzDelete(trMem *it.NVTreeMem, refTree *NVTreeRef, cfg FuzzConfig, rs rand
 	//return
 }
 
-func FuzzInit(rocksdb *it.RocksDB, trMem *it.NVTreeMem, refTree *NVTreeRef, cfg FuzzConfig, rs randsrc.RandSrc, h uint64, changeMap map[string]int64) {
+func FuzzInit(kvdb it.IKVDB, trMem *it.NVTreeMem, refTree *NVTreeRef, cfg FuzzConfig, rs randsrc.RandSrc, h uint64, changeMap map[string]int64) {
 	for i := 0; i < cfg.InitCount; i++ {
 		// set new key/value
 		key, value := getRandKey(rs), (rs.GetInt64() & ((int64(1) << 48) - 1))
@@ -228,7 +228,7 @@ func FuzzInit(rocksdb *it.RocksDB, trMem *it.NVTreeMem, refTree *NVTreeRef, cfg 
 		assert(ok, "Get must return ok")
 		changeMap[string(key[1:])] = value
 	}
-	rocksdb.OpenNewBatch()
+	kvdb.OpenNewBatch()
 	trMem.BeginWrite(int64(h))
 	refTree.BeginWrite(int64(h))
 	for key, value := range changeMap {
@@ -242,7 +242,7 @@ func FuzzInit(rocksdb *it.RocksDB, trMem *it.NVTreeMem, refTree *NVTreeRef, cfg 
 		}
 	}
 	trMem.EndWrite()
-	rocksdb.CloseOldBatch()
+	kvdb.CloseOldBatch()
 	refTree.EndWrite()
 }
 
