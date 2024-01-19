@@ -112,25 +112,25 @@ type NVTreeMem struct {
 	mtx        sync.RWMutex
 	bt         *b.Tree
 	isWriting  bool
-	rocksdb    *RocksDB
+	kvdb       IKVDB
 	currHeight [8]byte
 	duringInit bool
 }
 
 var _ types.IndexTree = (*NVTreeMem)(nil)
 
-func NewNVTreeMem(rocksdb *RocksDB) *NVTreeMem {
+func NewNVTreeMem(kvdb IKVDB) *NVTreeMem {
 	btree := b.TreeNew()
 	return &NVTreeMem{
-		bt:      btree,
-		rocksdb: rocksdb,
+		bt:   btree,
+		kvdb: kvdb,
 	}
 }
 
 // Load the RocksDB and use its up-to-date records to initialize the in-memory B-Tree.
 // RocksDB's historical records are ignored.
 func (tree *NVTreeMem) Init(repFn func([]byte)) (err error) {
-	iter := tree.rocksdb.ReverseIterator([]byte{}, []byte(nil))
+	iter := tree.kvdb.ReverseIterator([]byte{}, []byte(nil))
 	defer iter.Close()
 	var key []byte
 	for iter.Valid() {
@@ -201,7 +201,7 @@ func (tree *NVTreeMem) Set(k []byte, v int64) {
 	}
 	tree.bt.Set(binary.BigEndian.Uint64(k), v)
 
-	if tree.rocksdb == nil || tree.duringInit {
+	if tree.kvdb == nil || tree.duringInit {
 		return
 	}
 	newK := make([]byte, 0, 1+len(k)+8)
@@ -214,9 +214,9 @@ func (tree *NVTreeMem) Set(k []byte, v int64) {
 }
 
 func (tree *NVTreeMem) batchSet(key, value []byte) {
-	tree.rocksdb.LockBatch()
-	tree.rocksdb.CurrBatch().Set(key, value)
-	tree.rocksdb.UnlockBatch()
+	tree.kvdb.LockBatch()
+	tree.kvdb.CurrBatch().Set(key, value)
+	tree.kvdb.UnlockBatch()
 }
 
 //func (tree *NVTreeMem) batchDelete(key []byte) {
@@ -237,13 +237,13 @@ func (tree *NVTreeMem) Get(k []byte) (int64, bool) {
 
 // Get the position of k, at the specified height.
 func (tree *NVTreeMem) GetAtHeight(k []byte, height uint64) (position int64, ok bool) {
-	if h, enable := tree.rocksdb.GetPruneHeight(); enable && height <= h {
+	if h, enable := tree.kvdb.GetPruneHeight(); enable && height <= h {
 		return 0, false
 	}
 	newK := make([]byte, 1+len(k)+8) // all bytes equal zero
 	copy(newK[1:], k)
 	binary.BigEndian.PutUint64(newK[1+len(k):], height+1)
-	iter := tree.rocksdb.ReverseIterator([]byte{}, newK)
+	iter := tree.kvdb.ReverseIterator([]byte{}, newK)
 	defer iter.Close()
 	if !iter.Valid() || !bytes.Equal(iter.Key()[1:1+len(k)], k) { //not exists or to a different key
 		return 0, false
@@ -272,7 +272,7 @@ func (tree *NVTreeMem) Delete(k []byte) {
 	}
 	tree.bt.Delete(key)
 
-	if tree.rocksdb == nil || tree.duringInit {
+	if tree.kvdb == nil || tree.duringInit {
 		return
 	}
 	newK := make([]byte, 0, 1+len(k)+8)

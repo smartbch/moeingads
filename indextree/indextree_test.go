@@ -30,7 +30,7 @@ func mustGetH(tree *NVTreeMem, key uint64, height uint64) int64 {
 	return res
 }
 
-func createNVTreeMem(dirname string) (*RocksDB, *NVTreeMem) {
+func createNVTreeMem(dirname string) (IKVDB, *NVTreeMem) {
 	rocksdb, err := NewRocksDB("idxtree", dirname)
 	if err != nil {
 		panic(err)
